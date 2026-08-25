@@ -118,7 +118,7 @@ export async function nativeFetchText(url) {
 export async function nativeStatus() {
   const info=nativeInfo();
   if(!info) return null;
-  if(isNativeAndroid())return {ok:true,platform:'android',version:String(androidBridge().version?.()||'0.8.1')};
+  if(isNativeAndroid())return {ok:true,platform:'android',version:String(androidBridge().version?.()||'0.8.2')};
   const res=await fetch('/native/status',{cache:'no-store'});
   if(!res.ok)return null;
   return res.json();

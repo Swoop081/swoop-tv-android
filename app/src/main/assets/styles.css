@@ -666,21 +666,166 @@ button,.btn,.card,.nav-btn,.icon-btn{touch-action:manipulation;-webkit-tap-highl
 .detail-remove-continue:hover,.detail-remove-continue:focus-visible{background:rgba(229,45,63,.18);border-color:rgba(229,45,63,.72)}
 @media(max-width:700px){.continue-remove-btn{right:7px;top:7px;padding:6px 8px;font-size:8px}}
 
-/* v0.8.1 — Google TV / Android TV 10-foot focus treatment */
-html.android-tv{font-size:108%;scroll-behavior:smooth}
+/* v0.8.2 — Google TV density + 1080p safe-area pass */
+html.android-tv{font-size:92%;scroll-behavior:smooth}
 html.android-tv body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 html.android-tv input,html.android-tv textarea{user-select:text;-webkit-user-select:text}
-html.android-tv .nav-btn,html.android-tv .profile-btn,html.android-tv .btn,html.android-tv .genre-tile,html.android-tv .season-pills button{min-height:46px}
+
+/* Google TV WebView can expose 1080p as a much smaller CSS viewport. The Android
+   shell uses a 1440px logical viewport; these rules then keep the 10-foot UI
+   compact enough to show full navigation, dialogs and settings without clipping. */
+html.android-tv .app-shell{padding-bottom:0}
+html.android-tv .topbar{height:58px;padding:0 3.2vw;gap:22px}
+html.android-tv .brand{font-size:20px;gap:6px}
+html.android-tv .brand-mark{width:30px;height:30px;border-radius:7px;font-size:17px}
+html.android-tv .brand b{font-size:9px;margin-top:-7px}
+html.android-tv .desktop-nav{gap:2px}
+html.android-tv .nav-btn{padding:8px 10px;font-size:12px;min-height:36px}
+html.android-tv .top-actions{gap:8px}
+html.android-tv .icon-btn{width:34px;height:34px;font-size:19px}
+html.android-tv .top-provider{padding:7px 11px;font-size:10px}
+html.android-tv .profile-btn{width:31px;height:31px}
+
+html.android-tv .hero{min-height:min(520px,74vh)}
+html.android-tv .hero-content{width:min(600px,49vw);padding:0 0 70px 3.5vw}
+html.android-tv .hero h1{font-size:clamp(42px,4.6vw,68px);line-height:.91;margin-bottom:14px;max-width:11ch}
+html.android-tv .hero-title-slot{min-height:48px;margin-bottom:14px}
+html.android-tv .hero-title-logo{max-width:min(390px,31vw);max-height:118px}
+html.android-tv .hero-brandline{font-size:9px;margin-bottom:9px}
+html.android-tv .swoop-mini{width:20px;height:20px}
+html.android-tv .hero-meta{font-size:11px;gap:9px;margin-bottom:11px}
+html.android-tv .hero-meta span:not(:last-child):after{margin-left:9px}
+html.android-tv .hero p{font-size:13px;line-height:1.42;max-width:54ch;-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+html.android-tv .cta-row{gap:8px;margin-top:15px}
+html.android-tv .btn{padding:9px 16px;font-size:11px;min-height:36px}
+html.android-tv .btn.play-btn{font-size:13px;padding:10px 18px}
+html.android-tv .hero-secondary{font-size:12px;padding:10px 14px}
+html.android-tv .hero-poster{right:5vw;top:10%;height:72%;max-width:29vw}
+
+html.android-tv .content{padding:0 3.5vw 34px}
+html.android-tv .home-content{margin-top:-46px;padding-bottom:46px}
+html.android-tv .library-strip{padding:9px 12px;margin-bottom:19px;gap:14px}
+html.android-tv .section{margin-bottom:23px}
+html.android-tv .home-priority-row{margin-bottom:26px}
+html.android-tv .section-head{min-height:25px;margin-bottom:7px}
+html.android-tv .section h2,html.android-tv .home-priority-row .section-head h2{font-size:clamp(18px,1.55vw,23px)}
+html.android-tv .section-meta{font-size:9px}
+html.android-tv .rail-arrow{font-size:25px}
+html.android-tv .rail{grid-auto-columns:minmax(180px,14.5vw);gap:7px;padding:8px 32px 14px 3px;margin:-6px -32px -10px -3px;scroll-padding-inline:3.5vw}
+html.android-tv .card-title{font-size:12px}
+html.android-tv .card-sub{font-size:9px;margin-top:3px}
+html.android-tv .card:hover,html.android-tv .card:focus-visible{transform:scale(1.045);z-index:90}
+html.android-tv .poster-content-grid,html.android-tv .search-results{grid-template-columns:repeat(auto-fill,minmax(142px,1fr))}
+html.android-tv .live-content-grid{grid-template-columns:repeat(auto-fill,minmax(205px,1fr))}
+
+html.android-tv .page{min-height:100vh}
+html.android-tv .page-hero{height:300px}
+html.android-tv .page-hero-copy{left:3.5vw;bottom:43px;max-width:560px}
+html.android-tv .page-hero h1,html.android-tv .search-hero h1,html.android-tv .settings-hero h1{font-size:clamp(38px,4vw,54px);margin:6px 0 9px}
+html.android-tv .page-hero p,html.android-tv .settings-hero p{font-size:12px;line-height:1.4}
+html.android-tv .page-content{padding:0 3.5vw 36px}
+html.android-tv .page-toolbar{margin-bottom:15px}
+html.android-tv .search-page,html.android-tv .settings-page{padding-top:58px}
+html.android-tv .search-hero,html.android-tv .settings-hero{padding:32px 3.5vw 24px}
+html.android-tv .search-hero h1{margin-bottom:15px}
+html.android-tv .searchbox-large{max-width:720px}
+html.android-tv .searchbox-large>span{left:15px;font-size:20px}
+html.android-tv .searchbox input{padding:12px 16px 12px 44px;font-size:14px}
+html.android-tv .search-results{padding-top:18px}
+html.android-tv .search-people{padding-top:18px}
+html.android-tv .search-section-head{margin-bottom:10px}
+html.android-tv .search-section-head h2{font-size:20px}
+html.android-tv .search-person-card{width:112px;flex-basis:112px}
+html.android-tv .search-person-card img,html.android-tv .search-person-fallback{width:88px;height:88px;margin-bottom:7px}
+html.android-tv .search-person-card strong{font-size:11px}
+
+html.android-tv .settings-list{gap:9px;padding-top:18px}
+html.android-tv .setting-card{grid-template-columns:52px minmax(0,1fr);gap:13px;padding:14px 16px;border-radius:8px}
+html.android-tv .setting-icon{width:46px;height:46px;border-radius:8px;font-size:11px}
+html.android-tv .setting-main h3{font-size:17px;margin-bottom:3px}
+html.android-tv .setting-main>p{font-size:11px;line-height:1.38}
+html.android-tv .setting-stats{gap:18px;margin:10px 0 2px}
+html.android-tv .setting-stats span{font-size:8px}
+html.android-tv .setting-stats strong{font-size:18px}
+html.android-tv .kv{padding:7px 0;font-size:10px}
+html.android-tv .theme-studio-card{grid-template-columns:minmax(170px,.65fr) 2fr;gap:15px;padding:14px;margin-bottom:12px}
+html.android-tv .theme-studio-copy h3{font-size:24px;margin:4px 0 6px}
+html.android-tv .theme-studio-copy p{font-size:10px}
+html.android-tv .theme-picker-grid{gap:7px}
+html.android-tv .theme-choice{grid-template-columns:86px 1fr;gap:9px;padding:7px;border-radius:11px}
+html.android-tv .theme-swatch{height:49px}
+html.android-tv .theme-choice strong{font-size:11px}
+
+html.android-tv .modal-backdrop{padding:16px}
+html.android-tv .modal,html.android-tv .provider-modal,html.android-tv .multi-provider-modal{max-height:84vh}
+html.android-tv .modal{width:min(690px,88vw)}
+html.android-tv .modal-head{padding:14px 17px}
+html.android-tv .modal-head h2{font-size:20px}
+html.android-tv .modal-body{padding:15px 17px 17px}
+html.android-tv .form-grid{gap:9px}
+html.android-tv .field label{font-size:9px;margin-bottom:4px}
+html.android-tv .field input,html.android-tv .field select{padding:9px 11px;font-size:11px}
+html.android-tv .form-hint{font-size:9px}
+html.android-tv .divider{margin:12px 0}
+html.android-tv .status{padding:9px 11px;font-size:10px;margin-top:9px}
+html.android-tv .provider-modal{width:min(760px,90vw)}
+html.android-tv .provider-modal-head{padding:16px 19px 13px}
+html.android-tv .provider-modal-head h2{font-size:22px}
+html.android-tv .provider-modal-body{padding:15px 19px 18px}
+html.android-tv .provider-manager-card{padding:12px;gap:10px}
+html.android-tv .provider-manager-stats{margin:9px 0;gap:6px}
+html.android-tv .provider-manager-stats span{padding:6px 8px;font-size:.66rem}
+html.android-tv .provider-manager-actions{gap:6px}
+html.android-tv .provider-filter-pills{padding-bottom:10px}
+html.android-tv .provider-filter-pills button{padding:7px 11px;font-size:.68rem}
+
+html.android-tv .detail-hero,html.android-tv .detail-route .detail-hero{min-height:min(540px,100vh)}
+html.android-tv .detail-close{top:17px;left:3.5vw;width:36px;height:36px;font-size:19px}
+html.android-tv .detail-copy{width:min(640px,54vw);padding:0 0 52px 3.5vw}
+html.android-tv .detail-copy h2{font-size:clamp(42px,5.2vw,72px);margin-bottom:13px}
+html.android-tv .detail-title-logo{max-width:min(410px,34vw);max-height:135px;margin-bottom:14px}
+html.android-tv .detail-title-slot{margin-bottom:13px}
+html.android-tv .detail-meta{font-size:10px;gap:8px}
+html.android-tv .detail-copy p{font-size:12px;line-height:1.43;-webkit-line-clamp:3}
+html.android-tv .detail-poster{right:4vw;bottom:32px;width:min(20vw,250px);max-height:67%}
+html.android-tv .detail-episodes,html.android-tv .detail-info,html.android-tv .detail-related,html.android-tv .detail-cast{padding-left:3.5vw;padding-right:3.5vw;padding-top:23px}
+html.android-tv .detail-section-head{margin-bottom:12px}
+html.android-tv .detail-section-head h3,html.android-tv .detail-info h3{font-size:22px}
+html.android-tv .season-pills button{padding:7px 10px;font-size:8px;min-height:32px}
+html.android-tv .episode-card{grid-template-columns:minmax(150px,205px) 1fr;gap:14px;padding:8px 4px}
+html.android-tv .episode-copy strong{font-size:12px}
+html.android-tv .episode-copy p{font-size:10px;margin-top:5px}
+html.android-tv .cast-rail{grid-auto-columns:108px;gap:10px}
+html.android-tv .cast-card img,html.android-tv .cast-fallback{width:90px;height:90px}
+
+html.android-tv .guide-browser{grid-template-columns:190px minmax(0,1fr);gap:11px;padding-top:12px}
+html.android-tv .guide-categories{top:72px;max-height:calc(100vh - 90px)}
+html.android-tv .guide-categories-head{padding:12px 11px 9px}
+html.android-tv .guide-categories-head h2{font-size:19px}
+html.android-tv .guide-category-list{padding:5px}
+html.android-tv .guide-category{padding:8px 7px}
+html.android-tv .guide-category span{font-size:9px}
+html.android-tv .guide-schedule-head{min-height:48px;padding-bottom:8px}
+html.android-tv .guide-schedule-head h2{font-size:20px}
+html.android-tv .guide-grid-scroll .guide-grid{min-width:760px}
+
+html.android-tv .live-category-rail-track,html.android-tv .live-rail-skeleton{grid-auto-columns:minmax(115px,9.5vw);gap:9px}
+html.android-tv .media-rail-skeleton{grid-auto-columns:minmax(138px,11vw)}
+html.android-tv .media-category-section{margin-bottom:23px}
+html.android-tv .media-category-section .section-head h2{font-size:clamp(18px,1.55vw,23px)}
+html.android-tv .live-rail-card strong{font-size:10px}
+html.android-tv .live-rail-card small{font-size:7px}
+
+/* Focus must remain obvious at 10 feet, without enlarging cards enough to hide neighbours. */
 html.android-tv button:focus-visible,
 html.android-tv a:focus-visible,
 html.android-tv [tabindex]:focus-visible,
 html.android-tv input:focus-visible,
 html.android-tv select:focus-visible,
 html.android-tv textarea:focus-visible,
-html.android-tv summary:focus-visible{outline:4px solid #fff!important;outline-offset:5px!important;box-shadow:0 0 0 5px rgba(109,98,255,.72),0 15px 38px rgba(0,0,0,.7)!important;z-index:90}
-html.android-tv .card:focus-visible{transform:scale(1.085);z-index:90}
-html.android-tv .live-rail-card:focus-visible .live-rail-logo{transform:translateY(-4px) scale(1.055);border-color:#fff;box-shadow:0 0 0 4px rgba(109,98,255,.7),0 18px 38px rgba(0,0,0,.65)}
-html.android-tv .search-person-card:focus-visible{outline:4px solid #fff!important;outline-offset:7px!important}
-html.android-tv .guide-channel:focus-visible,html.android-tv .guide-program:focus-visible{outline:3px solid #fff!important;outline-offset:-3px!important;z-index:12}
-html.android-tv .rail,html.android-tv .live-category-rail-track,html.android-tv .media-category-rail-track,html.android-tv .search-people-rail{scroll-padding-inline:5vw}
-html.android-tv .modal-card,html.android-tv .source-choice-card{max-height:88vh;overflow:auto}
+html.android-tv summary:focus-visible{outline:3px solid #fff!important;outline-offset:3px!important;box-shadow:0 0 0 3px rgba(109,98,255,.72),0 10px 26px rgba(0,0,0,.7)!important;z-index:90}
+html.android-tv .live-rail-card:focus-visible .live-rail-logo{transform:translateY(-2px) scale(1.025);border-color:#fff;box-shadow:0 0 0 3px rgba(109,98,255,.7),0 12px 28px rgba(0,0,0,.65)}
+html.android-tv .search-person-card:focus-visible{outline:3px solid #fff!important;outline-offset:4px!important}
+html.android-tv .guide-channel:focus-visible,html.android-tv .guide-program:focus-visible{outline:2px solid #fff!important;outline-offset:-2px!important;z-index:12}
+html.android-tv .rail,html.android-tv .live-category-rail-track,html.android-tv .media-category-rail-track,html.android-tv .search-people-rail{scroll-padding-inline:3.5vw}
+html.android-tv .modal-card,html.android-tv .source-choice-card{max-height:84vh;overflow:auto}

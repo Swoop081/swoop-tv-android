@@ -1,4 +1,4 @@
-# Swoop TV v0.8.1 — Google TV hardware test checklist
+# Swoop TV v0.8.2 — Google TV hardware test checklist
 
 ## First launch and remote
 - [ ] Swoop TV appears in the Google TV Apps list with its TV banner.

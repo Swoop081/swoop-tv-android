@@ -1,33 +1,33 @@
-# Swoop TV v0.8.1 — Google TV test build
+# Swoop TV v0.8.2 — Google TV test build
 
 This Android TV shell embeds the Swoop TV v0.7.45 product build and packages it as `tv.swoop.player` for Google TV / Android TV hardware testing.
 
 ## GitHub Actions — recommended test build
 
-1. Put this project at the root of a GitHub repository.
+1. Put this project at the root of the same GitHub repository used for the first Google TV test.
 2. Open **Actions** → **Build Swoop TV Google TV APK**.
-3. Leave **Publish/update the v0.8.1 Google TV test release for Downloader** enabled.
+3. Leave **Publish/update the stable Google TV test APK used by Downloader code 3682231** enabled.
 4. Choose **Run workflow**.
-5. The workflow builds `Swoop-TV-v0.8.1-Google-TV-Test.apk`, stores it as an Actions artifact, and publishes it to the prerelease tag `google-tv-test-v0.8.1`.
-6. For a **public repository**, the workflow summary prints the direct Downloader URL. It has this form:
+5. The workflow builds the real v0.8.2 APK and also copies it to the existing stable compatibility filename.
+6. The existing release path remains:
 
    `https://github.com/OWNER/REPO/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-A private repository can still build the APK, but Downloader cannot use the private release URL without GitHub authentication; use the downloaded APK from the Actions artifact and host it at an accessible HTTPS URL instead.
+That path is intentionally unchanged so **Downloader code 3682231** continues to fetch the newest test build. The APK installed from it reports **Swoop TV 0.8.2 / versionCode 802**.
 
-The workflow installs Android SDK 36 / Build Tools 36.0.0, JDK 17 and Gradle 9.5.0, then creates a test-signed APK suitable for hardware testing. The repository contains a **test-only** signing key so v0.8.x test APKs keep the same signing identity and can install over earlier test builds while preserving app data. Never use this key for a production release.
+The workflow also publishes `Swoop-TV-v0.8.2-Google-TV-Test.apk` beside the compatibility alias for clean version tracking.
 
-## Install with Downloader on Google TV
+A private repository can still build the APK, but Downloader cannot use a private release asset without GitHub authentication.
 
-For the simplest living-room test flow, host `Swoop-TV-v0.8.1-Google-TV-Test.apk` at a direct HTTPS download URL you control, then:
+## Update on Google TV
 
-1. Install **Downloader** on Google TV.
-2. Allow Downloader to **Install unknown apps** in Google TV settings.
-3. Enter the direct APK URL in Downloader.
-4. Download the APK and choose **Install**.
-5. Launch **Swoop TV** from the Google TV Apps screen.
+1. Push/replace the project files in the GitHub repository.
+2. Run the Android TV workflow with publishing enabled.
+3. On Google TV open **Downloader**.
+4. Enter **3682231**.
+5. Install the downloaded APK and choose **Update** when Android prompts.
 
-Later v0.8.x test builds use the same `tv.swoop.player` application ID and the included test-only signing identity, so Android can install them over the previous test build and preserve app data. A production release must use a separate permanent private release key; do not reuse the test key.
+The app ID and test signing identity are unchanged, so test data/providers should remain in place.
 
 ## Local Android build
 

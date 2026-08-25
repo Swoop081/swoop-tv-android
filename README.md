@@ -1,27 +1,23 @@
-# Swoop TV v0.8.1 — Google TV Test
+# Swoop TV v0.8.2 — Google TV Density + Safe-Area Test
 
-Google TV / Android TV hardware-test branch built from **Swoop TV v0.7.45 — Production Polish + Playlist Expiry**.
+Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## Included
-- Existing Swoop TV HTML/CSS/JavaScript interface embedded in a native Android TV shell.
-- Application ID `tv.swoop.player`.
-- Android TV / Google TV launcher declarations and 320×180 TV banner.
-- Landscape immersive mode.
-- 10-foot focus treatment and spatial D-pad navigation.
-- Android Back integration with Swoop TV routes and overlays.
-- Native Media3/ExoPlayer playback for Live TV, movies and episodes.
-- Remote pause/resume, seek and live URL switching.
-- Direct native Xtream/M3U/XMLTV fetching, including plain HTTP IPTV endpoints.
-- Secure WebView app-assets origin for the embedded ES-module UI.
-- WebView renderer recovery by Activity recreation.
-- v0.7.45 playlist expiry, production-copy cleanup and true empty-library behaviour.
+## v0.8.2 focus
 
-## Test-build status
+- Fixes the first-device feedback that the Google TV UI was oversized and controls/options could sit off-screen.
+- Uses a 1440px logical TV viewport together with Android WebView wide-viewport + overview fitting.
+- Removes the v0.8.1 108% TV font enlargement.
+- Reduces top navigation, hero, content rails, settings cards, dialogs, provider management, title details, Guide and focus growth.
+- Keeps remote focus clearly visible without enlarging the focused card enough to hide adjacent options.
+- Preserves v0.7.45 playlist expiry, production copy cleanup and true empty-library behaviour.
+- Preserves native Media3 playback, D-pad navigation, Android Back and HTTP IPTV compatibility.
 
-This branch is intended for physical Google TV testing. The debug APK should not be treated as a production-distribution build. Complete `ANDROID_TV_CERTIFICATION.md` on real hardware before promoting the TV branch.
+## Downloader test channel
 
-See `BUILD_APK.md` for GitHub Actions, local build and Downloader installation instructions.
+The GitHub Actions workflow continues to replace the existing stable test asset at:
 
-## Test signing
+`google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-The Google TV test branch uses an intentionally non-secret, test-only signing key so repeated v0.8.x hardware builds can update the installed app without wiping its data. Production releases must use a separate private signing key.
+This intentionally preserves the URL already shortened as **Downloader code 3682231**, while the installed Android app reports version **0.8.2 (802)**. The workflow also publishes a correctly versioned `Swoop-TV-v0.8.2-Google-TV-Test.apk` asset for archive/reference.
+
+The bundled signing key is test-only. Never use it for a production release.

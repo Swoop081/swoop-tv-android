@@ -1,4 +1,20 @@
-# Swoop TV Release Notes
+# Swoop TV Android TV Release Notes
+
+## v0.8.2 — Google TV Density + Safe-Area Pass
+
+- Corrects the oversized first Google TV hardware build where navigation, options and settings could extend off-screen.
+- Changes the Android TV HTML viewport from device-width to a fixed 1440px logical TV canvas.
+- Enables WebView `setUseWideViewPort(true)` and `setLoadWithOverviewMode(true)` so the logical TV canvas is fitted to the physical display width.
+- Removes the v0.8.1 108% Android TV font enlargement and moves to a compact 92% TV root size.
+- Reduces TV-specific top bar, hero, rail/card, page header, Search, Settings, modal/provider, title-detail, episode, cast and Guide sizing.
+- Reduces focused-card growth from 8.5% to 4.5% while retaining high-contrast D-pad focus rings.
+- Keeps dialogs within 84% of viewport height with internal scrolling so action rows remain reachable.
+- Preserves all v0.8.1 native playback, Android Back, D-pad, provider-fetch and renderer-recovery work.
+- Preserves all v0.7.45 playlist-expiry, no-demo and production-cleanup behaviour.
+- Android version is 0.8.2 / versionCode 802.
+- GitHub Actions publishes both the versioned v0.8.2 APK and a stable compatibility alias at the existing v0.8.1 release URL so Downloader code **3682231** remains valid.
+
+## Previous Android TV test notes
 
 ## v0.8.1 — Google TV Hardware Test — 26 August 2026
 
