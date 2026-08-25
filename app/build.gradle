@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'tv.swoop.player'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'tv.swoop.player'
+        minSdk 23
+        targetSdk 36
+        versionCode 801
+        versionName '0.8.1'
+    }
+
+    signingConfigs {
+        testDebug {
+            storeFile file('../test-signing/swoop-tv-test.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ''
+            signingConfig signingConfigs.testDebug
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += ['/META-INF/{AL2.0,LGPL2.1}']
+        }
+    }
+}
+
+dependencies {
+    def media3Version = '1.11.0'
+    implementation "androidx.media3:media3-exoplayer:${media3Version}"
+    implementation "androidx.media3:media3-exoplayer-hls:${media3Version}"
+    implementation "androidx.media3:media3-ui:${media3Version}"
+    implementation "androidx.webkit:webkit:1.15.0"
+}

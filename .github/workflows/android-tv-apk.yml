@@ -1,0 +1,90 @@
+name: Build Swoop TV Google TV APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_downloader_release:
+        description: 'Publish/update the v0.8.1 Google TV test release for Downloader'
+        required: false
+        default: true
+        type: boolean
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'test-signing/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/android-tv-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle 9.5.0
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Build Google TV test APK
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Name APK and checksum
+        shell: bash
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
+
+      - name: Upload Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Swoop-TV-v0.8.1-Google-TV-Test
+          path: |
+            Swoop-TV-v0.8.1-Google-TV-Test.apk
+            Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish Downloader test release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_downloader_release }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="google-tv-test-v0.8.1"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "Swoop TV v0.8.1 — Google TV Test" \
+              --notes "Hardware-test APK. Test-only signing identity; not a production release." \
+              --prerelease
+          fi
+          gh release upload "$TAG" \
+            Swoop-TV-v0.8.1-Google-TV-Test.apk \
+            Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
+            --clobber
+          echo "Downloader URL: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/Swoop-TV-v0.8.1-Google-TV-Test.apk" >> "$GITHUB_STEP_SUMMARY"

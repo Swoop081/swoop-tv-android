@@ -1,0 +1,13 @@
+{
+  "name": "Swoop TV",
+  "short_name": "Swoop TV",
+  "description": "A content-neutral IPTV player for user-provided M3U and Xtream sources.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "any",
+  "icons": [
+    {"src":"./assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
