@@ -1,5 +1,19 @@
 # Swoop TV Android TV Release Notes
 
+## v0.8.3 — Google TV Startup Responsiveness
+
+- Fixes the first large-library Google TV hardware stall: the profile picker could appear frozen for roughly a minute and Home could become unresponsive after entry.
+- Android TV no longer performs a full automatic provider refresh before the interface is usable. Provider refresh remains available from Provider management.
+- Profile selection now enters Home immediately and restores a large saved library behind a lightweight loading state instead of blocking the profile screen.
+- Home is explicitly reset to the top on profile entry, preventing stale WebView scroll restoration from opening halfway down the page.
+- Adds a Google TV large-library Home fast path that avoids synchronous full-catalog movie/live stacking during initial rendering and card lookup.
+- Only three Home rows are mounted eagerly on large Android TV libraries, with 18 standard / 20 ranked cards per mounted row to keep D-pad geometry work bounded.
+- Automatic discovery matching is deferred on the TV large-library fast path so background catalogue work cannot immediately monopolize the JavaScript thread.
+- D-pad focus scrolling is immediate rather than smooth on Android TV.
+- Preserves v0.8.2 density/safe-area sizing and all v0.8.1 native playback/remote integration.
+- Android version is 0.8.3 / versionCode 803.
+- The stable Downloader asset path is unchanged, so code **3682231** remains valid.
+
 ## v0.8.2 — Google TV Density + Safe-Area Pass
 
 - Corrects the oversized first Google TV hardware build where navigation, options and settings could extend off-screen.

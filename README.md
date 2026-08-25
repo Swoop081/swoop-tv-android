@@ -1,23 +1,25 @@
-# Swoop TV v0.8.2 — Google TV Density + Safe-Area Test
+# Swoop TV v0.8.3 — Google TV Startup Responsiveness
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.2 focus
+## v0.8.3 focus
 
-- Fixes the first-device feedback that the Google TV UI was oversized and controls/options could sit off-screen.
-- Uses a 1440px logical TV viewport together with Android WebView wide-viewport + overview fitting.
-- Removes the v0.8.1 108% TV font enlargement.
-- Reduces top navigation, hero, content rails, settings cards, dialogs, provider management, title details, Guide and focus growth.
-- Keeps remote focus clearly visible without enlarging the focused card enough to hide adjacent options.
-- Preserves v0.7.45 playlist expiry, production copy cleanup and true empty-library behaviour.
-- Preserves native Media3 playback, D-pad navigation, Android Back and HTTP IPTV compatibility.
+- Stops Android TV from auto-refreshing the entire IPTV provider before the app becomes usable. Provider refresh is now user-initiated on Google TV.
+- Makes profile selection transition immediately into Home instead of leaving the profile screen apparently frozen while a large saved library restores.
+- Restores the saved library behind a lightweight, navigable Home loading state.
+- Forces a profile-entered Home session to start at the top instead of inheriting a stale browser scroll position.
+- Adds a large-library TV fast path so Home does not synchronously build full movie/live source-stack indexes before accepting remote input.
+- Limits Home rails to TV-sized initial card sets and only mounts three rows eagerly, reducing DOM/focus geometry work on each D-pad press.
+- Disables automatic Home discovery refresh during the large-library TV fast path so remote navigation cannot be blocked by full-catalog matching work immediately after launch.
+- Changes TV focus scrolling from smooth animation to immediate movement for snappier D-pad response.
+- Preserves the v0.8.2 density/safe-area pass, v0.7.45 playlist expiry/no-demo cleanup, Android Back, HTTP IPTV support and Media3 playback.
 
 ## Downloader test channel
 
-The GitHub Actions workflow continues to replace the existing stable test asset at:
+The GitHub Actions workflow still replaces the stable test asset at:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-This intentionally preserves the URL already shortened as **Downloader code 3682231**, while the installed Android app reports version **0.8.2 (802)**. The workflow also publishes a correctly versioned `Swoop-TV-v0.8.2-Google-TV-Test.apk` asset for archive/reference.
+That keeps **Downloader code 3682231** valid. The installed app reports **0.8.3 (803)**, and the workflow also publishes `Swoop-TV-v0.8.3-Google-TV-Test.apk` for version tracking.
 
-The bundled signing key is test-only. Never use it for a production release.
+The bundled signing key is test-only. Never use it for production.

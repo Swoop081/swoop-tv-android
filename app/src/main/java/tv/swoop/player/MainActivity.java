@@ -118,7 +118,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.2 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.3 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -328,7 +328,7 @@ public class MainActivity extends Activity {
         c.setReadTimeout(60_000);
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.2 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.3 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream());
@@ -352,7 +352,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.2"; }
+        public String version() { return "0.8.3"; }
 
         @JavascriptInterface
         public String play(String payloadJson) {

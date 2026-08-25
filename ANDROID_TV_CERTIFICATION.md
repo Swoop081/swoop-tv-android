@@ -1,4 +1,4 @@
-# Swoop TV v0.8.2 — Google TV hardware test checklist
+# Swoop TV v0.8.3 — Google TV hardware test checklist
 
 ## First launch and remote
 - [ ] Swoop TV appears in the Google TV Apps list with its TV banner.
@@ -38,3 +38,12 @@
 - [ ] Android Home → Swoop TV resumes to a usable screen.
 - [ ] Sleep/wake returns to a usable screen.
 - [ ] A long browse session does not progressively slow down or crash.
+
+
+## Startup responsiveness
+
+- Profile picker responds immediately to D-pad/OK after launch.
+- Selecting a profile leaves the picker immediately; a large saved library may continue loading without blocking remote input.
+- Home enters at scroll position 0.
+- D-pad can move through Home navigation/cards while artwork and background metadata continue loading.
+- Relaunching Swoop TV does not trigger a full provider refresh automatically on Android TV.
