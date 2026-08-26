@@ -1,6 +1,19 @@
-# Swoop TV v0.8.22 — Google TV Live Hero Brand Fill Hotfix
+# Swoop TV v0.8.23 — Google TV Consolidated UX + Performance Pass
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
+
+## v0.8.23 consolidated Google TV pass
+
+- Adaptive TV density for different Google TV viewport sizes rather than tuning the UI to one television.
+- Persistent top navigation and a bounded compact Home hero.
+- Deterministic queued D-pad navigation with per-row horizontal memory for rapid remote input.
+- Continuous Movies/TV Shows/Live TV catalogue rails loaded 100 items at a time with ahead-of-focus prefetching.
+- Long-press OK context menu for Continue Watching; clean poster art without duplicate title overlays.
+- Logo-first Live TV channel rails, fully contained hero logos and delayed muted Media3 channel preview support.
+- Wider TV Guide category sidebar with a clearer two-hour EPG window.
+- Immediate actor/person route opening with asynchronous cached filmography hydration.
+- Non-blocking GitHub version-manifest checks plus a one-time What’s New screen and Settings route.
+- Retains the current hot/trending-now Top 100 model and all cumulative Google TV playback/cache/runtime fixes.
 
 
 ## v0.8.22 Live TV hero brand-fill hotfix
@@ -110,7 +123,7 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.22`
+- versionName: `0.8.23`
 - versionCode: `822`
 - minSdk: 23
 - target/compile SDK: 36
@@ -122,6 +135,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.22 (822)**. The workflow also publishes `Swoop-TV-v0.8.22-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.23 (823)**. The workflow also publishes `Swoop-TV-v0.8.23-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

@@ -1,4 +1,20 @@
-# Swoop TV v0.8.22 — Google TV hardware test checklist
+# Swoop TV v0.8.23 — Google TV hardware test checklist
+
+## v0.8.23 consolidated UX/performance regression checks
+
+- [ ] Test Home on at least two TV viewport sizes. Confirm the fixed top navigation stays fully visible, Home hero remains a shallow bounded masthead and artwork does not overflow behind/below it.
+- [ ] From a lower Home/Movies/TV Shows/Live TV row, press Up repeatedly/rapidly. Confirm focus walks adjacent rows and only reaches the top navigation through the top of the page; no row jumps or dropped vertical moves.
+- [ ] Hold/rapidly press Right through a Top 100 row beyond item 25 and to item 100. Confirm focus never jumps to the row above and poster artwork is ready ahead of focus.
+- [ ] In a very large Movies/TV Shows category (1,000+ titles), browse across multiple 100-item data batches. Confirm the next batch preloads before the current batch ends and horizontal focus survives each boundary.
+- [ ] Confirm Continue Watching has no tiny Remove control. Short OK opens/plays normally; long-press OK opens More Options and Remove from Continue Watching works.
+- [ ] Confirm movie/TV poster titles are not painted over poster artwork on Google TV.
+- [ ] Open Live TV and confirm Favourite/Recent/category cards are logo-first without duplicate channel-name text.
+- [ ] Use National Geographic or another wide logo as the Live TV lead. Confirm the complete logo fits inside the right hero region with no cropping. Leave focus settled on a playable live channel and confirm a muted preview starts only after the delay; rapid channel movement must not repeatedly start streams.
+- [ ] Open TV Guide. Confirm Categories owns a substantially wider left column, LIVE TV / TV Guide is in the main/right header, category labels are crisp, and the EPG shows about two hours instead of squeezing three hours.
+- [ ] Browse near the end of loaded Guide channels and confirm more channels append automatically without a Load More button.
+- [ ] Select an actor/cast portrait. Confirm the person page shell opens immediately, filmography results populate asynchronously and revisiting the same person is much faster.
+- [ ] After installing v0.8.23, select a profile and confirm What’s New appears once. Dismiss it, relaunch/select the same profile and confirm it does not repeat. Reopen What’s New manually from Settings.
+- [ ] Publish the GitHub test release and confirm `swoop-tv-latest.json` is present beside the stable test APK and Settings can report a newer version when the manifest version is increased.
 
 ## v0.8.22 Live TV brand-fill regression checks
 

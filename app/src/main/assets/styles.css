@@ -1737,3 +1737,232 @@ html.android-tv .live-hub-hero.has-brand-art .live-hub-stat{
   html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop{top:54px;bottom:5px;left:49%}
   html.android-tv .live-hub-hero.has-brand-art .live-hub-art{transform:scale(1.32)}
 }
+
+/* ========================================================================== */
+/* v0.8.23 — Google TV consolidated UX + performance pass                    */
+/* ========================================================================== */
+
+/* Persistent navigation: visually stays above the page rather than becoming
+   a transparent overlay when the document scrolls underneath it. */
+html.android-tv .topbar{
+  position:fixed!important;
+  top:0!important;
+  z-index:160!important;
+  height:70px;
+  padding:10px var(--tv-safe-x) 8px;
+  background:linear-gradient(180deg,rgba(4,4,8,.99) 0%,rgba(4,4,8,.96) 72%,rgba(4,4,8,.90) 100%)!important;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(10px);
+}
+
+/* Home hero: one compact masthead frame. The navigation remains visible above
+   it, hero artwork is clipped to this frame, and content begins immediately. */
+html.android-tv .hero{
+  height:260px!important;
+  min-height:260px!important;
+  max-height:260px!important;
+  margin:0;
+  overflow:hidden;
+}
+html.android-tv .hero-media{inset:0!important;overflow:hidden}
+html.android-tv .hero-backdrop,
+html.android-tv .hero-backdrop-clean,
+html.android-tv .hero-backdrop-poster{
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center center!important;
+  filter:none!important;
+  transform:none!important;
+}
+html.android-tv .hero-backdrop.loaded,
+html.android-tv .hero-backdrop-clean.loaded,
+html.android-tv .hero-backdrop-poster.loaded{opacity:.86!important}
+html.android-tv .hero-content{
+  width:min(540px,44vw)!important;
+  padding:76px 0 14px var(--tv-safe-x)!important;
+  justify-content:flex-end!important;
+}
+html.android-tv .hero-vignette{
+  background:linear-gradient(90deg,rgba(4,4,7,.97) 0%,rgba(4,4,7,.80) 32%,rgba(4,4,7,.22) 62%,rgba(4,4,7,.08) 100%),linear-gradient(0deg,rgba(4,4,7,.80),transparent 42%)!important;
+}
+html.android-tv .hero-poster{top:80px!important;right:var(--tv-safe-x)!important;height:155px!important;max-width:18vw!important}
+html.android-tv .home-content{margin-top:0!important;padding-top:0!important}
+html.android-tv .home-library-strip{min-height:40px;margin-bottom:10px!important}
+
+/* Keep poster artwork clean on TV. Titles/meta are revealed by focus/detail,
+   not painted over artwork itself. */
+html.android-tv .card.poster .card-copy,
+html.android-tv .poster-section .card.poster .card-title,
+html.android-tv .poster-section .card.poster .card-subtitle{display:none!important}
+html.android-tv .card.poster .card-shade{background:transparent!important}
+html.android-tv .continue-card-shell{position:relative;display:block;min-width:0}
+html.android-tv .continue-card-shell>.card{width:100%}
+
+/* Continuous rails are allowed to grow in small DOM chunks while keeping their
+   horizontal geometry stable and responsive to the remote. */
+html.android-tv [data-long-rail],
+html.android-tv .media-category-rail-track,
+html.android-tv .live-category-rail-track{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(0,150px);
+  grid-template-rows:1fr;
+  justify-content:start;
+  gap:8px;
+  overflow-x:auto;
+  overflow-y:visible;
+  scroll-behavior:auto!important;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+  padding:6px 34px 14px 3px;
+}
+html.android-tv [data-long-rail]::-webkit-scrollbar{display:none}
+html.android-tv .media-category-rail-track{grid-auto-columns:minmax(0,150px)}
+html.android-tv .live-category-rail-track{grid-auto-columns:minmax(0,145px)}
+html.android-tv [data-long-rail] .card,
+html.android-tv .tv-home-rows .card{transition:transform .045s linear,outline-color .045s linear,box-shadow .045s linear!important}
+
+/* Live TV: compact masthead and a true contained brand/live-preview viewport.
+   Provider logos are never magnified/cropped to compensate for transparent
+   padding — the complete mark always remains visible. */
+html.android-tv .live-hub-hero{
+  min-height:250px!important;
+  height:250px;
+  padding:78px var(--tv-safe-x) 18px!important;
+  overflow:hidden;
+}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop,
+html.android-tv .live-hub-backdrop{
+  left:48%!important;
+  right:var(--tv-safe-x)!important;
+  top:70px!important;
+  bottom:10px!important;
+  overflow:hidden!important;
+}
+html.android-tv .live-preview-anchor{position:absolute;inset:0;overflow:hidden;background:#06070a;border-radius:5px}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-art,
+html.android-tv .live-preview-anchor .live-hub-art{
+  position:absolute!important;
+  inset:8px!important;
+  width:calc(100% - 16px)!important;
+  height:calc(100% - 16px)!important;
+  max-width:none!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  filter:drop-shadow(0 12px 26px rgba(0,0,0,.32))!important;
+}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-shade{
+  background:linear-gradient(90deg,rgba(4,5,7,.99) 0%,rgba(4,5,7,.93) 35%,rgba(4,5,7,.48) 48%,rgba(4,5,7,.07) 61%,rgba(4,5,7,0) 100%),linear-gradient(0deg,var(--swoop-bg,#050505),transparent 34%)!important;
+}
+html.android-tv .live-hub-copy{max-width:46vw!important}
+html.android-tv .live-hub-stat{z-index:4}
+
+/* Channel rails: logo-first cards, no duplicate text painted over the artwork. */
+html.android-tv .clean-live-card,
+html.android-tv .live-category-rail-track>button,
+html.android-tv .live-simple-rail>button{
+  min-width:0;
+  border-radius:7px;
+  overflow:hidden;
+}
+html.android-tv .clean-live-card .card-copy,
+html.android-tv .clean-live-card .card-title,
+html.android-tv .clean-live-card .card-subtitle,
+html.android-tv .live-category-rail-track .card-copy{display:none!important}
+html.android-tv .clean-live-card img{object-fit:contain!important;padding:8px;background:#0d1018}
+
+/* TV Guide: category readability wins over extra timeline width. The title is
+   now in the main/right header, leaving the entire left column to categories. */
+html.android-tv .guide-page{padding-top:70px!important}
+html.android-tv .guide-shell{padding:0 var(--tv-safe-x) 40px!important}
+html.android-tv .guide-browser{
+  display:grid!important;
+  grid-template-columns:minmax(285px,22vw) minmax(0,1fr)!important;
+  gap:14px!important;
+  padding-top:12px!important;
+  align-items:start;
+}
+html.android-tv .guide-categories{
+  position:sticky!important;
+  top:82px!important;
+  max-height:calc(100vh - 94px)!important;
+  border-radius:9px!important;
+}
+html.android-tv .guide-categories-head{padding:15px 14px 12px!important}
+html.android-tv .guide-categories-head h2{font-size:22px!important;line-height:1.05}
+html.android-tv .guide-category-list{gap:4px!important;padding:7px!important}
+html.android-tv .guide-category{padding:9px 10px!important;gap:10px!important;min-height:35px}
+html.android-tv .guide-category span{font-size:12px!important;line-height:1.18!important;letter-spacing:0!important;text-overflow:ellipsis}
+html.android-tv .guide-category strong{font-size:10px!important}
+html.android-tv .guide-main-header{
+  min-height:92px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  padding:8px 4px 12px;
+  background:radial-gradient(circle at 72% 32%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 48%);
+}
+html.android-tv .guide-main-title h1{font-size:34px;line-height:.95;margin:2px 0 4px;letter-spacing:-.045em}
+html.android-tv .guide-main-title p{font-size:10px;color:var(--muted);margin:0}
+html.android-tv .guide-main-actions{display:flex;align-items:flex-end;gap:12px}
+html.android-tv .guide-main-actions .guide-now strong{font-size:22px}
+html.android-tv .guide-window-label{font-size:9px;color:var(--muted);letter-spacing:.1em;font-weight:900}
+html.android-tv .guide-grid-scroll .guide-grid{min-width:720px!important}
+html.android-tv .guide-header,
+html.android-tv .guide-row{grid-template-columns:205px minmax(0,1fr)!important}
+html.android-tv .guide-times{grid-template-columns:repeat(5,1fr)!important}
+html.android-tv .guide-times span{font-size:10px!important;padding:11px 7px!important}
+html.android-tv .guide-programs{
+  background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),rgba(255,255,255,.04) calc(25% - 1px),rgba(255,255,255,.04) 25%)!important;
+}
+html.android-tv .guide-program strong{font-size:10px!important}
+html.android-tv .guide-program span{font-size:8px!important}
+html.android-tv .guide-more-wrap{min-height:24px;margin:8px 0 0;color:var(--muted);font-size:9px}
+
+/* TV-friendly release notes/context menu. */
+html.android-tv .whats-new-modal,
+html.android-tv .continue-options-modal{width:min(760px,76vw);max-height:78vh}
+html.android-tv .whats-new-body{font-size:15px;line-height:1.5}
+html.android-tv .whats-new-body ul{display:grid;gap:10px;padding-left:22px}
+html.android-tv .continue-options-modal .btn{min-height:42px;font-size:13px}
+
+/* Adaptive density: don't globally zoom the WebView. Instead scale the major
+   TV surfaces when a smaller/overscanned viewport is actually reported. */
+html.android-tv[data-tv-density="compact"]{
+  --tv-safe-x:4.2vw;
+}
+html.android-tv[data-tv-density="compact"] .topbar{height:64px;padding-top:8px}
+html.android-tv[data-tv-density="compact"] .hero{height:238px!important;min-height:238px!important;max-height:238px!important}
+html.android-tv[data-tv-density="compact"] .hero-content{padding-top:68px!important}
+html.android-tv[data-tv-density="compact"] .live-hub-hero{height:232px!important;min-height:232px!important;padding-top:70px!important}
+html.android-tv[data-tv-density="compact"] .guide-page{padding-top:64px!important}
+html.android-tv[data-tv-density="compact"] .guide-categories{top:74px!important}
+html.android-tv[data-tv-density="compact"] .guide-browser{grid-template-columns:minmax(260px,23vw) minmax(0,1fr)!important}
+
+html.android-tv[data-tv-density="tight"]{
+  --tv-safe-x:3.8vw;
+}
+html.android-tv[data-tv-density="tight"] .topbar{height:58px;padding:6px var(--tv-safe-x)}
+html.android-tv[data-tv-density="tight"] .topbar .desktop-nav button{font-size:9px;padding:7px 8px}
+html.android-tv[data-tv-density="tight"] .hero{height:218px!important;min-height:218px!important;max-height:218px!important}
+html.android-tv[data-tv-density="tight"] .hero-content{padding:62px 0 10px var(--tv-safe-x)!important;width:min(500px,47vw)!important}
+html.android-tv[data-tv-density="tight"] .hero p{display:none!important}
+html.android-tv[data-tv-density="tight"] .live-hub-hero{height:212px!important;min-height:212px!important;padding:64px var(--tv-safe-x) 12px!important}
+html.android-tv[data-tv-density="tight"] .live-hub-copy p{display:none}
+html.android-tv[data-tv-density="tight"] .guide-page{padding-top:58px!important}
+html.android-tv[data-tv-density="tight"] .guide-categories{top:68px!important}
+html.android-tv[data-tv-density="tight"] .guide-browser{grid-template-columns:minmax(235px,24vw) minmax(0,1fr)!important;gap:10px!important}
+html.android-tv[data-tv-density="tight"] .guide-category span{font-size:11px!important}
+html.android-tv[data-tv-density="tight"] .guide-grid-scroll .guide-grid{min-width:650px!important}
+
+@media (max-height:650px){
+  html.android-tv .hero{height:220px!important;min-height:220px!important;max-height:220px!important}
+  html.android-tv .live-hub-hero{height:215px!important;min-height:215px!important}
+  html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop{top:60px!important;left:48%!important;bottom:7px!important}
+  html.android-tv .live-hub-hero.has-brand-art .live-hub-art{transform:none!important}
+}

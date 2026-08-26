@@ -67,6 +67,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private PlayerView playerView;
     private ExoPlayer player;
+    private PlayerView previewPlayerView;
+    private ExoPlayer previewPlayer;
     private ValueCallback<Uri[]> filePathCallback;
     private WebViewAssetLoader assetLoader;
     private final ExecutorService networkExecutor = Executors.newFixedThreadPool(2);
@@ -74,6 +76,11 @@ public class MainActivity extends Activity {
     private final ConcurrentHashMap<String, String> asyncFetchErrors = new ConcurrentHashMap<>();
 
     private volatile boolean nativePlayerVisible = false;
+    private boolean selectKeyDown = false;
+    private boolean selectLongPressCandidate = false;
+    private boolean selectLongPressTriggered = false;
+    private int selectKeyCode = -1;
+    private Runnable selectLongPressRunnable = null;
     private volatile boolean ended = false;
     private volatile String playbackError = "";
     private String currentTitle = "Swoop TV";
@@ -102,6 +109,13 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
+
+        previewPlayerView = new PlayerView(this);
+        previewPlayerView.setBackgroundColor(Color.BLACK);
+        previewPlayerView.setUseController(false);
+        previewPlayerView.setControllerAutoShow(false);
+        previewPlayerView.setVisibility(View.GONE);
+        root.addView(previewPlayerView, new FrameLayout.LayoutParams(1, 1));
 
         playerView = new PlayerView(this);
         playerView.setBackgroundColor(Color.BLACK);
@@ -133,7 +147,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.22 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.23 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -207,7 +221,50 @@ public class MainActivity extends Activity {
         filePathCallback = null;
     }
 
+    private void startPreviewPlayer(String url, double left, double top, double width, double height) {
+        stopPreviewPlayer();
+        if (url == null || url.trim().isEmpty() || previewPlayerView == null || root == null) return;
+        int rw = Math.max(1, root.getWidth());
+        int rh = Math.max(1, root.getHeight());
+        int x = Math.max(0, Math.min(rw - 1, (int)Math.round(left * rw)));
+        int y = Math.max(0, Math.min(rh - 1, (int)Math.round(top * rh)));
+        int w = Math.max(1, Math.min(rw - x, (int)Math.round(width * rw)));
+        int h = Math.max(1, Math.min(rh - y, (int)Math.round(height * rh)));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(w, h);
+        lp.leftMargin = x;
+        lp.topMargin = y;
+        previewPlayerView.setLayoutParams(lp);
+        previewPlayer = new ExoPlayer.Builder(this).build();
+        previewPlayer.setVolume(0f);
+        previewPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                runOnUiThread(() -> stopPreviewPlayer());
+            }
+        });
+        previewPlayerView.setPlayer(previewPlayer);
+        previewPlayerView.setVisibility(View.VISIBLE);
+        previewPlayer.setMediaItem(MediaItem.fromUri(url.trim()));
+        previewPlayer.prepare();
+        previewPlayer.play();
+    }
+
+    private void stopPreviewPlayer() {
+        try {
+            if (previewPlayer != null) {
+                previewPlayer.stop();
+                previewPlayer.release();
+            }
+        } catch (Exception ignored) {}
+        previewPlayer = null;
+        if (previewPlayerView != null) {
+            previewPlayerView.setPlayer(null);
+            previewPlayerView.setVisibility(View.GONE);
+        }
+    }
+
     private void startNativePlayer(String url, String title, String kind, double startSeconds) {
+        stopPreviewPlayer();
         releasePlayerOnly();
         ended = false;
         playbackError = "";
@@ -354,7 +411,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.22 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.23 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -410,7 +467,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.22 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.23 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -474,7 +531,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.22"; }
+        public String version() { return "0.8.23"; }
 
         @JavascriptInterface
         public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }
@@ -495,6 +552,31 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "{\"ok\":false,\"error\":" + JSONObject.quote(e.getMessage() == null ? "Could not start playback." : e.getMessage()) + "}";
             }
+        }
+
+        @JavascriptInterface
+        public String previewLive(String payloadJson) {
+            try {
+                JSONObject p = new JSONObject(payloadJson == null ? "{}" : payloadJson);
+                String url = p.optString("url", "").trim();
+                if (url.isEmpty()) return new JSONObject().put("ok", false).put("error", "No preview URL was supplied.").toString();
+                double left = p.optDouble("left", 0.50);
+                double top = p.optDouble("top", 0.08);
+                double width = p.optDouble("width", 0.46);
+                double height = p.optDouble("height", 0.24);
+                return onMain(() -> {
+                    if (nativePlayerVisible) return new JSONObject().put("ok", false).put("error", "Full playback is active.").toString();
+                    startPreviewPlayer(url, left, top, width, height);
+                    return new JSONObject().put("ok", true).toString();
+                }, "{\"ok\":false}");
+            } catch (Exception e) {
+                return "{\"ok\":false,\"error\":" + JSONObject.quote(e.getMessage() == null ? "Could not start preview." : e.getMessage()) + "}";
+            }
+        }
+
+        @JavascriptInterface
+        public String stopPreview() {
+            return onMain(() -> { stopPreviewPlayer(); return new JSONObject().put("ok", true).toString(); }, "{\"ok\":false}");
         }
 
         @JavascriptInterface
@@ -657,6 +739,50 @@ public class MainActivity extends Activity {
         );
     }
 
+    private void beginSelectKey(int keyCode) {
+        selectKeyDown = true;
+        selectKeyCode = keyCode;
+        selectLongPressCandidate = false;
+        selectLongPressTriggered = false;
+        if (selectLongPressRunnable != null && webView != null) webView.removeCallbacks(selectLongPressRunnable);
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "window.__swoopTvFocusedSupportsLongPress ? window.__swoopTvFocusedSupportsLongPress() : false",
+                value -> {
+                    boolean supports = "true".equals(value);
+                    if (!supports) {
+                        activateFocusedWebControl();
+                        return;
+                    }
+                    if (!selectKeyDown || selectKeyCode != keyCode) {
+                        // Quick tap: ACTION_UP arrived before the bridge callback.
+                        activateFocusedWebControl();
+                        return;
+                    }
+                    selectLongPressCandidate = true;
+                    selectLongPressRunnable = () -> {
+                        if (!selectKeyDown || !selectLongPressCandidate || selectKeyCode != keyCode) return;
+                        selectLongPressTriggered = true;
+                        webView.evaluateJavascript(
+                                "window.__swoopTvLongPressFocused ? window.__swoopTvLongPressFocused() : false",
+                                null
+                        );
+                    };
+                    webView.postDelayed(selectLongPressRunnable, 550L);
+                }
+        );
+    }
+
+    private void endSelectKey(int keyCode) {
+        if (selectKeyCode != keyCode) return;
+        selectKeyDown = false;
+        if (selectLongPressRunnable != null && webView != null) webView.removeCallbacks(selectLongPressRunnable);
+        if (selectLongPressCandidate && !selectLongPressTriggered) activateFocusedWebControl();
+        selectLongPressCandidate = false;
+        selectLongPressTriggered = false;
+        selectKeyCode = -1;
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (nativePlayerVisible && event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
@@ -664,10 +790,10 @@ public class MainActivity extends Activity {
             return true;
         }
         if (!nativePlayerVisible && isTvSelectKey(event.getKeyCode())) {
-            // Some Google TV remotes/WebView builds do not deliver a reliable ACTION_UP click.
-            // Activate on the first ACTION_DOWN instead, ignore repeats, and consume both halves
-            // of the key so every focused Swoop TV control has one deterministic Select action.
-            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) activateFocusedWebControl();
+            // Ordinary controls retain deterministic ACTION_DOWN activation. Continue Watching
+            // cards opt into a 550 ms long-press window so OK can expose contextual actions.
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) beginSelectKey(event.getKeyCode());
+            else if (event.getAction() == KeyEvent.ACTION_UP) endSelectKey(event.getKeyCode());
             return true;
         }
         return super.dispatchKeyEvent(event);
@@ -677,10 +803,12 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         if (player != null && player.isPlaying()) player.pause();
+        if (previewPlayer != null && previewPlayer.isPlaying()) previewPlayer.pause();
     }
 
     @Override
     protected void onDestroy() {
+        stopPreviewPlayer();
         releasePlayerOnly();
         try { networkExecutor.shutdownNow(); } catch (Exception ignored) {}
         asyncFetchResults.clear();

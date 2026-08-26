@@ -1,5 +1,23 @@
 # Swoop TV Release Notes
 
+## v0.8.23 — Google TV Consolidated UX + Performance Pass
+
+- Adds adaptive Google TV viewport density so smaller/720p/overscanned TV WebViews use tighter major surfaces without globally zooming the app.
+- Makes the top Home / Live TV / Guide / Movies / TV Shows / My List navigation visually persistent with an opaque TV masthead, while D-pad Up only enters it through the top of the current page.
+- Rebuilds Google TV horizontal browsing around deterministic row/column state. Rapid Up/Down input is queued instead of competing with scroll/focus work, horizontal index is remembered per row, and TV focus transitions use immediate scrolling.
+- Fixes Movies, TV Shows and Live TV rails stopping around 20–25 items. Long catalogue rails load **100 items at a time**, render in lightweight chunks and prefetch the next 100 before the user reaches the boundary. Provider categories with thousands of titles remain continuously browseable without rendering the whole catalogue at once.
+- Keeps Top 100 rows at up to 100 real hot/trending matches and retains the v0.8.20 current-signal ranking model.
+- Compacts Home into a single bounded masthead frame and keeps hero artwork inside that frame. Poster title text/black artwork haze is removed from Google TV poster cards.
+- Removes the small Continue Watching **Remove** controls. Long-pressing OK/Select on a Continue Watching title opens a TV context menu with Resume/Open and Remove options.
+- Cleans Live TV Recent/Favourite/category cards into logo-first tiles without duplicate text painted over the artwork. Featured channel logos use true `contain` fitting so marks such as National Geographic are fully visible rather than cropped.
+- Adds a muted native Media3 Live TV hero preview path. Preview starts only after focus settles, stops when leaving Live TV or starting full playback, and retains contained channel branding as the fallback.
+- Redesigns TV Guide around a wider left category column and moves the **LIVE TV / TV Guide** title into the main/right header. Category text is larger and the visible EPG window is reduced to about **2 hours** rather than compressing a three-hour grid. Guide channels continue loading automatically near the current list end.
+- Opens actor/person pages immediately with a loading shell, then hydrates provider filmography matches asynchronously and caches resolved person catalogue results for faster revisits.
+- Adds a non-blocking GitHub build-manifest update check and a one-time **What’s New** screen after profile login for each installed version. What’s New can also be reopened from Settings.
+- The stable GitHub test release now publishes `swoop-tv-latest.json` alongside the APK so update checks do not scrape GitHub HTML.
+- Retains every v0.8.22 Live hero, v0.8.21 Home restore, v0.8.20 trending/performance and earlier Android TV playback/cache/runtime fix.
+- Android versionName is **0.8.23** and versionCode is **823**.
+
 ## v0.8.22 — Google TV Live Hero Brand Fill Hotfix
 
 - Reworks the compact **Live TV** hero so the current channel logo is treated as the primary right-side brand artwork rather than a small floating badge.

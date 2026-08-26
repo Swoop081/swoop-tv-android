@@ -127,6 +127,17 @@ export async function nativePlay(item, {startSeconds=0}={}) {
 }
 
 
+export async function nativePreviewLive(item,{left=0,top=0,width=0,height=0}={}) {
+  if(!isNativeAndroid())return {ok:false};
+  const payload={url:item?.streamUrl||'',title:item?.name||'Swoop TV Live Preview',left:Number(left||0),top:Number(top||0),width:Number(width||0),height:Number(height||0)};
+  return parseAndroidResult(androidBridge().previewLive(JSON.stringify(payload)),{ok:false});
+}
+
+export async function nativeStopPreview() {
+  if(!isNativeAndroid())return {ok:true};
+  return parseAndroidResult(androidBridge().stopPreview?.(),{ok:true});
+}
+
 export async function nativeStop() {
   if(isNativeAndroid())return parseAndroidResult(androidBridge().stop(),{ok:true});
   return nativeRequest('/native/stop', {}, {timeoutMs:10000});
