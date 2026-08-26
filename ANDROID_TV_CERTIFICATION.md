@@ -1,4 +1,15 @@
-# Swoop TV v0.8.16 — Google TV hardware test checklist
+# Swoop TV v0.8.17 — Google TV hardware test checklist
+
+## v0.8.17 launch freshness / deterministic Select
+
+- [ ] On Who’s Watching, focus a profile and press physical OK once; the app must leave the screen immediately.
+- [ ] DPAD Center / Enter / Numpad Enter / controller A activate the focused web control exactly once with no duplicate click.
+- [ ] With a valid saved library, a cold launch opens Home immediately and does not show the long provider-refresh gate.
+- [ ] After Home is responsive, Swoop TV performs its launch provider/account freshness check without interrupting D-pad navigation.
+- [ ] A provider older than 24 hours can refresh in the background while the previous working library remains usable.
+- [ ] A fresh provider is not fully downloaded again just because the app was opened.
+- [ ] Launch version checking can surface a newer Google TV test build in Settings and displays Downloader code 3682231.
+
 
 ## Provider completion blocker
 

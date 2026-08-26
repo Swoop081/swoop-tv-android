@@ -1,5 +1,17 @@
 # Swoop TV release notes
 
+## v0.8.17 — Google TV Input + Launch Freshness Hotfix
+
+- Fixes the recurring Who’s Watching activation blocker at the Android input layer. DPAD_CENTER, Enter, Numpad Enter and common controller A are consumed on the first non-repeat key-down and explicitly activate the focused Swoop TV control.
+- Profile selection no longer depends on Google TV WebView synthesising a click; focused profile cards call the profile-switch path directly.
+- Restores the strict cache-first launch rule: when a valid saved library exists, Home opens immediately and remote input gets priority. A stale provider can no longer put the customer behind a launch refresh gate.
+- Every launch performs a lightweight provider-account freshness check after Home is responsive. Xtream auth/expiry state is updated without forcing a full playlist download.
+- Providers whose last successful full refresh is at least 24 hours old are refreshed in the background. The previous working library remains visible and usable until the replacement is complete.
+- Refreshed provider/EPG data is persisted after background completion without forcing a disruptive Home rerender while the customer is navigating.
+- Every launch performs a quiet GitHub test-release version check after Home is interactive. Settings reports a newer version when available and retains Downloader code **3682231** as the update path.
+- Preserves v0.8.16 provider completion, v0.8.15 landscape-first layouts and all earlier cumulative Google TV fixes.
+- Android versionName is **0.8.17** and versionCode is **817**.
+
 ## v0.8.16 — Google TV Provider Completion Hotfix
 
 - Fixes the release-blocking provider setup issue where a successful Xtream/M3U import could reach **100% / Your library is ready** and remain trapped on the progress screen.

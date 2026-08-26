@@ -17,6 +17,9 @@ const NATIVE_ANDROID=isNativeAndroid();
 const NATIVE_PLAYBACK=NATIVE_WINDOWS||NATIVE_ANDROID;
 if(NATIVE_ANDROID)document.documentElement.classList.add('android-tv');
 let tvHomeSnapshotActive=false,tvBackgroundRestoreStarted=false,tvSnapshotSaveTimer=null,tvMovieStackWorker=null,tvMovieStackedCache=null,tvMovieStackBuild=[],tvCatalogWorkerReady=false,tvCatalogWorkerSeq=0;
+let tvLastFocusedElement=null,tvLastActivationAt=0,androidLaunchChecksScheduled=false,androidLaunchChecksRunning=false,androidProviderLaunchCheckRunning=false,androidAppUpdateAvailable=null;
+const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
+const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
 const tvCatalogWorkerPending=new Map();
 let nativeCatalogMode=false,nativeCatalogStats=null,nativeCatalogMigration=false;
 const nativeItemCache=new Map();
@@ -277,7 +280,7 @@ function forceAndroidHomeEntry(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(state.page!=='home'||profilePickerOpen)return;window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;
     const target=document.querySelector('.hero-actions button,[data-home-row-mounted] .card,.library-manage,.desktop-nav [data-page="home"]');
-    if(target){try{target.focus({preventScroll:true})}catch{target.focus()}}tvForceHomeTop=false;
+    if(target){try{target.focus({preventScroll:true})}catch{target.focus()}}tvForceHomeTop=false;scheduleAndroidLaunchChecks();
   }));
 }
 
@@ -1653,6 +1656,7 @@ function settingsPage(){
   const counts={live:nativeCatalogMode?nativeTotal('live'):items('live').length,movie:nativeCatalogMode?nativeTotal('movie'):items('movie').length,series:nativeCatalogMode?nativeTotal('series'):items('series').length};
   return `<main class="page settings-page"><div class="settings-hero"><div class="eyebrow">${esc(activeProfile()?.name||'SWOOP TV')} · PROFILE SETTINGS</div><h1>Settings</h1><p>Manage your profile, TV providers, Home screen and playback.</p></div><div class="page-content settings-list">
   <section class="setting-card setting-card-feature"><div class="setting-icon">TV</div><div class="setting-main"><h3>TV Providers</h3><p>${state.providers.length?`${enabledProviders().length} enabled · ${state.providers.length} connected`:'No provider connected'}</p><div class="setting-stats"><span><strong>${counts.live.toLocaleString()}</strong> Live Streams</span><span><strong>${counts.movie.toLocaleString()}</strong> Unique Movies</span><span><strong>${counts.series.toLocaleString()}</strong> Shows</span></div><div class="cta-row"><button class="btn accent" data-modal="provider">Manage Providers</button>${state.providers.length?'<button class="btn secondary" data-provider-refresh-all>Refresh All</button>':''}</div></div></section>
+  ${NATIVE_ANDROID&&androidAppUpdateAvailable?`<section class="setting-card app-update-card"><div class="setting-icon">↑</div><div class="setting-main"><h3>Swoop TV update available</h3><p>Version ${esc(androidAppUpdateAvailable.version)} is ready for Google TV.</p><div class="cta-row"><span class="btn secondary">Downloader code 3682231</span></div></div></section>`:''}
   <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My List, recommendations, favourite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favourites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
   <section class="setting-card performance-setting-card"><div class="setting-icon">⚡</div><div class="setting-main"><h3>Performance</h3><p>${performanceLabel()}. Choose the balance you prefer between speed and richer visuals.</p><div class="cta-row"><button class="btn ${state.settings.performanceMode!=='cinematic'?'accent':'secondary'}" data-performance-mode="auto">Auto / Recommended</button><button class="btn ${state.settings.performanceMode==='cinematic'?'accent':'secondary'}" data-performance-mode="cinematic">Full Cinematic</button></div></div></section>
   <section class="setting-card"><div class="setting-icon">＋</div><div class="setting-main"><h3>My List & Viewing</h3><p>${state.myList.length.toLocaleString()} saved · ${state.continueWatching.length.toLocaleString()} in progress · ${state.watchHistory.length.toLocaleString()} in viewing history.</p><div class="cta-row"><button class="btn secondary" data-page="mylist">Open My List</button>${state.continueWatching.length?'<button class="btn secondary" data-action="clear-history">Clear Continue Watching</button>':''}${state.watchHistory.length?'<button class="btn secondary" data-action="clear-viewing">Reset Recommendations</button>':''}</div></div></section>
@@ -1878,6 +1882,89 @@ function providerCanRefreshOnLaunch(provider){
   if(provider?.type==='xtream')return Boolean(cfg.server&&cfg.username&&cfg.password);
   if(provider?.type==='m3u')return Boolean(cfg.url||provider?.url);
   return false;
+}
+function androidProvidersDueForRefresh(){
+  if(!NATIVE_ANDROID)return [];
+  const now=Date.now();
+  return enabledProviders().filter(providerCanRefreshOnLaunch).filter(provider=>{
+    const cfg=providerConfigById(provider.id)||{};
+    const stamp=Math.max(Number(provider.lastRefreshed||0),Number(cfg.lastRefreshed||0));
+    return !stamp||now-stamp>=ANDROID_PROVIDER_AUTO_REFRESH_MS;
+  });
+}
+function versionParts(value=''){return String(value).replace(/^v/i,'').split('.').map(x=>Number.parseInt(x,10)||0).slice(0,3)}
+function compareVersions(a,b){const aa=versionParts(a),bb=versionParts(b);for(let i=0;i<3;i++){const d=(aa[i]||0)-(bb[i]||0);if(d)return d}return 0}
+async function checkAndroidAppUpdateOnLaunch(){
+  if(!NATIVE_ANDROID)return null;
+  let repo='';try{repo=String(globalThis.SwoopAndroid?.githubRepository?.()||'').trim()}catch{}
+  if(!repo||!repo.includes('/'))return null;
+  try{
+    const response=await fetch(`https://api.github.com/repos/${repo}/releases/tags/${ANDROID_UPDATE_RELEASE_TAG}`,{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});
+    if(!response.ok)return null;
+    const release=await response.json();
+    const names=[String(release?.name||''),...(Array.isArray(release?.assets)?release.assets.map(x=>String(x?.name||'')):[])].join(' ');
+    const found=[...names.matchAll(/v(\d+\.\d+\.\d+)/gi)].map(m=>m[1]);
+    if(!found.length)return null;
+    found.sort(compareVersions);const latest=found[found.length-1];
+    let current='0.0.0';try{current=String(globalThis.SwoopAndroid?.version?.()||'0.0.0')}catch{}
+    if(compareVersions(latest,current)<=0){androidAppUpdateAvailable=null;return null}
+    androidAppUpdateAvailable={version:latest,url:`https://github.com/${repo}/releases/download/${ANDROID_UPDATE_RELEASE_TAG}/Swoop-TV-v0.8.1-Google-TV-Test.apk`};
+    toast(`Swoop TV v${latest} is available · Downloader 3682231`);if(state.page==='settings'&&!modal&&!profilePickerOpen)render();
+    return androidAppUpdateAvailable;
+  }catch{return null}
+}
+async function checkAndroidProvidersOnLaunch(){
+  if(!NATIVE_ANDROID||androidProviderLaunchCheckRunning)return null;
+  androidProviderLaunchCheckRunning=true;
+  try{
+    const providers=enabledProviders().filter(providerCanRefreshOnLaunch);
+    if(!providers.length)return null;
+    const dueIds=new Set(androidProvidersDueForRefresh().map(p=>p.id));
+    let refreshed=0,checked=0,failed=0;
+    // Every launch performs a lightweight provider-account check first. This keeps expiry/auth
+    // current without forcing a full playlist download just to open Swoop TV.
+    for(const provider of providers){
+      const cfg=providerConfigById(provider.id)||{};
+      if(provider.type==='xtream'){
+        try{
+          const auth=await testXtream(cfg);checked++;
+          const expiresAt=providerExpiryFromProfile(auth),expiryNever=!expiresAt&&String(auth?.user_info?.exp_date??'').trim()==='0';
+          Object.assign(provider,{status:String(auth?.user_info?.auth)==='0'?'error':'connected',lastError:String(auth?.user_info?.auth)==='0'?'Xtream account is not authorised.':'',expiresAt,expiryNever,lastChecked:Date.now()});
+          const saved=savedProviderProfiles.find(x=>providerProfileId(x)===provider.id);if(saved){Object.assign(saved,{expiresAt,expiryNever,lastChecked:provider.lastChecked});saveProviderProfiles(savedProviderProfiles)}
+        }catch{failed++}
+      }
+      await new Promise(r=>setTimeout(r,0));
+    }
+    // A full catalogue refresh is age-based and happens after Home is already usable. The old
+    // catalogue remains on screen until the replacement is complete, so launch never blocks.
+    let catalogChanged=false;
+    for(const provider of providers){
+      if(!dueIds.has(provider.id))continue;
+      const success=await refreshProvider(provider.id,{quiet:true,manageTask:false,deferPersist:true});
+      if(success){refreshed++;catalogChanged=true}else failed++;
+      await new Promise(r=>setTimeout(r,0));
+    }
+    if(catalogChanged){
+      await prepareAndroidEpgBeforeEntry().catch(()=>({providers:0,matched:0,programmes:0,failed:0}));
+      await persist(true).catch(()=>false);
+      scheduleTvHomeSnapshotSave(1200);
+      clearAndroidPreparedHome();androidPreparedHomeReady=false;
+      // Do not force a render while the customer is navigating. New catalogue data is picked up
+      // on the next natural route/row render, while the current completed frame remains stable.
+      if(state.page==='settings'&&!modal&&!profilePickerOpen)render();
+    }else if(checked){await persist().catch(()=>false)}
+    return {checked,refreshed,failed};
+  }finally{androidProviderLaunchCheckRunning=false}
+}
+function scheduleAndroidLaunchChecks(){
+  if(!NATIVE_ANDROID||androidLaunchChecksScheduled)return;
+  androidLaunchChecksScheduled=true;
+  const runVersion=async()=>{if(androidLaunchChecksRunning)return;androidLaunchChecksRunning=true;try{await checkAndroidAppUpdateOnLaunch()}finally{androidLaunchChecksRunning=false}};
+  const runProviders=()=>checkAndroidProvidersOnLaunch().catch(()=>null);
+  setTimeout(()=>{if('requestIdleCallback'in window)requestIdleCallback(()=>runVersion(),{timeout:5000});else setTimeout(runVersion,0)},2400);
+  // Provider checks deliberately start later than the app-version check so Home and remote input
+  // have first priority. A stale provider may refresh in the background, never behind a gate.
+  setTimeout(()=>{if('requestIdleCallback'in window)requestIdleCallback(()=>runProviders(),{timeout:9000});else setTimeout(runProviders,0)},6500);
 }
 
 function restoringPage(){
@@ -2823,19 +2910,41 @@ function tvMoveFocus(key){
   return true;
 }
 
-window.__swoopTvActivateFocused=()=>{
-  const active=document.activeElement;
-  if(!active||active===document.body||active===document.documentElement)return false;
+document.addEventListener('focusin',e=>{
+  if(!NATIVE_ANDROID)return;
+  const el=e.target;
+  if(el&&el instanceof HTMLElement){
+    document.querySelector('[data-swoop-tv-focused="1"]')?.removeAttribute('data-swoop-tv-focused');
+    el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;
+  }
+},true);
+document.addEventListener('click',()=>{if(NATIVE_ANDROID)tvLastActivationAt=performance.now()},true);
+
+window.__swoopTvActivateFocused=(source='')=>{
+  if(!NATIVE_ANDROID)return false;
+  const now=performance.now();
+  if(now-tvLastActivationAt<160)return true;
+  let active=document.activeElement;
+  if(!active||active===document.body||active===document.documentElement||!active.isConnected)active=tvLastFocusedElement;
+  if(!active||!active.isConnected)active=document.querySelector('[data-swoop-tv-focused="1"]');
+  if(!active||!active.isConnected)return false;
+  active=active.closest?.('button,a,input,select,textarea,[role="button"],[tabindex]')||active;
+  tvLastFocusedElement=active;tvLastActivationAt=now;
   if(active.matches?.('[data-profile-select]')){
     const id=active.dataset.profileSelect;
-    if(id){switchProfile(id);return true}
+    if(id){Promise.resolve(switchProfile(id)).catch(()=>{});return true}
   }
   if(active.matches?.('[data-profile-pin-input]')&&active.readOnly)return true;
-  if(typeof active.click==='function'){active.click();return true}
-  return false;
+  try{
+    if(typeof active.click==='function'){active.click();return true}
+    active.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));return true;
+  }catch{return false}
 };
 
 window.addEventListener('keydown',e=>{
+  if(NATIVE_ANDROID&&e.key==='Enter'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){
+    if(window.__swoopTvActivateFocused?.('keydown')){e.preventDefault();e.stopPropagation();return}
+  }
   if(e.key==='Escape'&&trailerKey){trailerKey='';trailerTitle='';render();return}
   if(e.key==='Escape'&&playerItem){if(playerItem.kind==='live'&&!playerUiHidden){playerUiHidden=true;render()}else closePlayer();return}
   if(e.key==='Escape'&&sourceChoiceItem){sourceChoiceItem=null;render();return}
@@ -2954,15 +3063,13 @@ async function runAndroidStartupGate(){
   if(!NATIVE_ANDROID||androidStartupGateComplete)return true;
   if(androidStartupGatePromise)return androidStartupGatePromise;
   androidStartupGatePromise=(async()=>{
-    // v0.8.12 — normal TV launches are cache-first. A valid saved Home snapshot is the
-    // working library and must open immediately; provider/network refresh is explicit.
+    // A valid saved catalogue always wins the launch race. Home opens immediately and all
+    // provider/app freshness checks are scheduled only after remote input is available.
     if(state.catalog.length){
       startupRefreshActive=false;androidStartupGateComplete=true;state.page='home';
       clearAndroidPreparedHome();androidPreparedHomeReady=true;clearPersistentPageViews(['home']);
       render();forceAndroidHomeEntry();
       restoreDurableEpgCache().catch(()=>false);
-      // Restore the full durable catalogue only after Home is already interactive. This is
-      // local-device I/O, not a provider refresh, and does not redraw the current Home frame.
       setTimeout(()=>startAndroidBackgroundRestore(),900);
       return true;
     }

@@ -56,18 +56,18 @@ jobs:
       - name: Name APK and checksum
         shell: bash
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.16-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.16-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.16-Google-TV-Test.apk > Swoop-TV-v0.8.16-Google-TV-Test.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.17-Google-TV-Test.apk
+          cp Swoop-TV-v0.8.17-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.17-Google-TV-Test.apk > Swoop-TV-v0.8.17-Google-TV-Test.apk.sha256
           sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.16-Google-TV-Test
+          name: Swoop-TV-v0.8.17-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.16-Google-TV-Test.apk
-            Swoop-TV-v0.8.16-Google-TV-Test.apk.sha256
+            Swoop-TV-v0.8.17-Google-TV-Test.apk
+            Swoop-TV-v0.8.17-Google-TV-Test.apk.sha256
             Swoop-TV-v0.8.1-Google-TV-Test.apk
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
           if-no-files-found: error
@@ -89,13 +89,13 @@ jobs:
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.16" \
-              --notes "Current hardware-test channel. v0.8.16 carries the cumulative landscape-first Google TV UI forward and fixes provider-import completion so a successful 100% import always exits setup into Home. Includes an explicit Open Swoop TV fallback action. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v0.8.17" \
+              --notes "Current hardware-test channel. v0.8.17 carries the cumulative Google TV UI forward, makes remote Select deterministic on key-down across Who’s Watching and all TV controls, and adds launch freshness checks without re-downloading provider playlists on every open. Test-only signing identity; not a production release." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.16-Google-TV-Test.apk \
-            Swoop-TV-v0.8.16-Google-TV-Test.apk.sha256 \
+            Swoop-TV-v0.8.17-Google-TV-Test.apk \
+            Swoop-TV-v0.8.17-Google-TV-Test.apk.sha256 \
             Swoop-TV-v0.8.1-Google-TV-Test.apk \
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
             --clobber

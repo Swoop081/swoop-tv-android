@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.16 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.17 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -354,7 +354,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.16 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.17 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -410,7 +410,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.16 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.17 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -474,7 +474,10 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.16"; }
+        public String version() { return "0.8.17"; }
+
+        @JavascriptInterface
+        public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }
 
         @JavascriptInterface
         public String play(String payloadJson) {
@@ -649,7 +652,7 @@ public class MainActivity extends Activity {
     private void activateFocusedWebControl() {
         if (webView == null) return;
         webView.evaluateJavascript(
-                "window.__swoopTvActivateFocused ? window.__swoopTvActivateFocused() : (function(){var e=document.activeElement;if(!e||e===document.body)return false;if(typeof e.click==='function'){e.click();return true}return false})()",
+                "window.__swoopTvActivateFocused ? window.__swoopTvActivateFocused('native') : (function(){var e=document.activeElement;if(!e||e===document.body)return false;if(typeof e.click==='function'){e.click();return true}return false})()",
                 null
         );
     }
@@ -661,7 +664,10 @@ public class MainActivity extends Activity {
             return true;
         }
         if (!nativePlayerVisible && isTvSelectKey(event.getKeyCode())) {
-            if (event.getAction() == KeyEvent.ACTION_UP) activateFocusedWebControl();
+            // Some Google TV remotes/WebView builds do not deliver a reliable ACTION_UP click.
+            // Activate on the first ACTION_DOWN instead, ignore repeats, and consume both halves
+            // of the key so every focused Swoop TV control has one deterministic Select action.
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) activateFocusedWebControl();
             return true;
         }
         return super.dispatchKeyEvent(event);

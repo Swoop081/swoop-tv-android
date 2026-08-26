@@ -1,6 +1,16 @@
-# Swoop TV v0.8.16 — Google TV Provider Completion Hotfix
+# Swoop TV v0.8.17 — Google TV Input + Launch Freshness Hotfix
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
+
+## v0.8.17 launch/input blocker fixes
+
+- Makes Google TV OK/Select deterministic on the **first key-down** for DPAD Center, Enter, Numpad Enter and common controller A input. The Android shell directly activates the currently focused Swoop TV control, including Who’s Watching profile cards, instead of relying on WebView click synthesis.
+- A valid saved library now **always opens immediately**. Provider/app freshness checks run only after Home is interactive, so no saved-library launch is held behind a provider-refresh gate.
+- Every launch performs a lightweight Xtream account check when credentials are available, keeping account/expiry state current without downloading the full catalogue.
+- Providers older than 24 hours are refreshed **in the background after Home is responsive**. The previous working library stays on-screen and remains usable until the refreshed catalogue is complete.
+- Every launch also checks the stable GitHub Google TV test release for a newer Swoop TV APK. When a newer version exists, Settings surfaces the version and **Downloader code 3682231**.
+- Background freshness work never forces a route render while the customer is navigating; refreshed data is picked up on the next natural screen/row render.
+- Carries forward the full v0.8.16 provider-completion hotfix, v0.8.15 landscape-first UI and every earlier cumulative Google TV fix.
 
 ## v0.8.16 provider-completion blocker fix
 

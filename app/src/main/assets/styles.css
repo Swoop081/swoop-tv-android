@@ -1296,7 +1296,7 @@ html.android-tv .profile-form-actions-tv .btn{min-width:126px}
 }
 
 /* ========================================================================== */
-/* v0.8.16 — Google TV landscape-first UI + provider completion hotfix                              */
+/* v0.8.17 — Google TV input + launch freshness hotfix                              */
 /* Every Android TV route is composed for 16:9 first: wide, shallow, compact,  */
 /* with important actions visible and independent panels handling overflow.    */
 /* ========================================================================== */
