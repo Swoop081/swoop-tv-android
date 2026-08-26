@@ -1294,3 +1294,310 @@ html.android-tv .profile-form-actions-tv .btn{min-width:126px}
   html.android-tv .profile-avatar-option>span{width:50px;height:50px}
   html.android-tv .profile-option-card{min-height:48px;padding:7px 9px}
 }
+
+/* ========================================================================== */
+/* v0.8.16 — Google TV landscape-first UI + provider completion hotfix                              */
+/* Every Android TV route is composed for 16:9 first: wide, shallow, compact,  */
+/* with important actions visible and independent panels handling overflow.    */
+/* ========================================================================== */
+
+html.android-tv{
+  --tv-safe-x:4.2vw;
+  --tv-safe-top:14px;
+  --tv-page-gap:14px;
+  --tv-panel-radius:14px;
+  --tv-panel-line:rgba(255,255,255,.085);
+  --tv-panel-bg:rgba(10,11,15,.74);
+}
+
+/* Keep the fixed navigation comfortably inside TV overscan and make all page
+   content begin below it. */
+html.android-tv .topbar{height:70px;padding:12px var(--tv-safe-x) 0}
+html.android-tv .search-page,
+html.android-tv .settings-page,
+html.android-tv .guide-page{padding-top:70px}
+html.android-tv .page:not(.search-page):not(.settings-page):not(.guide-page){padding-top:0}
+
+/* Profile chooser — landscape composition, not an oversized portrait/mobile
+   splash. The whole chooser stays within one 16:9 frame on common TV sizes. */
+html.android-tv .profile-picker-page{padding:44px 5vw 30px;align-items:center}
+html.android-tv .profile-picker-shell{width:min(1040px,92vw)}
+html.android-tv .profile-picker-shell h1{font-size:clamp(42px,5.2vw,68px);margin:5px 0 9px;line-height:.9}
+html.android-tv .profile-picker-shell>p{font-size:11px;line-height:1.35;margin-bottom:20px;max-width:720px}
+html.android-tv .profile-picker-grid{gap:20px;flex-wrap:nowrap;justify-content:center}
+html.android-tv .profile-choice{width:145px;gap:7px}
+html.android-tv .profile-choice strong{font-size:14px}
+html.android-tv .profile-choice>span:last-child{font-size:7px}
+html.android-tv .profile-avatar-xl{width:122px;height:122px;border-radius:22px}
+html.android-tv .profile-picker-actions{margin-top:24px}
+
+/* Generic TV modal shell. Wide by default, shallow header, panel-local scroll. */
+html.android-tv .modal-backdrop{padding:24px 3.2vw}
+html.android-tv .modal{
+  width:min(1040px,94vw);
+  max-height:86vh;
+  border-radius:16px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+html.android-tv .modal-head{flex:0 0 auto;padding:12px 16px 10px}
+html.android-tv .modal-head h2{font-size:20px}
+html.android-tv .modal-body{min-height:0;overflow:auto;padding:13px 16px 15px}
+html.android-tv .modal:not(.profile-pin-modal):not(.profile-manage-modal):not(.profile-edit-modal) .form-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px 12px;
+}
+html.android-tv .modal .form-grid>.divider,
+html.android-tv .modal .form-grid>.status,
+html.android-tv .modal .form-grid>.helper-box,
+html.android-tv .modal .form-grid>.remember-row,
+html.android-tv .modal .form-grid>.cta-row,
+html.android-tv .modal .form-grid>button{grid-column:1/-1}
+
+/* Provider Manager — two independent landscape panes. Connected providers on
+   the left, add/edit provider on the right. No single tall form stack. */
+html.android-tv .provider-modal.multi-provider-modal{
+  width:min(1320px,95vw);
+  height:min(760px,88vh);
+  max-height:88vh;
+}
+html.android-tv .provider-modal-head{padding:12px 18px 10px;align-items:center}
+html.android-tv .provider-modal-head>div{max-width:none}
+html.android-tv .provider-modal-head h2{font-size:21px;margin:2px 0}
+html.android-tv .provider-modal-head p{font-size:9px;line-height:1.25}
+html.android-tv .provider-modal-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(310px,.78fr) minmax(520px,1.42fr);
+  gap:14px;
+  padding:12px 16px 15px;
+}
+html.android-tv .provider-manager-list,
+html.android-tv .provider-manager-empty,
+html.android-tv #providerSetup,
+html.android-tv #providerProgress{
+  min-height:0;
+  border:1px solid var(--tv-panel-line);
+  border-radius:var(--tv-panel-radius);
+  background:var(--tv-panel-bg);
+}
+html.android-tv .provider-manager-list{
+  margin:0;
+  padding:12px;
+  border-bottom:1px solid var(--tv-panel-line);
+  overflow-y:auto;
+  align-content:start;
+  gap:9px;
+}
+html.android-tv .provider-manager-empty{
+  margin:0;
+  padding:18px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  text-align:center;
+}
+html.android-tv .provider-manager-empty .empty-mark{margin:0 auto 8px;width:44px;height:44px}
+html.android-tv .provider-manager-empty h3{margin:0 0 5px;font-size:17px}
+html.android-tv .provider-manager-empty p{margin:0;font-size:10px;color:var(--muted)}
+html.android-tv .provider-manager-title{align-items:center;gap:10px;margin-bottom:2px}
+html.android-tv .provider-manager-title h3{font-size:17px;margin:1px 0 2px}
+html.android-tv .provider-manager-title p{font-size:9px;line-height:1.25}
+html.android-tv .provider-manager-card{grid-template-columns:45px minmax(0,1fr);gap:9px;padding:9px;border-radius:11px}
+html.android-tv .provider-manager-rank{min-height:74px;border-radius:9px}
+html.android-tv .provider-manager-rank strong{font-size:1.45rem}
+html.android-tv .provider-manager-rank span{font-size:.48rem;margin-top:4px}
+html.android-tv .provider-manager-head h4{font-size:13px;margin:2px 0}
+html.android-tv .provider-manager-head small{font-size:8px}
+html.android-tv .provider-health{font-size:8px;padding:5px 7px}
+html.android-tv .provider-manager-stats{gap:4px;margin:7px 0}
+html.android-tv .provider-manager-stats span{padding:4px 6px;font-size:8px;border-radius:6px}
+html.android-tv .provider-manager-stats b{font-size:10px}
+html.android-tv .provider-manager-actions{gap:4px}
+html.android-tv .provider-manager-actions .btn{min-height:28px;padding:5px 8px;font-size:8px}
+html.android-tv .provider-priority-btn{width:28px;height:28px;border-radius:7px}
+
+html.android-tv #providerSetup{overflow-y:auto;padding:12px}
+html.android-tv .provider-add-section{padding:0}
+html.android-tv .provider-add-heading{margin:0 0 9px}
+html.android-tv .provider-add-heading h3{font-size:20px;margin:1px 0 2px}
+html.android-tv .provider-add-heading p{font-size:9px;line-height:1.3}
+html.android-tv .provider-methods{margin:0 0 9px;gap:8px}
+html.android-tv .provider-method{min-height:56px;padding:9px 10px;gap:9px}
+html.android-tv .provider-method-icon{width:34px;height:34px}
+html.android-tv .provider-method strong{font-size:11px}
+html.android-tv .provider-method small{font-size:8px}
+html.android-tv .provider-form{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px 10px;
+  padding:11px;
+  border-radius:11px;
+}
+html.android-tv .provider-form-intro,
+html.android-tv .provider-form>.split,
+html.android-tv .provider-form>.provider-note,
+html.android-tv .provider-form>.provider-remember,
+html.android-tv .provider-form>.provider-primary,
+html.android-tv .provider-form>.helper-box,
+html.android-tv .provider-form>.provider-or{grid-column:1/-1}
+html.android-tv .provider-form-intro h3{font-size:17px;margin:1px 0 2px}
+html.android-tv .provider-form-intro p{font-size:8px;line-height:1.25}
+html.android-tv .provider-form .field input{padding:8px 10px;font-size:10px}
+html.android-tv .provider-note{padding:8px 9px;gap:7px}
+html.android-tv .provider-note-icon{width:20px;height:20px}
+html.android-tv .provider-note strong{font-size:9px}
+html.android-tv .provider-note span{font-size:8px;line-height:1.25}
+html.android-tv .provider-remember{padding-top:7px}
+html.android-tv .provider-remember strong{font-size:9px}
+html.android-tv .provider-remember small{font-size:7px;line-height:1.25}
+html.android-tv .provider-primary{min-height:34px;padding:7px 12px;font-size:11px}
+html.android-tv .provider-progress{grid-column:2;padding:17px;overflow:auto}
+
+/* Search — a horizontal search masthead with the field occupying most of the
+   width. Results use the remaining height instead of a tall title block. */
+html.android-tv .search-hero{
+  min-height:118px;
+  padding:18px var(--tv-safe-x) 16px;
+  display:grid;
+  grid-template-columns:minmax(230px,.48fr) minmax(520px,1.52fr);
+  grid-template-areas:'eyebrow search' 'title search';
+  column-gap:28px;
+  align-items:center;
+}
+html.android-tv .search-hero>.eyebrow{grid-area:eyebrow;align-self:end}
+html.android-tv .search-hero>h1{grid-area:title;align-self:start;font-size:31px;margin:2px 0 0}
+html.android-tv .searchbox-large{grid-area:search;max-width:none;width:100%}
+html.android-tv .searchbox input{height:48px;padding:11px 14px 11px 42px;font-size:13px}
+html.android-tv .search-results{padding-top:12px}
+html.android-tv .search-people{padding-top:12px}
+
+/* Settings — compact masthead and two-column control board. */
+html.android-tv .settings-hero{min-height:118px;padding:18px var(--tv-safe-x) 14px}
+html.android-tv .settings-hero h1{font-size:34px;margin:2px 0 4px}
+html.android-tv .settings-hero p{font-size:10px}
+html.android-tv .settings-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 11px;padding-top:12px}
+html.android-tv .setting-card{min-height:92px}
+html.android-tv .setting-card-feature,
+html.android-tv .theme-studio-card{grid-column:1/-1}
+html.android-tv .setting-main h3{font-size:15px}
+html.android-tv .setting-main>p{font-size:9px;line-height:1.3}
+html.android-tv .setting-stats{margin:7px 0 0;gap:11px}
+html.android-tv .setting-stats strong{font-size:15px}
+
+/* Movies, TV Shows and generic collection pages — shorter hero, more catalogue
+   in the first TV frame. */
+html.android-tv .page-hero{height:225px;min-height:225px}
+html.android-tv .page-hero-copy{bottom:28px;max-width:600px}
+html.android-tv .page-hero h1{font-size:clamp(31px,3.3vw,45px);margin:3px 0 6px}
+html.android-tv .page-hero p{font-size:10px;line-height:1.32;max-width:62ch}
+html.android-tv .page-hero-art{height:118%;top:-5%;max-width:39vw}
+html.android-tv .page-feature-play{margin-top:10px}
+html.android-tv .page-content{padding-bottom:28px}
+html.android-tv .media-category-content{padding-top:8px}
+html.android-tv .media-category-browser{padding:8px 0 28px}
+html.android-tv .media-category-section{margin-bottom:20px}
+html.android-tv .collection-hero{min-height:160px;padding:86px var(--tv-safe-x) 22px}
+html.android-tv .collection-hero h1{font-size:42px;margin:2px 0 5px}
+html.android-tv .collection-hero p{font-size:10px}
+html.android-tv .collection-count{margin-top:8px;padding:5px 8px;font-size:8px}
+
+/* Live TV — keep the lead channel useful but stop spending half a TV screen on
+   the hero. The first channel rails remain visible immediately. */
+html.android-tv .live-hub-hero{min-height:250px;padding:86px var(--tv-safe-x) 30px;align-items:end}
+html.android-tv .live-hub-copy{max-width:620px}
+html.android-tv .live-hub-copy h1{font-size:clamp(34px,4vw,54px);margin:3px 0 7px}
+html.android-tv .live-hub-copy p{font-size:10px;line-height:1.32;max-width:58ch;margin-bottom:10px;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+html.android-tv .live-hub-stat{right:var(--tv-safe-x);bottom:28px}
+html.android-tv .live-hub-stat strong{font-size:28px}
+html.android-tv .live-hub-content{padding-bottom:28px}
+html.android-tv .live-category-browser{padding:8px 0 28px}
+html.android-tv .live-category-section{margin-bottom:20px}
+
+/* Guide — compact masthead and a wider channel/program split. */
+html.android-tv .guide-hero{min-height:128px;padding:24px var(--tv-safe-x) 16px;align-items:center}
+html.android-tv .guide-hero h1{font-size:38px;margin:2px 0 4px}
+html.android-tv .guide-hero p{font-size:9px}
+html.android-tv .guide-now strong{font-size:23px}
+html.android-tv .guide-toolbar{height:48px}
+html.android-tv .guide-browser{grid-template-columns:176px minmax(0,1fr);gap:10px;padding-top:9px}
+html.android-tv .guide-categories{top:80px;max-height:calc(100vh - 95px)}
+html.android-tv .guide-categories-head{padding:9px 9px 7px}
+html.android-tv .guide-categories-head h2{font-size:16px;margin:2px 0}
+html.android-tv .guide-category-list{padding:4px}
+html.android-tv .guide-category{padding:6px 7px}
+html.android-tv .guide-schedule-head{min-height:38px;padding-bottom:6px}
+html.android-tv .guide-schedule-head h2{font-size:17px}
+html.android-tv .guide-row{min-height:66px}
+html.android-tv .guide-channel{grid-template-columns:40px 1fr auto;padding:7px 9px}
+html.android-tv .guide-channel img,html.android-tv .guide-logo-fallback{width:38px;height:38px}
+html.android-tv .guide-programs{min-height:66px}
+html.android-tv .guide-program{top:5px;bottom:5px;padding:7px}
+
+/* Title details — wide cinematic split with a shallower lead area so episodes,
+   cast or facts are reachable without a long vertical journey. */
+html.android-tv .detail-hero,html.android-tv .detail-route .detail-hero{min-height:390px;max-height:420px}
+html.android-tv .detail-copy{width:min(650px,58vw);padding:0 0 34px var(--tv-safe-x)}
+html.android-tv .detail-copy h2{font-size:clamp(34px,4.2vw,58px);margin-bottom:8px}
+html.android-tv .detail-title-logo{max-width:min(360px,31vw);max-height:100px;margin-bottom:8px}
+html.android-tv .detail-copy p{font-size:10px;line-height:1.36;-webkit-line-clamp:3}
+html.android-tv .detail-poster{right:var(--tv-safe-x);bottom:20px;width:min(16.5vw,205px);max-height:70%}
+html.android-tv .detail-episodes,html.android-tv .detail-info,html.android-tv .detail-related,html.android-tv .detail-cast{padding-top:15px}
+html.android-tv .detail-section-head h3,html.android-tv .detail-info h3{font-size:18px}
+html.android-tv .episode-card{grid-template-columns:minmax(130px,180px) 1fr;gap:11px;padding:6px 3px}
+
+/* Person / cast routes — horizontal identity strip rather than a giant portrait
+   hero. */
+html.android-tv .person-hero{min-height:220px;gap:24px;padding:72px var(--tv-safe-x) 22px;align-items:center}
+html.android-tv .person-portrait{width:138px;height:138px}
+html.android-tv .person-portrait-fallback{font-size:50px}
+html.android-tv .person-hero-copy h1{font-size:clamp(32px,4vw,54px);margin:3px 0 6px}
+html.android-tv .person-hero-copy p{font-size:10px;line-height:1.35;max-width:70ch;-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+html.android-tv .person-count-pills{margin-top:10px;gap:6px}
+html.android-tv .person-count-pills span{padding:6px 9px;font-size:8px}
+html.android-tv .person-count-pills b{font-size:11px}
+html.android-tv .person-results{padding:16px var(--tv-safe-x) 38px}
+html.android-tv .person-library-section+.person-library-section{margin-top:24px}
+
+/* Profile management and smaller utility dialogs. */
+html.android-tv .profile-manage-modal{width:min(960px,92vw)}
+html.android-tv .profile-manage-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+html.android-tv .profile-manage-row{grid-template-columns:52px minmax(0,1fr) auto;gap:8px;padding:9px}
+html.android-tv .profile-manage-row .btn{min-width:70px}
+html.android-tv .profile-add-btn{margin-top:10px}
+html.android-tv .profile-pin-modal{width:min(680px,72vw)}
+html.android-tv .home-rows-modal{width:min(1180px,94vw);max-height:86vh}
+html.android-tv .home-rows-body{grid-template-columns:minmax(290px,.75fr) minmax(0,1.45fr);gap:12px}
+html.android-tv .home-row-picker{gap:9px}
+html.android-tv .discovery-key-card{grid-template-columns:1fr;gap:10px;padding:12px}
+html.android-tv .home-row-footer{grid-column:1/-1}
+
+/* Source chooser / playback setup — wider and shallower. */
+html.android-tv .source-choice-card{width:min(1040px,90vw);max-height:80vh}
+html.android-tv .source-choice-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}
+html.android-tv .source-option{min-width:0}
+html.android-tv .source-confidence{padding:9px 12px 11px}
+html.android-tv .native-player-card{width:min(980px,88vw);padding:26px 34px}
+html.android-tv .native-player-card h2{font-size:38px}
+
+/* Empty states should use the horizontal space instead of a tall centered card. */
+html.android-tv .empty{max-width:900px;padding:24px 28px;margin:18px auto}
+html.android-tv .empty-mark{width:44px;height:44px;margin-bottom:9px}
+html.android-tv .empty h3{font-size:20px;margin-bottom:5px}
+html.android-tv .empty p{font-size:10px;line-height:1.35;margin-bottom:12px}
+
+/* Short-height TVs get one more density step rather than clipping controls. */
+@media (max-height:650px){
+  html.android-tv .provider-modal.multi-provider-modal{height:91vh;max-height:91vh}
+  html.android-tv .provider-modal-body{grid-template-columns:minmax(280px,.72fr) minmax(480px,1.48fr);gap:10px;padding:9px 12px 11px}
+  html.android-tv .provider-manager-card{padding:7px}
+  html.android-tv .provider-form{padding:8px;gap:6px 8px}
+  html.android-tv .search-hero,html.android-tv .settings-hero{min-height:102px;padding-top:12px;padding-bottom:10px}
+  html.android-tv .page-hero{height:200px;min-height:200px}
+  html.android-tv .live-hub-hero{min-height:220px;padding-bottom:22px}
+  html.android-tv .guide-hero{min-height:110px;padding-top:16px;padding-bottom:12px}
+  html.android-tv .detail-hero,html.android-tv .detail-route .detail-hero{min-height:350px;max-height:370px}
+  html.android-tv .person-hero{min-height:190px;padding-bottom:16px}
+}

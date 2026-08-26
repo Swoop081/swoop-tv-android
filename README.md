@@ -1,6 +1,21 @@
-# Swoop TV v0.8.14 — Google TV Remote OK / Select Hotfix
+# Swoop TV v0.8.16 — Google TV Provider Completion Hotfix
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
+
+## v0.8.16 provider-completion blocker fix
+
+- Fixes the Google TV provider-import screen remaining stuck at **100% / Your library is ready** after a successful import.
+- Successful imports now use one deterministic completion function that closes provider setup, clears startup/profile gates, opens Home at the top and restores TV focus.
+- Android uses a double `requestAnimationFrame` completion handoff rather than relying on the old delayed modal-close timer.
+- Adds an explicit **Open Swoop TV** action at 100% as a permanent escape hatch if any device suppresses the automatic transition.
+- Provider progress correctly changes from busy to complete at 100%.
+- Carries forward the v0.8.15 landscape-first Google TV layout pass and every earlier cumulative fix.
+
+## v0.8.15 landscape-first Google TV UI
+
+- Reworks major routes and dialogs for wide 16:9 television layouts rather than tall mobile/web forms.
+- Applies landscape-first density and two-column/wide-panel patterns across Providers, Settings, Search, Live TV, Guide, Movies, TV Shows, My List, title details, person/cast routes, profile management, source selection and utility dialogs.
+- Keeps important actions visible with less vertical scrolling and preserves the v0.8.14 deterministic remote OK/Select handling.
 
 ## v0.8.14 remote-input hotfix
 
@@ -62,8 +77,8 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.14`
-- versionCode: `813`
+- versionName: `0.8.16`
+- versionCode: `816`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -74,6 +89,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.14 (814)**. The workflow also publishes `Swoop-TV-v0.8.14-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.16 (816)**. The workflow also publishes `Swoop-TV-v0.8.16-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

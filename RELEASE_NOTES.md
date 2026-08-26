@@ -1,5 +1,24 @@
 # Swoop TV release notes
 
+## v0.8.16 — Google TV Provider Completion Hotfix
+
+- Fixes the release-blocking provider setup issue where a successful Xtream/M3U import could reach **100% / Your library is ready** and remain trapped on the progress screen.
+- Replaces separate delayed modal-close timers with a single deterministic `finishProviderSetup()` path.
+- On success, Swoop TV closes the provider modal, clears profile/startup/restoration gates, switches to Home, forces the Home scroll position to the top and restores TV focus.
+- Google TV performs the successful handoff on the next rendered frames rather than waiting on the previous one-second timeout.
+- Adds an explicit **Open Swoop TV** button at 100% as a permanent fallback escape path.
+- Marks the progress region no longer busy once the import is complete.
+- Carries forward the complete v0.8.15 landscape-first UI pass and all earlier cache-first launch, profile, remote, EPG, rail, theme, avatar, branding and playback work.
+- Android versionName is **0.8.16** and versionCode is **816**.
+
+## v0.8.15 — Google TV Landscape-First UI
+
+- Applies a landscape-first 16:9 layout system across major Google TV routes rather than inheriting tall phone/web page structures.
+- Reworks Providers, Settings, Search, Live TV, Guide, Movies, TV Shows, My List, title details, person/cast routes, profile management, source selection and utility dialogs into wider, shallower TV layouts.
+- Reduces unnecessary vertical scrolling and keeps primary actions visible from normal TV viewing distance.
+- Preserves v0.8.14 deterministic Android OK/Select activation and all earlier cumulative Google TV changes.
+- Android versionName is **0.8.15** and versionCode is **815**.
+
 ## v0.8.14 — Google TV Remote OK / Select Hotfix
 
 - Fixes the release-blocking Google TV issue where profile cards receive D-pad focus but pressing the remote OK/Select button does not activate them.

@@ -1,4 +1,18 @@
-# Swoop TV v0.8.14 — Google TV hardware test checklist
+# Swoop TV v0.8.16 — Google TV hardware test checklist
+
+## Provider completion blocker
+
+- [ ] Add an Xtream provider and let the import reach 100%; the setup overlay must close automatically and Home must open.
+- [ ] At 100%, the progress panel must no longer remain indefinitely on **Your library is ready**.
+- [ ] If automatic handoff is interrupted, **Open Swoop TV** must be visible and pressing OK must enter Home.
+- [ ] After import, Home opens at the top and the remote responds immediately.
+- [ ] The newly added provider is still present after app restart.
+
+## Landscape-first UI
+
+- [ ] Provider setup fits comfortably in 16:9 with primary fields/actions visible without a tall mobile-form scroll.
+- [ ] Settings, Search, Live TV, Guide, Movies, TV Shows, My List, details, people/cast, profiles and dialogs use TV-first wide layouts.
+- [ ] No major route requires unnecessary vertical scrolling just to reach its primary action.
 
 ## Remote OK / Select hotfix
 
