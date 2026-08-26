@@ -1,17 +1,22 @@
-# Swoop TV v0.8.19 — Google TV hardware test checklist
+# Swoop TV v0.8.20 — Google TV hardware test checklist
 
-## v0.8.19 Home rails / navigation / Live logo
+## v0.8.20 Home hero / trending / input performance
 
-- [ ] Home hero is clearly shorter than v0.8.18 and Top 100 Movies is visible much higher in the first 1080p frame.
-- [ ] From the first Top 100 card, D-pad **Up** focuses a hero action rather than jumping directly to Home / Live TV / Guide.
-- [ ] From the fixed top navigation on Home, D-pad **Down** enters the hero actions; another Down enters the first Home row.
-- [ ] Top 100 rank numerals are completely visible, including their bottom edge, and no numeral collides with the next section heading.
-- [ ] The first ranked item has a modest safe left inset rather than touching/clipping the screen edge.
-- [ ] `100 available` is not shown beside either Top 100 heading.
-- [ ] Duplicate visible titles do not appear twice in the same Home row when they are the same title/year from different sources/providers.
-- [ ] Loaded poster art has no black haze/gradient over its lower portion.
-- [ ] Movies and TV Shows page heroes are shorter and the first category rail is reachable sooner.
-- [ ] Live TV lead logo on the right is fully visible, bright enough to recognise and not clipped by the compact hero.
+- [ ] Cold-launch Home and confirm the entire hero title/logo, metadata, description and Play / More Info controls are visible beneath the fixed navigation.
+- [ ] From the first Top 100 card press Up, then move Up/Down around the hero/top navigation; Home must return to scroll position 0 and never hide the hero title/logo above the viewport.
+- [ ] Confirm Top 100 Movies / TV Shows look like current hot/trending titles rather than a rating-sorted provider catalogue.
+- [ ] Install v0.8.20 over v0.8.19 and confirm the old cached Top 100 ranking refreshes automatically in the background after Home becomes interactive.
+- [ ] Hold Right across at least 20 cards and move Up/Down between the first three Home rows; focus should track immediately without the sluggish pauses seen in v0.8.19.
+- [ ] Continue Down beyond the third mounted row and confirm later rows mount smoothly without a large one-time stall.
+- [ ] While focused inside a ranked row, allow a background discovery refresh to complete; the focused row must not be replaced underneath the active cursor.
+- [ ] Top 100 rank numerals remain fully visible with the safe left inset and no collision with the next row.
+- [ ] `100 available` remains absent; duplicate visible title/year entries remain de-duplicated; loaded posters remain free of the black lower haze.
+- [ ] Movies and TV Shows page heroes remain compact and the Live TV right-side logo remains fully visible.
+
+## v0.8.19 Home rails / navigation / Live logo (regression reference)
+
+- [ ] Verify the v0.8.19 ranked-number safe inset, duplicate-title filtering, poster-haze removal and Live TV logo treatment remain intact.
+- [ ] Verify v0.8.20 no longer reproduces the v0.8.19 Home hero clipping or sluggish Home navigation.
 
 ## v0.8.18 profile → Home runtime blocker
 
@@ -19,7 +24,7 @@
 - [ ] Focus the profile card and press the physical OK/Select button once.
 - [ ] Confirm the Who’s Watching screen disappears immediately.
 - [ ] Confirm Home renders without a JavaScript exception and remote input is responsive immediately.
-- [ ] Repeat after a cold process restart and after installing v0.8.19 over v0.8.18.
+- [ ] Repeat after a cold process restart and after installing v0.8.20 over v0.8.19.
 
 
 ## v0.8.18 launch freshness / deterministic Select

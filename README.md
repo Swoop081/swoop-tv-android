@@ -1,19 +1,18 @@
-# Swoop TV v0.8.19 — Google TV Home Rails + Navigation Polish
+# Swoop TV v0.8.20 — Google TV Home Trending + Performance Hotfix
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
 
-## v0.8.19 TV presentation + navigation pass
+## v0.8.20 Home trending + interaction hotfix
 
-- Shrinks the Google TV Home feature masthead again so Top 100 content occupies much more of the first 16:9 frame.
-- Shrinks Movies, TV Shows and Live TV lead headers so D-pad browsing reaches content rails sooner.
-- Adds explicit Home D-pad routing: **Up from the first Home row goes to the hero actions**, **Down from the fixed top navigation goes to the hero**, and **Down from the hero enters the first content row** instead of skipping between the content and navigation bar.
-- Removes the `100 available` wording from Top 100 Movies / Top 100 TV Shows.
-- De-duplicates visible Home titles across provider/source duplicates while preserving genuinely different known-year remakes. Top 100 replenishes from the library to keep the ranked set populated.
-- Repositions and lifts Top 100 rank numerals, adds a safe left inset and additional space beneath ranked rails so numbers are not clipped by the next row.
-- Removes the dark lower poster gradient after artwork has loaded on Google TV.
-- Makes the Live TV lead logo/art fully visible by resizing it into the compact hero safe area and removing the heavy dark overlay from the right side.
-- Retains the complete v0.8.18 profile → Home runtime hotfix, deterministic Select handling, cache-first launch and background freshness checks.
+- Corrects the v0.8.19 Home hero regression: the hero is still compact, but now has enough vertical safe area below the fixed TV navigation for the full title/logo, metadata, description and actions to remain visible.
+- Returning focus to the Home hero/top navigation now pins the page to scroll position 0 instead of centring the hero action and hiding the top of the masthead.
+- Top 100 Movies / TV Shows are now explicitly **hot/trending-now** rankings. They prioritise current Trakt, JustWatch, Television Stats and TMDb daily/weekly signals and refresh on the fast 90-minute cadence. v0.8.19 ranking caches are invalidated once and refreshed after Home becomes interactive.
+- Removes the old local-library rating/recent-addition fill that could make the back half of Top 100 look like random provider catalogue titles. A ranked row now contains only titles matched from current external discovery signals.
+- Cuts initial Android Home DOM work from 5 rows × 20 cards to 3 rows × 12 cards, with 12-card incremental expansion as the user moves through the rails.
+- Adds direct deterministic card-to-card / row-to-row Home navigation so normal D-pad movement no longer runs a whole-page spatial search on every key press.
+- Removes the duplicate focusable scan and expensive `getComputedStyle()` pass from the TV focus hot path.
+- Keeps the v0.8.19 poster-number, duplicate-title, poster-haze and Live TV logo fixes, plus every v0.8.18 runtime/launch fix.
 
 ## v0.8.18 blocker fix
 
@@ -105,8 +104,8 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.19`
-- versionCode: `819`
+- versionName: `0.8.20`
+- versionCode: `820`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -117,6 +116,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.19 (819)**. The workflow also publishes `Swoop-TV-v0.8.19-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.20 (820)**. The workflow also publishes `Swoop-TV-v0.8.20-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

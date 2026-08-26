@@ -1,4 +1,4 @@
-# Swoop TV v0.8.19 — Google TV test build
+# Swoop TV v0.8.20 — Google TV test build
 
 This Android TV shell embeds the Swoop TV v0.7.45 product build and packages it as `tv.swoop.player`.
 
@@ -8,11 +8,11 @@ This Android TV shell embeds the Swoop TV v0.7.45 product build and packages it 
 2. Open **Actions → Build Swoop TV Google TV APK**.
 3. Leave **Publish/update the stable Google TV test APK used by Downloader code 3682231** enabled.
 4. Run the workflow.
-5. The workflow builds `Swoop-TV-v0.8.19-Google-TV-Test.apk` and also overwrites:
+5. The workflow builds `Swoop-TV-v0.8.20-Google-TV-Test.apk` and also overwrites:
 
    `https://github.com/OWNER/REPO/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-Because that compatibility path is unchanged, **Downloader code 3682231** continues to work. The installed APK reports **Swoop TV 0.8.19 / versionCode 819**.
+Because that compatibility path is unchanged, **Downloader code 3682231** continues to work. The installed APK reports **Swoop TV 0.8.20 / versionCode 820**.
 
 ## Update on Google TV
 

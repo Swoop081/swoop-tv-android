@@ -1609,11 +1609,11 @@ html.android-tv .empty p{font-size:10px;line-height:1.35;margin-bottom:12px}
 /* Home: the feature masthead now behaves like a compact TV header rather than
    a half-screen billboard. More of Top 100 is visible in the first frame. */
 html.android-tv .hero{
-  height:clamp(225px,24vh,260px);
-  min-height:clamp(225px,24vh,260px);
-  max-height:260px;
+  height:clamp(285px,30vh,325px);
+  min-height:clamp(285px,30vh,325px);
+  max-height:325px;
 }
-html.android-tv .hero-content{width:min(520px,44vw);padding:0 0 26px var(--tv-safe-x)}
+html.android-tv .hero-content{width:min(520px,44vw);padding:72px 0 22px var(--tv-safe-x);box-sizing:border-box;align-self:stretch;display:flex;flex-direction:column;justify-content:flex-end}
 html.android-tv .hero h1{font-size:clamp(29px,3.25vw,45px);line-height:.92;margin-bottom:7px;max-width:13ch}
 html.android-tv .hero-title-slot{min-height:34px;margin-bottom:7px}
 html.android-tv .hero-title-logo{max-width:min(285px,24vw);max-height:68px}
@@ -1622,7 +1622,7 @@ html.android-tv .hero-meta{margin-bottom:7px}
 html.android-tv .hero p{font-size:10px;line-height:1.3;max-width:54ch;-webkit-line-clamp:2}
 html.android-tv .cta-row{margin-top:8px}
 html.android-tv .hero .btn{min-height:30px;padding:6px 11px;font-size:9px}
-html.android-tv .hero-poster{right:var(--tv-safe-x);top:8%;height:72%;max-width:20vw}
+html.android-tv .hero-poster{right:var(--tv-safe-x);top:22%;height:66%;max-width:20vw}
 html.android-tv .home-content{margin-top:-9px}
 
 /* Ranked rows: give the first numeral a deliberate TV-safe inset, lift the
@@ -1676,8 +1676,14 @@ html.android-tv .live-hub-shade{
 html.android-tv .live-hub-content{padding-top:8px}
 
 @media (max-height:650px){
-  html.android-tv .hero{height:210px;min-height:210px;max-height:210px}
+  html.android-tv .hero{height:260px;min-height:260px;max-height:260px}
   html.android-tv .page-hero{height:165px;min-height:165px}
   html.android-tv .live-hub-hero{min-height:185px;padding-top:70px;padding-bottom:15px}
   html.android-tv .live-hub-art{top:65px;height:105px}
 }
+
+
+/* v0.8.20 — Google TV Home interaction hotfix. Keep card response immediate
+   while the remote is moving; expensive cinematic motion is reserved for non-TV. */
+html.android-tv .tv-home-rows .card{transition:transform .07s linear,outline-color .07s linear,box-shadow .07s linear}
+html.android-tv .tv-home-rows .card:hover,html.android-tv .tv-home-rows .card:focus-visible{transform:scale(1.03)}

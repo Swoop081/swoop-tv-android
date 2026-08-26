@@ -1,5 +1,20 @@
 # Swoop TV Release Notes
 
+## v0.8.20 — Google TV Home Trending + Performance Hotfix
+
+- Fixes the v0.8.19 Home masthead regression where compacting the hero allowed its title/logo area to sit underneath the fixed top navigation. The Home hero is restored to a still-compact but safe 285–325 px TV height, with a dedicated 72 px top-safe content zone.
+- Home focus no longer uses `scrollIntoView(..., block: center)` when moving between the first rail, hero and fixed navigation. Focusing either the hero or top navigation explicitly restores scroll position 0, so the full hero remains visible.
+- Changes **Top 100 Movies** and **Top 100 TV Shows** from a steadier popularity blend to a true **hot/trending-now** blend led by current Trakt, JustWatch, Television Stats and TMDb daily signals, with weekly/IMDb signals used only as supporting inputs.
+- Top 100 now uses the fast 90-minute discovery refresh cadence instead of the four-hour steady-ranking cadence. A ranking-schema marker invalidates v0.8.19 cached rankings once, and Google TV refreshes the two ranked feeds in the background after initial remote interaction using the catalogue worker.
+- Removes the old provider-library rating/recent-addition completion pass. Swoop TV no longer invents the tail of a Top 100 list when fewer current external titles match the connected provider library; only current discovery matches are ranked.
+- Legacy MDBList fallback for Top 100 now uses its streaming chart rather than a generic `popular` list.
+- Reduces Android Home eager rendering from **5 rows × 20 cards** to **3 rows × 12 cards**; rail expansion is now 12 cards at a time.
+- Adds fast deterministic Home rail navigation: Left/Right resolves neighbouring cards directly, Up/Down resolves the nearest card in the adjacent mounted row, and the next row is mounted only when Down reaches the bottom of the current mounted set.
+- Removes the unconditional second whole-DOM focusable scan on every Home D-pad press and removes `getComputedStyle()` from the focusable hot path. This substantially reduces layout/style work during remote navigation on Google TV. Background discovery patching also defers if the user currently has focus inside that row.
+- Shortens TV Home card focus transitions and slightly reduces focus scale to keep input response crisp on lower-powered Google TV hardware.
+- Retains the v0.8.19 ranked-number safe inset, duplicate-title filtering, poster-haze removal, compact Movies/TV Shows headers and Live TV logo visibility fixes, plus all v0.8.18 runtime/launch fixes.
+- Android versionName is **0.8.20** and versionCode is **820**.
+
 ## v0.8.19 — Google TV Home Rails + Navigation Polish
 
 - Compacts the Google TV **Home hero** to roughly the upper quarter of the screen so Top 100 rows are substantially higher and more content is visible without scrolling.
