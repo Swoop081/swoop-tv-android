@@ -1601,3 +1601,83 @@ html.android-tv .empty p{font-size:10px;line-height:1.35;margin-bottom:12px}
   html.android-tv .detail-hero,html.android-tv .detail-route .detail-hero{min-height:350px;max-height:370px}
   html.android-tv .person-hero{min-height:190px;padding-bottom:16px}
 }
+
+/* ========================================================================== */
+/* v0.8.19 — Google TV Home rail + D-pad polish                              */
+/* ========================================================================== */
+
+/* Home: the feature masthead now behaves like a compact TV header rather than
+   a half-screen billboard. More of Top 100 is visible in the first frame. */
+html.android-tv .hero{
+  height:clamp(225px,24vh,260px);
+  min-height:clamp(225px,24vh,260px);
+  max-height:260px;
+}
+html.android-tv .hero-content{width:min(520px,44vw);padding:0 0 26px var(--tv-safe-x)}
+html.android-tv .hero h1{font-size:clamp(29px,3.25vw,45px);line-height:.92;margin-bottom:7px;max-width:13ch}
+html.android-tv .hero-title-slot{min-height:34px;margin-bottom:7px}
+html.android-tv .hero-title-logo{max-width:min(285px,24vw);max-height:68px}
+html.android-tv .hero-brandline{margin-bottom:6px}
+html.android-tv .hero-meta{margin-bottom:7px}
+html.android-tv .hero p{font-size:10px;line-height:1.3;max-width:54ch;-webkit-line-clamp:2}
+html.android-tv .cta-row{margin-top:8px}
+html.android-tv .hero .btn{min-height:30px;padding:6px 11px;font-size:9px}
+html.android-tv .hero-poster{right:var(--tv-safe-x);top:8%;height:72%;max-width:20vw}
+html.android-tv .home-content{margin-top:-9px}
+
+/* Ranked rows: give the first numeral a deliberate TV-safe inset, lift the
+   numerals so their lower edge cannot collide with the following row, and keep
+   extra vertical breathing room beneath Top 100. */
+html.android-tv .ranked-section{margin-bottom:38px}
+html.android-tv .ranked-section .rail{
+  padding:8px 34px 30px clamp(24px,1.6vw,34px);
+  margin:-6px -34px -10px 0;
+  scroll-padding-inline:clamp(24px,1.6vw,34px);
+}
+html.android-tv .rank-badge{left:-14px;bottom:-13px;width:50px;height:61px}
+html.android-tv .rank-badge span{font-size:55px}
+html.android-tv .rank-badge.rank-two-digit{left:-18px;width:64px}
+html.android-tv .rank-badge.rank-two-digit span{font-size:48px}
+html.android-tv .rank-badge.rank-three-digit{left:-22px;width:80px}
+html.android-tv .rank-badge.rank-three-digit span{font-size:39px}
+
+/* Once poster art is ready there is no reason to wash the lower artwork in a
+   black gradient on TV. Fallback cards retain their shade until art loads. */
+html.android-tv .card.poster.art-ready .card-shade{background:transparent!important}
+
+/* Movies / Shows and Live TV: shorter lead headers keep the first browsing rail
+   reachable without a long vertical jump. */
+html.android-tv .page-hero{height:185px;min-height:185px}
+html.android-tv .page-hero-copy{bottom:20px}
+html.android-tv .page-hero h1{font-size:clamp(27px,2.9vw,39px)}
+html.android-tv .page-hero-art{height:108%;top:-3%;max-width:35vw}
+
+html.android-tv .live-hub-hero{min-height:205px;padding:76px var(--tv-safe-x) 20px}
+html.android-tv .live-hub-copy{max-width:560px}
+html.android-tv .live-hub-copy h1{font-size:clamp(29px,3.4vw,45px);margin:2px 0 5px}
+html.android-tv .live-hub-copy p{font-size:9px;line-height:1.25;margin-bottom:7px;max-width:54ch}
+html.android-tv .live-hub-copy .cta-row{margin-top:6px}
+html.android-tv .live-hub-copy .btn{min-height:30px;padding:6px 10px;font-size:9px}
+html.android-tv .live-hub-stat{bottom:20px}
+html.android-tv .live-hub-stat strong{font-size:25px}
+html.android-tv .live-hub-art{
+  right:var(--tv-safe-x);
+  top:69px;
+  width:min(320px,27vw);
+  height:120px;
+  max-width:31vw;
+  object-position:right center;
+  filter:drop-shadow(0 14px 32px rgba(0,0,0,.45));
+}
+html.android-tv .live-hub-art.loaded{opacity:1}
+html.android-tv .live-hub-shade{
+  background:linear-gradient(90deg,rgba(4,5,7,.98) 0%,rgba(4,5,7,.88) 39%,rgba(4,5,7,.32) 64%,rgba(4,5,7,.12) 100%),linear-gradient(0deg,var(--swoop-bg,#050505),transparent 38%);
+}
+html.android-tv .live-hub-content{padding-top:8px}
+
+@media (max-height:650px){
+  html.android-tv .hero{height:210px;min-height:210px;max-height:210px}
+  html.android-tv .page-hero{height:165px;min-height:165px}
+  html.android-tv .live-hub-hero{min-height:185px;padding-top:70px;padding-bottom:15px}
+  html.android-tv .live-hub-art{top:65px;height:105px}
+}

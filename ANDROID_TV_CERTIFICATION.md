@@ -1,4 +1,17 @@
-# Swoop TV v0.8.18 — Google TV hardware test checklist
+# Swoop TV v0.8.19 — Google TV hardware test checklist
+
+## v0.8.19 Home rails / navigation / Live logo
+
+- [ ] Home hero is clearly shorter than v0.8.18 and Top 100 Movies is visible much higher in the first 1080p frame.
+- [ ] From the first Top 100 card, D-pad **Up** focuses a hero action rather than jumping directly to Home / Live TV / Guide.
+- [ ] From the fixed top navigation on Home, D-pad **Down** enters the hero actions; another Down enters the first Home row.
+- [ ] Top 100 rank numerals are completely visible, including their bottom edge, and no numeral collides with the next section heading.
+- [ ] The first ranked item has a modest safe left inset rather than touching/clipping the screen edge.
+- [ ] `100 available` is not shown beside either Top 100 heading.
+- [ ] Duplicate visible titles do not appear twice in the same Home row when they are the same title/year from different sources/providers.
+- [ ] Loaded poster art has no black haze/gradient over its lower portion.
+- [ ] Movies and TV Shows page heroes are shorter and the first category rail is reachable sooner.
+- [ ] Live TV lead logo on the right is fully visible, bright enough to recognise and not clipped by the compact hero.
 
 ## v0.8.18 profile → Home runtime blocker
 
@@ -6,7 +19,7 @@
 - [ ] Focus the profile card and press the physical OK/Select button once.
 - [ ] Confirm the Who’s Watching screen disappears immediately.
 - [ ] Confirm Home renders without a JavaScript exception and remote input is responsive immediately.
-- [ ] Repeat after a cold process restart and after installing v0.8.18 over v0.8.17.
+- [ ] Repeat after a cold process restart and after installing v0.8.19 over v0.8.18.
 
 
 ## v0.8.18 launch freshness / deterministic Select
@@ -54,7 +67,7 @@
 - [ ] A temporarily unavailable provider never wipes a previously successful library.
 
 ## Compact Home hero
-- [ ] Home hero occupies roughly the upper 40–44% of the usable TV viewport rather than most of the screen.
+- [ ] Home hero occupies roughly the upper quarter of the usable TV viewport rather than 40–44% of the screen.
 - [ ] At least the first Home row is substantially visible below the hero on a 1080p television without scrolling.
 - [ ] Hero poster/rotation art remains readable but does not dominate the right half of the television.
 - [ ] Play / More Info and hero metadata remain fully on-screen with no overscan clipping.
@@ -75,8 +88,8 @@
 - [ ] Horizontal gaps are visibly larger than v0.8.11 so posters have clear breathing room.
 - [ ] Top 100 movie/show title fallback text is not drawn underneath the rank numeral.
 - [ ] Top 100 rank numbers straddle the lower-left poster edge with a substantial portion outside the poster.
-- [ ] Top 100 Movies reports 100 available when the library contains at least 100 movies.
-- [ ] Top 100 TV Shows reports 100 available when the library contains at least 100 shows.
+- [ ] Top 100 Movies can contain 100 ranked unique titles when the library supports it, but the `100 available` helper text is hidden.
+- [ ] Top 100 TV Shows can contain 100 ranked unique titles when the library supports it, but the `100 available` helper text is hidden.
 - [ ] D-pad Right can traverse beyond item 20; additional cards appear seamlessly in 20-item chunks without a pause or full-page rerender.
 - [ ] Reaching ranks 80–100 remains responsive and rank numbers are correct.
 

@@ -1,6 +1,19 @@
-# Swoop TV v0.8.18 — Google TV Profile → Home Runtime Hotfix
+# Swoop TV v0.8.19 — Google TV Home Rails + Navigation Polish
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
+
+
+## v0.8.19 TV presentation + navigation pass
+
+- Shrinks the Google TV Home feature masthead again so Top 100 content occupies much more of the first 16:9 frame.
+- Shrinks Movies, TV Shows and Live TV lead headers so D-pad browsing reaches content rails sooner.
+- Adds explicit Home D-pad routing: **Up from the first Home row goes to the hero actions**, **Down from the fixed top navigation goes to the hero**, and **Down from the hero enters the first content row** instead of skipping between the content and navigation bar.
+- Removes the `100 available` wording from Top 100 Movies / Top 100 TV Shows.
+- De-duplicates visible Home titles across provider/source duplicates while preserving genuinely different known-year remakes. Top 100 replenishes from the library to keep the ranked set populated.
+- Repositions and lifts Top 100 rank numerals, adds a safe left inset and additional space beneath ranked rails so numbers are not clipped by the next row.
+- Removes the dark lower poster gradient after artwork has loaded on Google TV.
+- Makes the Live TV lead logo/art fully visible by resizing it into the compact hero safe area and removing the heavy dark overlay from the right side.
+- Retains the complete v0.8.18 profile → Home runtime hotfix, deterministic Select handling, cache-first launch and background freshness checks.
 
 ## v0.8.18 blocker fix
 
@@ -92,8 +105,8 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.16`
-- versionCode: `816`
+- versionName: `0.8.19`
+- versionCode: `819`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -104,6 +117,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.16 (816)**. The workflow also publishes `Swoop-TV-v0.8.16-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.19 (819)**. The workflow also publishes `Swoop-TV-v0.8.19-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

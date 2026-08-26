@@ -51,7 +51,9 @@ jobs:
           gradle-version: '9.5.0'
 
       - name: Validate Swoop TV runtime-critical card rendering
-        run: node tests/card-runtime-smoke.mjs
+        run: |
+          node tests/card-runtime-smoke.mjs
+          node tests/tv-ui-runtime-smoke.mjs
 
       - name: Build Google TV test APK
         run: gradle --no-daemon :app:assembleDebug
@@ -59,18 +61,18 @@ jobs:
       - name: Name APK and checksum
         shell: bash
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.18-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.18-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.18-Google-TV-Test.apk > Swoop-TV-v0.8.18-Google-TV-Test.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.19-Google-TV-Test.apk
+          cp Swoop-TV-v0.8.19-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.19-Google-TV-Test.apk > Swoop-TV-v0.8.19-Google-TV-Test.apk.sha256
           sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.18-Google-TV-Test
+          name: Swoop-TV-v0.8.19-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.18-Google-TV-Test.apk
-            Swoop-TV-v0.8.18-Google-TV-Test.apk.sha256
+            Swoop-TV-v0.8.19-Google-TV-Test.apk
+            Swoop-TV-v0.8.19-Google-TV-Test.apk.sha256
             Swoop-TV-v0.8.1-Google-TV-Test.apk
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
           if-no-files-found: error
@@ -92,13 +94,13 @@ jobs:
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.18" \
-              --notes "Current hardware-test channel. v0.8.18 fixes the profile-to-Home runtime crash that made Who’s Watching appear unclickable, while retaining deterministic TV Select handling and cache-first launch freshness checks. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v0.8.19" \
+              --notes "Current hardware-test channel. v0.8.19 compacts Home/Live/Movies/Shows headers, fixes Home D-pad focus routing, cleans ranked Top 100 rails, removes poster haze and duplicate visible titles, and improves Live TV logo visibility while retaining the v0.8.18 runtime hotfix. Test-only signing identity; not a production release." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.18-Google-TV-Test.apk \
-            Swoop-TV-v0.8.18-Google-TV-Test.apk.sha256 \
+            Swoop-TV-v0.8.19-Google-TV-Test.apk \
+            Swoop-TV-v0.8.19-Google-TV-Test.apk.sha256 \
             Swoop-TV-v0.8.1-Google-TV-Test.apk \
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
             --clobber

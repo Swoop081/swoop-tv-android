@@ -238,6 +238,20 @@ function androidFastSavedItem(id){
   return state.continueWatching.find(x=>String(x?.id||'')===key)?.item||state.watchHistory.find(x=>String(x?.id||'')===key)?.item||detailEpisodeItems.get(key)||null;
 }
 function androidFastSortAdded(list=[],limit=ANDROID_TV_HOME_DATA_STANDARD_LIMIT){return [...list].sort((a,b)=>providerAddedNumber(b)-providerAddedNumber(a)||String(a?.name||'').localeCompare(String(b?.name||''))).slice(0,limit)}
+function homeVisibleTitleKey(item={}){return normalizeMediaTitle(cleanDisplayTitle(item)||item?.name||'')}
+function appendUniqueHomeTitle(out,item,seenIds,seenExternal,seenTitles){
+  if(!item)return false;
+  const id=String(item.id||'');if(id&&seenIds.has(id))return false;
+  const kind=String(item.kind||''),tmdb=String(item.tmdbId||item.tmdb||'').trim(),imdb=String(item.imdbId||item.imdb||'').trim().toLowerCase();
+  const external=tmdb?`${kind}|tmdb:${tmdb}`:imdb?`${kind}|imdb:${imdb}`:'';
+  if(external&&seenExternal.has(external))return false;
+  const title=homeVisibleTitleKey(item),year=yearNumber(item);
+  if(title){const titleKey=`${kind}|${title}`,years=seenTitles.get(titleKey);if(years&&(!year||years.has(0)||years.has(year)))return false;if(years&&year&&years.has(0))return false}
+  if(id)seenIds.add(id);if(external)seenExternal.add(external);
+  if(title){const titleKey=`${kind}|${title}`,years=seenTitles.get(titleKey)||new Set();years.add(year||0);seenTitles.set(titleKey,years)}
+  out.push(item);return true;
+}
+function dedupeHomeTitles(list=[]){const out=[],seenIds=new Set(),seenExternal=new Set(),seenTitles=new Map();for(const item of list||[])appendUniqueHomeTitle(out,item,seenIds,seenExternal,seenTitles);return out}
 function androidFastRowItems(id){
   const fast=androidFastCatalog(),limit=String(id).startsWith('top20-')?ANDROID_TV_HOME_DATA_RANKED_LIMIT:ANDROID_TV_HOME_DATA_STANDARD_LIMIT;
   const cached=state.webDiscovery?.[id];
@@ -993,10 +1007,12 @@ function localHomeRowItems(id){
 function cachedWebRowItems(id){const cache=state.webDiscovery?.[id];if(androidFastHomeMode()){const source=Array.isArray(cache?.items)&&cache.items.length?cache.items:(cache?.itemIds||[]).map(androidFastSavedItem).filter(Boolean);return source.slice(0,String(id).startsWith('top20-')?ANDROID_TV_HOME_DATA_RANKED_LIMIT:ANDROID_TV_HOME_DATA_STANDARD_LIMIT)}if(nativeCatalogMode&&Array.isArray(cache?.items))return cacheNativeItems(cache.items);return collapseMovieSources((cache?.itemIds||[]).map(savedItem).filter(Boolean),activeCatalog())}
 function customHomeRowItems(id){const uid=String(id).slice(7),row=state.mdblistRows.find(x=>String(x.uid)===uid);if(androidFastHomeMode())return (row?.items||[]).slice(0,ANDROID_TV_HOME_DATA_STANDARD_LIMIT);return collapseMovieSources(row?.items||[],activeCatalog())}
 function homeRowItems(id){
-  if(NATIVE_ANDROID&&androidPreparedHomeReady&&!ANDROID_DYNAMIC_HOME_ROWS.has(String(id))&&androidPreparedHomeRows.has(String(id))){const profile=activeProfile();return (androidPreparedHomeRows.get(String(id))||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{}))}
-  if(androidFastHomeMode())return androidFastRowItems(id);let result;if(WEB_ROW_IDS.has(id)){result=cachedWebRowItems(id);if(!result.length&&SNOAK_CURATED_ROWS.has(id))result=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);}else if(String(id).startsWith('custom:'))result=customHomeRowItems(id);else if(nativeCatalogMode&&nativeHomeRowCache.has(id))result=nativeHomeRowCache.get(id);else if(String(id).startsWith('cat:')){const parts=String(id).split(':'),kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));result=stableDailyOrder(items(kind).filter(x=>x.group===name),id)}else result=localHomeRowItems(id);const profile=activeProfile();return (result||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{}))}
+  const profile=activeProfile(),finish=list=>{const filtered=dedupeHomeTitles((list||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{})));return (id==='top20-movies'||id==='top20-shows')?completeTop100FromLibrary(id,filtered):filtered};
+  if(NATIVE_ANDROID&&androidPreparedHomeReady&&!ANDROID_DYNAMIC_HOME_ROWS.has(String(id))&&androidPreparedHomeRows.has(String(id)))return finish(androidPreparedHomeRows.get(String(id))||[]);
+  if(androidFastHomeMode())return finish(androidFastRowItems(id));let result;if(WEB_ROW_IDS.has(id)){result=cachedWebRowItems(id);if(!result.length&&SNOAK_CURATED_ROWS.has(id))result=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);}else if(String(id).startsWith('custom:'))result=customHomeRowItems(id);else if(nativeCatalogMode&&nativeHomeRowCache.has(id))result=nativeHomeRowCache.get(id);else if(String(id).startsWith('cat:')){const parts=String(id).split(':'),kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));result=stableDailyOrder(items(kind).filter(x=>x.group===name),id)}else result=localHomeRowItems(id);return finish(result)}
 function relativeRefreshTime(ts){if(!ts)return'Not refreshed yet';const mins=Math.max(0,Math.floor((Date.now()-ts)/60000));if(mins<1)return'Updated just now';if(mins<60)return`Updated ${mins}m ago`;const hrs=Math.floor(mins/60);if(hrs<24)return`Updated ${hrs}h ago`;return`Updated ${Math.floor(hrs/24)}d ago`}
 function discoveryMeta(id,data){
+  if(id==='top20-movies'||id==='top20-shows')return '';
   if(WEB_ROW_IDS.has(id)||SNOAK_CURATED_ROWS.has(id)||String(id).startsWith('custom:'))return data.length?`${data.length.toLocaleString()} available`:'Updating…';
   if(id==='live-now')return`${data.length.toLocaleString()} channels`;
   if(id==='continue')return`${data.length} in progress`;
@@ -1107,11 +1123,11 @@ async function legacyDiscoveryFallback(id,apiKey){
 }
 function completeTop100FromLibrary(id,list=[]){
   if(id!=='top20-movies'&&id!=='top20-shows')return list;
-  const kind=id==='top20-movies'?'movie':'series',out=[],seen=new Set();
-  for(const item of list||[]){if(item?.id&&!seen.has(String(item.id))&&item.kind===kind){seen.add(String(item.id));out.push(item)}if(out.length>=HOME_RANKED_ROW_LIMIT)return out}
+  const kind=id==='top20-movies'?'movie':'series',out=[],seenIds=new Set(),seenExternal=new Set(),seenTitles=new Map();
+  for(const item of list||[]){if(item?.kind===kind)appendUniqueHomeTitle(out,item,seenIds,seenExternal,seenTitles);if(out.length>=HOME_RANKED_ROW_LIMIT)return out}
   const pool=androidFastHomeMode()?(kind==='movie'?androidFastCatalog().movie:androidFastCatalog().series):items(kind);
-  const supplement=[...pool].filter(x=>x?.id&&!seen.has(String(x.id))).sort((a,b)=>ratingNumber(b)-ratingNumber(a)||providerAddedNumber(b)-providerAddedNumber(a)||String(a?.name||'').localeCompare(String(b?.name||'')));
-  for(const item of supplement){seen.add(String(item.id));out.push(item);if(out.length>=HOME_RANKED_ROW_LIMIT)break}
+  const supplement=[...pool].sort((a,b)=>ratingNumber(b)-ratingNumber(a)||providerAddedNumber(b)-providerAddedNumber(a)||String(a?.name||'').localeCompare(String(b?.name||'')));
+  for(const item of supplement){if(item?.kind===kind)appendUniqueHomeTitle(out,item,seenIds,seenExternal,seenTitles);if(out.length>=HOME_RANKED_ROW_LIMIT)break}
   return out;
 }
 async function fetchBuiltInDiscovery(id,apiKey,force=false){
@@ -2889,11 +2905,20 @@ function expandAndroidHomeRail(current,key){
   hydrateArtwork(rail);hydrateVisibleImdbRatings(rail);bindDynamicCards(rail);bindRailStability(section);
   return true;
 }
+function tvHomeFirstMountedSection(){return [...document.querySelectorAll('[data-home-row-mounted]')].find(el=>el.offsetParent!==null)||null}
+function tvHomeHeroAction(){return [...document.querySelectorAll('.hero-actions button')].find(el=>el.offsetParent!==null)||null}
+function tvHomeFocus(target,block='nearest'){if(!target)return false;rememberTvFocus();try{target.focus({preventScroll:true})}catch{target.focus()}target.scrollIntoView({behavior:'auto',block,inline:'nearest'});tvFocusMemory=tvFocusSignature(target);return true}
 function tvMoveFocus(key){
   let focusables=tvFocusableElements();if(!focusables.length)return false;
   let current=document.activeElement;
   if(!focusables.includes(current)){const first=tvInitialFocus(focusables);if(first){first.focus();first.scrollIntoView({block:'nearest',inline:'nearest'});return true}return false}
-  if(NATIVE_ANDROID&&state.page==='home')expandAndroidHomeRail(current,key);
+  if(NATIVE_ANDROID&&state.page==='home'){
+    const heroAction=tvHomeHeroAction(),firstSection=tvHomeFirstMountedSection(),currentSection=current.closest?.('[data-home-row-mounted]');
+    if(key==='ArrowUp'&&firstSection&&currentSection===firstSection&&heroAction)return tvHomeFocus(heroAction,'center');
+    if(key==='ArrowDown'&&tvIsTopNavigationElement(current)&&heroAction)return tvHomeFocus(heroAction,'center');
+    if(key==='ArrowDown'&&current.closest?.('.hero-actions')&&firstSection){const firstCard=firstSection.querySelector('.card,button');if(firstCard)return tvHomeFocus(firstCard,'nearest')}
+    expandAndroidHomeRail(current,key);
+  }
   focusables=tvFocusableElements();
   const scrollFirstHomeUp=NATIVE_ANDROID&&state.page==='home'&&key==='ArrowUp'&&!tvHomeIsAtTop()&&!tvIsTopNavigationElement(current);
   if(scrollFirstHomeUp)focusables=focusables.filter(el=>!tvIsTopNavigationElement(el));

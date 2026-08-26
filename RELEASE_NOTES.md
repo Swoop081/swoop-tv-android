@@ -1,5 +1,19 @@
 # Swoop TV Release Notes
 
+## v0.8.19 — Google TV Home Rails + Navigation Polish
+
+- Compacts the Google TV **Home hero** to roughly the upper quarter of the screen so Top 100 rows are substantially higher and more content is visible without scrolling.
+- Compacts the **Movies**, **TV Shows** and **Live TV** lead headers for the same 16:9 browsing goal.
+- Adds deterministic Home D-pad zone transitions: Up from the first Home rail enters the hero, Down from the top navigation enters the hero, and Down from the hero enters the first content rail. This prevents the fixed Home / Live TV / Guide navigation from stealing focus when the user is trying to move through the top of Home.
+- Removes **“100 available”** beside Top 100 Movies and Top 100 TV Shows.
+- Adds visible-title de-duplication across Home rows so identical title/year entries from different provider/source records render once; known different-year remakes remain distinct. Top 100 fills remaining slots from the provider library using the same uniqueness rules.
+- Repositions Top 100 ranking numerals upward, adds a safe left inset and gives ranked rails additional bottom clearance so numbers no longer clip or collide with the next row.
+- Removes the dark lower poster gradient after artwork is loaded on Google TV, leaving poster artwork unobscured.
+- Reworks the compact Live TV hero art treatment so the right-side channel/logo artwork fits inside the hero, renders at full opacity and is no longer hidden beneath the heavy right-side shade.
+- Adds `tests/tv-ui-runtime-smoke.mjs` to validate Home title de-duplication and guard the new TV UI/focus rules in CI, alongside the existing card runtime smoke test.
+- Preserves every v0.8.18 profile → Home runtime fix, deterministic Android Select bridge, cache-first launch behaviour, provider/EPG freshness policy, Media3 playback and cumulative Google TV work.
+- Android versionName is **0.8.19** and versionCode is **819**.
+
 ## v0.8.18 — Google TV Profile → Home Runtime Hotfix
 
 - Fixes the real cause of the recurring **Who’s watching?** dead-end on Google TV. Remote Select was reaching `switchProfile()`, but Home rendering crashed immediately afterward because the poster-card renderer referenced the Top 100 `rank` value before that variable had been initialized. The old profile DOM therefore remained visible and made the problem look like a remote-input failure.
