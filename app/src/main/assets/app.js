@@ -1174,6 +1174,7 @@ function card(item,poster=false,opts={}){
   const art=item.logo?`<img class="card-art" data-swoop-art="${esc(item.logo)}" alt="" loading="lazy">`:'';
   const posterOwnsTitle=Boolean(poster&&((['movie','series'].includes(item.kind)&&item.logo)||continueSeriesPoster));
   const displayTitle=continueSeriesPoster?cleanDisplayTitle({name:item._continueSeriesTitle||item.group||item.name}):cleanDisplayTitle(item);
+  const rank=Number.isFinite(Number(opts.rank))&&Number(opts.rank)>0?Number(opts.rank):null;
   const titleHtml=(rank&&NATIVE_ANDROID)?'':(posterOwnsTitle&&!NATIVE_ANDROID)?'':`<div class="card-title tv-card-title-fallback">${esc(displayTitle)}</div>`;
   const subHtml=sub?`<div class="card-sub">${esc(sub)}</div>`:'';
   const liveBadge=item.kind==='live'?`<div class="badge"><span class="live-dot"></span>LIVE</div>`:'';
@@ -1187,7 +1188,6 @@ function card(item,poster=false,opts={}){
   const watched=item.kind!=='live'&&isWatched(item)?'<span class="card-watched">✓ WATCHED</span>':'';
   const imdbBadge=poster&&['movie','series'].includes(item.kind)&&imdbRating?`<span class="card-imdb-rating"><b>IMDb</b> ${esc(imdbRating)}</span>`:'';
   const progress=Number.isFinite(Number(opts.progress))?Math.max(0,Math.min(100,Number(opts.progress))):null;
-  const rank=Number.isFinite(Number(opts.rank))&&Number(opts.rank)>0?Number(opts.rank):null;
   const rankBadge=rank?`<div class="rank-badge ${rank>=100?'rank-three-digit':rank>=10?'rank-two-digit':'rank-one-digit'}"><span>${rank}</span></div>`:'';
   const imdbHydrationAttr=poster&&['movie','series'].includes(item.kind)?` data-imdb-item="${esc(item.id)}"`:'';
   return `<button class="card ${poster?'poster':'landscape'} ${posterOwnsTitle?'poster-art-title':''} ${item.kind==='live'?'live-card':''} ${rank?'ranked-card':''}" ${action}="${esc(item.id)}"${imdbHydrationAttr} style="--card-bg:${fallback}" aria-label="${esc(displayTitle)}">

@@ -1,6 +1,11 @@
-# Swoop TV v0.8.17 — Google TV Input + Launch Freshness Hotfix
+# Swoop TV v0.8.18 — Google TV Profile → Home Runtime Hotfix
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
+
+## v0.8.18 blocker fix
+
+The recurring **Who’s watching?** dead-end was traced to a Home-render runtime exception, not a missing remote click. Profile Select reached the app correctly, but the first poster render referenced the Top 100 `rank` variable before initialization and aborted the route change. v0.8.18 fixes that ordering bug and keeps the Android Select bridge as a compatibility fallback.
+
 
 ## v0.8.17 launch/input blocker fixes
 

@@ -1,6 +1,15 @@
-# Swoop TV v0.8.17 — Google TV hardware test checklist
+# Swoop TV v0.8.18 — Google TV hardware test checklist
 
-## v0.8.17 launch freshness / deterministic Select
+## v0.8.18 profile → Home runtime blocker
+
+- [ ] Launch with an existing profile and cached library.
+- [ ] Focus the profile card and press the physical OK/Select button once.
+- [ ] Confirm the Who’s Watching screen disappears immediately.
+- [ ] Confirm Home renders without a JavaScript exception and remote input is responsive immediately.
+- [ ] Repeat after a cold process restart and after installing v0.8.18 over v0.8.17.
+
+
+## v0.8.18 launch freshness / deterministic Select
 
 - [ ] On Who’s Watching, focus a profile and press physical OK once; the app must leave the screen immediately.
 - [ ] DPAD Center / Enter / Numpad Enter / controller A activate the focused web control exactly once with no duplicate click.

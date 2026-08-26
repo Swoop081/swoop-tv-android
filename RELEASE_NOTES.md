@@ -1,4 +1,13 @@
-# Swoop TV release notes
+# Swoop TV Release Notes
+
+## v0.8.18 — Google TV Profile → Home Runtime Hotfix
+
+- Fixes the real cause of the recurring **Who’s watching?** dead-end on Google TV. Remote Select was reaching `switchProfile()`, but Home rendering crashed immediately afterward because the poster-card renderer referenced the Top 100 `rank` value before that variable had been initialized. The old profile DOM therefore remained visible and made the problem look like a remote-input failure.
+- Moves rank initialization ahead of all rank-dependent card rendering, removing the runtime `ReferenceError` and allowing profile selection to complete into cached Home.
+- Adds a CI runtime smoke test that executes both ranked and unranked poster-card rendering before the Android APK build, preventing this class of route-blocking regression from shipping silently.
+- Retains the deterministic Android Select bridge from v0.8.17 as an additional compatibility layer; it is no longer the primary fix for this symptom.
+- Retains v0.8.17 cached-first launch behaviour, provider freshness checks, EPG refresh policy, app-version checks, landscape TV layouts, premium controls, Swoop theme, supplied branding/avatars and all earlier cumulative Google TV work.
+- Android versionName is **0.8.18** and versionCode is **818**.
 
 ## v0.8.17 — Google TV Input + Launch Freshness Hotfix
 
