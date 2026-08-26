@@ -889,3 +889,40 @@ html.android-tv .startup-swoop-logo{width:230px;max-height:142px;margin-bottom:1
 html.android-tv .profile-avatar-picker>div{display:grid;grid-template-columns:repeat(5,54px);gap:10px 12px}
 html.android-tv .profile-avatar-option{padding:3px}
 html.android-tv .profile-avatar-option>span{width:54px;height:54px}
+
+
+/* v0.8.9 — Google TV safe header + unified Home poster rails. */
+html.android-tv .topbar{
+  height:74px;
+  padding:14px 4.2vw 0;
+  gap:22px;
+  align-items:center;
+}
+html.android-tv .brand-logo-button{height:48px;min-width:82px;align-self:center}
+html.android-tv .swoop-brand-logo{height:38px;max-width:88px}
+html.android-tv .desktop-nav,html.android-tv .top-actions{align-self:center}
+html.android-tv .search-page,html.android-tv .settings-page{padding-top:74px}
+html.android-tv .guide-categories{top:86px;max-height:calc(100vh - 104px)}
+
+/* Every poster-based Home rail uses one geometry. Top 100 adds a rank overlay,
+   but does not get a different card width, baseline or horizontal offset. */
+html.android-tv .poster-section .rail,
+html.android-tv .ranked-section .rail{
+  grid-auto-columns:minmax(180px,14.5vw);
+  gap:9px;
+  padding:8px 32px 14px 10px;
+  margin:-6px -32px -10px -10px;
+  scroll-snap-type:none;
+  scroll-behavior:auto;
+}
+html.android-tv .poster-section .card.poster,
+html.android-tv .ranked-section .card.poster{aspect-ratio:2/3}
+html.android-tv .ranked-card{margin-left:0;overflow:visible;background:#111}
+html.android-tv .rank-badge{left:-8px;bottom:-4px;width:58px;height:72px}
+html.android-tv .rank-badge span{font-size:66px}
+html.android-tv .rank-badge.rank-two-digit{left:-10px;width:74px}
+html.android-tv .rank-badge.rank-two-digit span{font-size:58px}
+html.android-tv .rank-badge.rank-three-digit{left:-12px;width:92px}
+html.android-tv .rank-badge.rank-three-digit span{font-size:47px}
+html.android-tv .ranked-card .card-copy{left:13px}
+html.android-tv .ranked-card .card-saved{left:auto;right:9px}

@@ -1,5 +1,17 @@
 # Swoop TV Release Notes
 
+## v0.8.9 — Google TV Rail Alignment + Full Top 100
+
+- Fixes the Google TV header being clipped at the top edge by adding a TV-specific safe-area offset and wider safe horizontal padding.
+- Standardises all poster-based Home rows to one TV card geometry: identical poster width, 2:3 ratio, gap and baseline.
+- Top 100 rank numbers are now visual overlays only; they no longer shift the poster card away from the alignment used by other rows.
+- Raises Android TV prepared Home-row data limits from 18/20 to 100 titles while retaining a 20-card initial render budget.
+- Adds incremental D-pad rail expansion in 20-card chunks as the user approaches the right edge, so 100-item rows remain responsive.
+- Top 100 Movies and Top 100 TV Shows are completed to 100 titles whenever the connected library contains enough titles, using provider-library fallback ranking when external popularity feeds do not match all 100.
+- The Home row count now reflects the complete prepared data set rather than the initial render window, so Top 100 reports 100 available instead of 20 when 100 titles are present.
+- Preserves v0.8.8 supplied profile avatars, v0.8.7 branding, v0.8.6 EPG startup preparation and the v0.8.5 ready-before-Home launch gate.
+- Android versionName is **0.8.9** and versionCode is **809**.
+
 ## v0.8.8 — Supplied Profile Avatar Set
 
 - Replaces the previous emoji/gradient profile avatars with the **10 user-supplied animal portraits**.

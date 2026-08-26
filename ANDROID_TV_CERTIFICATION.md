@@ -1,4 +1,4 @@
-# Swoop TV v0.8.6 — Google TV hardware test checklist
+# Swoop TV v0.8.9 — Google TV hardware test checklist
 
 ## Launch refresh / ready-Home gate
 - [ ] Profile picker responds immediately after cold launch.
@@ -33,6 +33,16 @@
 - [ ] Entering Guide after startup shows programme titles immediately with no blank/loading rows.
 - [ ] Live player Now / Next and mini-guide can reuse the launch-prepared EPG cache.
 - [ ] Providers without usable XMLTV data still retain per-channel Xtream EPG fallback where available.
+
+
+## Header safe area / Home rail alignment
+- [ ] Swoop TV logo, Home/Live TV/Guide/Movies/TV Shows/My List navigation, provider button, settings and profile controls are fully visible with no top-edge clipping.
+- [ ] Continue Watching and every other poster Home row use the same poster width, 2:3 ratio, gap and baseline as Top 100.
+- [ ] Top 100 rank numbers overlay the poster without shifting the poster itself out of alignment with other rows.
+- [ ] Top 100 Movies reports 100 available when the library contains at least 100 movies.
+- [ ] Top 100 TV Shows reports 100 available when the library contains at least 100 shows.
+- [ ] D-pad Right can traverse beyond item 20; additional cards appear seamlessly in 20-item chunks without a pause or full-page rerender.
+- [ ] Reaching ranks 80–100 remains responsive and rank numbers are correct.
 
 ## Remote / navigation
 - [ ] Swoop TV appears in the Google TV Apps list with its TV banner.
