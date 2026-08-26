@@ -28,8 +28,12 @@ if (!appSource.includes("if(id==='top20-movies'||id==='top20-shows')return '';")
 if (!appSource.includes("key==='ArrowUp'&&firstSection&&currentSection===firstSection&&heroAction")) throw new Error('First Home row → hero Up routing missing');
 if (!appSource.includes("key==='ArrowDown'&&tvIsTopNavigationElement(current)&&heroAction")) throw new Error('Top navigation → hero Down routing missing');
 if (!cssSource.includes('html.android-tv .card.poster.art-ready .card-shade{background:transparent!important}')) throw new Error('Poster haze removal missing');
-if (!cssSource.includes('height:clamp(285px,30vh,325px)')) throw new Error('Safe compact Home hero sizing missing');
+if (!cssSource.includes('height:clamp(230px,25vh,260px)')) throw new Error('v0.8.21 compact Home hero sizing missing');
 if (!cssSource.includes('html.android-tv .live-hub-art.loaded{opacity:1}')) throw new Error('Live TV logo visibility override missing');
+if (!appSource.includes("live-hub-hero ${art?'has-brand-art':''}")) throw new Error('v0.8.22 Live TV branded-hero marker missing');
+if (!cssSource.includes('html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop')) throw new Error('v0.8.22 Live TV brand-fill viewport missing');
+if (!cssSource.includes('transform:scale(1.38)')) throw new Error('v0.8.22 transparent-logo oversize treatment missing');
+if (!cssSource.includes('rgba(4,5,7,0) 100%')) throw new Error('v0.8.22 right-side shade release missing');
 
 if (!appSource.includes("if(String(id).startsWith('top20-'))return'hot';")) throw new Error('Top 100 hot/trending mode missing');
 if (!appSource.includes("/^(top20-|trending|new-hot|streaming|box-office)/")) throw new Error('Top 100 fast refresh cadence missing');
@@ -37,6 +41,10 @@ if (!appSource.includes('const TOP100_RANKING_SCHEMA=2;')) throw new Error('Top 
 if (!appSource.includes("refreshDiscoveryRows(false,false,null,['top20-movies','top20-shows'])")) throw new Error('Android background Top 100 refresh missing');
 if (!appSource.includes('current.contains(document.activeElement)')) throw new Error('Focused Home row refresh deferral missing');
 if (!appSource.includes('const ANDROID_TV_HOME_EAGER_ROWS=3;') || !appSource.includes('const ANDROID_TV_HOME_INITIAL_RENDER=12;')) throw new Error('Android Home DOM budget reduction missing');
+if (!appSource.includes('function androidInitialHomeRowsMarkup(rows=[],targetPopulated=ANDROID_TV_HOME_EAGER_ROWS)')) throw new Error('Android populated-row initial renderer missing');
+if (!appSource.includes("const androidTrendingPending=NATIVE_ANDROID&&String(def.id).startsWith('top20-');")) throw new Error('Pending Top 100 placeholder handling missing');
+if (!appSource.includes('function tvHomeMountedSectionsWithCards()')) throw new Error('Pending-row D-pad exclusion missing');
+if (!appSource.includes('Latest trending refresh returned no matches; keeping the last good ranking.')) throw new Error('Top 100 last-good preservation missing');
 if (!appSource.includes('function tvHomeRailDirectionalTarget(current,key)')) throw new Error('Fast deterministic Home rail navigation missing');
 if (!appSource.includes("target.closest?.('.topbar,.hero')")) throw new Error('Home hero top-preserving focus missing');
 if (appSource.includes("const style=getComputedStyle(el);")) throw new Error('TV focus hot path still performs getComputedStyle');

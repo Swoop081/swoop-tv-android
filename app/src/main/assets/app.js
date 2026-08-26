@@ -1170,7 +1170,7 @@ async function refreshDiscoveryRows(force=false,userInitiated=false,onProgress=n
   discoveryRefreshing=true;discoveryMessage='Refreshing Swoop TV discovery…';const totalJobs=Math.max(1,staleIds.length+staleCustom.length),manualTask=Boolean(userInitiated);if(manualTask)taskProgressStart({title:'Refreshing Swoop TV discovery…',detail:`Updating 0 of ${totalJobs} discovery rows…`,progress:3});let completedJobs=0;try{onProgress?.({completed:0,total:totalJobs,id:'',label:'Preparing Home'});}catch{}
   try{
     if(force)discoveryBundleMemory.clear();
-    for(const id of staleIds){const label=homeRowDef(id)?.label||'Home row';try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updating ${label}…`,progress:5+(completedJobs/totalJobs)*88});try{const result=await fetchBuiltInDiscovery(id,apiKey,false);state.webDiscovery[id]={itemIds:result.items.map(x=>x.id),items:NATIVE_ANDROID||nativeCatalogMode?result.items:undefined,updatedAt:Date.now(),sourceUpdatedAt:Number(result.sourceUpdatedAt||0),rankingSchema:String(id).startsWith('top20-')?TOP100_RANKING_SCHEMA:Number(state.webDiscovery?.[id]?.rankingSchema||0),error:'',enhanced:result.enhanced,snoak:Boolean(result.snoak),source:result.source};}catch(err){state.webDiscovery[id]={...(state.webDiscovery[id]||{}),updatedAt:Date.now(),error:err.message||String(err)};}completedJobs++;try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});await new Promise(r=>setTimeout(r,0));}
+    for(const id of staleIds){const label=homeRowDef(id)?.label||'Home row';try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updating ${label}…`,progress:5+(completedJobs/totalJobs)*88});try{const previous=state.webDiscovery?.[id],result=await fetchBuiltInDiscovery(id,apiKey,false),nextItems=result.items||[],previousItems=Array.isArray(previous?.items)?previous.items:[];if(String(id).startsWith('top20-')&&!nextItems.length&&previousItems.length){state.webDiscovery[id]={...previous,updatedAt:Number(previous.updatedAt||0),error:'Latest trending refresh returned no matches; keeping the last good ranking.'};}else{state.webDiscovery[id]={itemIds:nextItems.map(x=>x.id),items:NATIVE_ANDROID||nativeCatalogMode?nextItems:undefined,updatedAt:Date.now(),sourceUpdatedAt:Number(result.sourceUpdatedAt||0),rankingSchema:String(id).startsWith('top20-')?TOP100_RANKING_SCHEMA:Number(previous?.rankingSchema||0),error:'',enhanced:result.enhanced,snoak:Boolean(result.snoak),source:result.source};}}catch(err){state.webDiscovery[id]={...(state.webDiscovery[id]||{}),updatedAt:Number(state.webDiscovery?.[id]?.updatedAt||0),error:err.message||String(err)};}completedJobs++;try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});await new Promise(r=>setTimeout(r,0));}
     for(const row of staleCustom){const id=`custom:${row.uid}`,label=row.name||'Custom row';try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updating ${label}…`,progress:5+(completedJobs/totalJobs)*88});try{const payload=await getMDBListItems({apiKey,listId:row.source.listId,username:row.source.username,listName:row.source.listName});row.items=nativeCatalogMode?cacheNativeItems((await nativeCatalogMatchPayload(payload,'movie',{sourceLimit:200,limit:120,providerIds:nativeEnabledProviderIds()})).items||[]):matchMDBListToCatalog(payload,activeCatalog());row.updatedAt=Date.now();row.error='';}catch(err){row.updatedAt=Date.now();row.error=err.message||String(err);}completedJobs++;try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});await new Promise(r=>setTimeout(r,0));}
     if(manualTask)taskProgressUpdate({detail:'Saving refreshed discovery rows…',progress:96});await persist('cache');discoveryMessage='Discovery updated';if(manualTask)taskProgressEnd({success:true,title:'Discovery updated',detail:`${completedJobs} discovery row${completedJobs===1?'':'s'} refreshed.`,hold:1100});
   }catch(err){if(manualTask)taskProgressEnd({success:false,title:'Discovery refresh stopped',detail:err.message||String(err),hold:2200});throw err}finally{
@@ -1302,14 +1302,26 @@ function rail(title,data,poster=false,meta='',opts={}){
   return `<section class="section swoop-render-section ${poster?'poster-section':'landscape-section'} ${opts.ranked?'ranked-section':''} ${opts.priority?'home-priority-row':''}"${opts.rowId?` data-home-row-mounted="${esc(opts.rowId)}"`:''}${Number.isFinite(Number(opts.total))?` data-home-row-total="${Number(opts.total)}"`:''}><div class="section-head"><div><h2>${esc(title)}</h2>${meta?`<span class="section-meta">${esc(meta)}</span>`:''}</div>${opts.page?`<button class="section-link" data-page="${opts.page}">Explore all →</button>`:'<span class="rail-arrow">›</span>'}</div><div class="rail">${cards}</div></section>`;
 }
 
-function homeRowMarkup(def){
-  const data=homeRowItems(def.id);
+function homeRowMarkup(def,dataOverride=null){
+  const data=Array.isArray(dataOverride)?dataOverride:homeRowItems(def.id);
   if(!data.length){
-    if(def.web&&!NATIVE_ANDROID)return `<section class="section swoop-render-section ${def.poster?'poster-section':'landscape-section'} ${def.ranked?'ranked-section':''} ${PINNED_HOME_ROWS.includes(def.id)?'home-priority-row':''}" data-home-row-mounted="${esc(def.id)}"><div class="section-head"><div><h2>${esc(def.label)}</h2><span class="section-meta">${esc(discoveryMeta(def.id,data))}</span></div><span class="rail-arrow">›</span></div><div class="lazy-row-skeleton poster-skeleton">${Array.from({length:6},()=>'<i></i>').join('')}</div></section>`;
+    const androidTrendingPending=NATIVE_ANDROID&&String(def.id).startsWith('top20-');
+    if(def.web&&(!NATIVE_ANDROID||androidTrendingPending))return `<section class="section swoop-render-section ${def.poster?'poster-section':'landscape-section'} ${def.ranked?'ranked-section':''} ${PINNED_HOME_ROWS.includes(def.id)?'home-priority-row':''} ${androidTrendingPending?'android-home-row-pending':''}" data-home-row-mounted="${esc(def.id)}"${androidTrendingPending?' data-home-row-pending="1"':''}><div class="section-head"><div><h2>${esc(def.label)}</h2>${androidTrendingPending?'':`<span class="section-meta">${esc(discoveryMeta(def.id,data))}</span>`}</div><span class="rail-arrow">›</span></div><div class="lazy-row-skeleton poster-skeleton">${Array.from({length:6},()=>'<i></i>').join('')}</div></section>`;
     return'';
   }
   const limit=androidFastHomeMode()?ANDROID_TV_HOME_INITIAL_RENDER:(String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT);
   return rail(def.label,data.slice(0,limit),def.poster,discoveryMeta(def.id,data),{page:def.page,ranked:def.ranked,rowId:def.id,priority:PINNED_HOME_ROWS.includes(def.id),total:data.length});
+}
+function androidInitialHomeRowsMarkup(rows=[],targetPopulated=ANDROID_TV_HOME_EAGER_ROWS){
+  const chunks=[];let populated=0;
+  for(const def of rows){
+    const data=homeRowItems(def.id),markup=homeRowMarkup(def,data);if(!markup)continue;
+    chunks.push(markup);if(data.length)populated++;
+    // Pending Top 100 skeletons do not consume the real-row budget. This keeps useful
+    // provider rows on-screen while current trending matches refresh in the background.
+    if(populated>=Math.max(1,Number(targetPopulated||1)))break;
+  }
+  return chunks.join('');
 }
 function bindRailStability(root=document){
   root.querySelectorAll('[data-home-row-mounted] .rail').forEach(rail=>{
@@ -1458,7 +1470,7 @@ function home(){
   if(heroPool.length)heroRotationIndex=((heroRotationIndex%heroPool.length)+heroPool.length)%heroPool.length;
   const feature=heroPool[heroRotationIndex]||fallbackFeatureItem();
   const rows=selectedHomeRows();
-  const eagerRows=fastHome?ANDROID_TV_HOME_EAGER_ROWS:HOME_EAGER_ROWS;const rendered=(NATIVE_ANDROID?rows.slice(0,eagerRows):rows).map((def,index)=>!NATIVE_ANDROID&&largeLibraryMode()&&index>=eagerRows?lazyHomePlaceholder(def):homeRowMarkup(def)).join('');
+  const eagerRows=fastHome?ANDROID_TV_HOME_EAGER_ROWS:HOME_EAGER_ROWS;const rendered=NATIVE_ANDROID?androidInitialHomeRowsMarkup(rows,eagerRows):rows.map((def,index)=>largeLibraryMode()&&index>=eagerRows?lazyHomePlaceholder(def):homeRowMarkup(def)).join('');
   const needsWeb=rows.some(r=>r.web||r.custom),hasKey=Boolean(String(state.settings.mdblistApiKey||'').trim()),customNeedsKey=rows.some(r=>r.custom)&&!hasKey;
   const discoveryNote=customNeedsKey?`<section class="web-discovery-callout"><div><span class="eyebrow">CUSTOM MDBLIST ROWS</span><h2>Connect MDBList for your own lists</h2><p>Swoop TV's built-in Top 100 and Trending rows are already automatic. An MDBList key on this device is only needed for custom personal MDBList rows.</p></div><button class="btn accent" data-modal="homeRows">Set up Custom Lists</button></section>`:'';
   const status=NATIVE_ANDROID?'':(discoveryRefreshing?'Updating recommendations…':discoveryMessage||'Discovery ready');
@@ -1659,7 +1671,7 @@ function livePage(){
   const leadFav=lead?isLiveFavourite(lead):false;
   const loading=nativeCatalogMode&&nativeCache.loading&&!all.length?`<div class="native-query-loading"><div><span class="provider-spinner"></span><strong>Loading Live TV…</strong><div class="activity-progress indeterminate"><b></b></div><small>Loading your library…</small></div></div>`:'';
   const categoryRows=shownCategories.map(liveCategoryRailMarkup).join('');
-  return `<main class="page live-hub-page"><section class="live-hub-hero"><div class="live-hub-backdrop">${art}</div><div class="live-hub-shade"></div><div class="live-hub-copy"><div class="eyebrow">LIVE TV · ${esc(providerName)}</div><h1>${lead?esc(lead.name):'Live TV'}</h1><p>${lead?`Jump straight back into ${esc(lead.name)}, browse favourites, or swipe through your provider’s channel categories.`:'Connect a TV provider to populate Live TV.'}</p><div class="cta-row">${lead?`<button class="btn play-btn" data-play="${esc(lead.id)}">▶ Watch Live</button><button class="btn secondary" data-live-favourite="${esc(lead.id)}">${leadFav?'★ Favourite':'☆ Add Favourite'}</button>`:''}<button class="btn secondary" data-page="guide">▤ TV Guide</button></div></div><div class="live-hub-stat"><strong>${total.toLocaleString()}</strong><span>LIVE STREAMS</span><small>${state.liveFavourites.length} favourites · ${state.recentLive.length} recent</small></div></section>
+  return `<main class="page live-hub-page"><section class="live-hub-hero ${art?'has-brand-art':''}"><div class="live-hub-backdrop">${art}</div><div class="live-hub-shade"></div><div class="live-hub-copy"><div class="eyebrow">LIVE TV · ${esc(providerName)}</div><h1>${lead?esc(lead.name):'Live TV'}</h1><p>${lead?`Jump straight back into ${esc(lead.name)}, browse favourites, or swipe through your provider’s channel categories.`:'Connect a TV provider to populate Live TV.'}</p><div class="cta-row">${lead?`<button class="btn play-btn" data-play="${esc(lead.id)}">▶ Watch Live</button><button class="btn secondary" data-live-favourite="${esc(lead.id)}">${leadFav?'★ Favourite':'☆ Add Favourite'}</button>`:''}<button class="btn secondary" data-page="guide">▤ TV Guide</button></div></div><div class="live-hub-stat"><strong>${total.toLocaleString()}</strong><span>LIVE STREAMS</span><small>${state.liveFavourites.length} favourites · ${state.recentLive.length} recent</small></div></section>
   <div class="page-content live-hub-content"><div class="provider-filter-pills live-provider-filter"><button class="${providerFilter==='all'?'active':''}" data-provider-filter="all">All Providers</button>${providerPills.map(p=>`<button class="${providerFilter===p.id?'active':''}" data-provider-filter="${esc(p.id)}">${esc(p.name)}</button>`).join('')}</div>${favourites.length?rail('Favourite Channels',favourites.slice(0,18),false,`${favourites.length} saved`,{}):''}${recent.length?rail('Recent Channels',recent,false,'Your most recently watched channels',{}):''}
   <section class="live-category-browser"><div class="section-head live-browser-head"><div><h2>Browse Live TV</h2><span class="section-meta">Swipe across each provider category</span></div><button class="btn secondary compact-btn" data-page="guide">Open TV Guide</button></div>${loading}${categoryRows||(!loading?empty('No Live TV categories','Refresh or reconnect your TV provider to load its channel groups.'):'')}${shownCategories.length<categories.length?`<div class="load-more-wrap"><button class="btn secondary" data-live-more-categories>Load more categories · showing ${shownCategories.length.toLocaleString()} of ${categories.length.toLocaleString()}</button></div>`:''}</section></div></main>`;
 }
@@ -2910,9 +2922,10 @@ function expandAndroidHomeRail(current,key){
   hydrateArtwork(rail);hydrateVisibleImdbRatings(rail);bindDynamicCards(rail);bindRailStability(section);
   return true;
 }
-function tvHomeFirstMountedSection(){return [...document.querySelectorAll('[data-home-row-mounted]')].find(el=>el.offsetParent!==null)||null}
-function tvHomeHeroAction(){return [...document.querySelectorAll('.hero-actions button')].find(el=>el.offsetParent!==null)||null}
 function tvHomeSectionCards(section){return [...(section?.querySelectorAll?.('.rail > .card,.rail > .continue-card-shell > .card')||[])].filter(el=>el.offsetParent!==null)}
+function tvHomeMountedSectionsWithCards(){return [...document.querySelectorAll('[data-home-row-mounted]')].filter(el=>el.offsetParent!==null&&tvHomeSectionCards(el).length)}
+function tvHomeFirstMountedSection(){return tvHomeMountedSectionsWithCards()[0]||null}
+function tvHomeHeroAction(){return [...document.querySelectorAll('.hero-actions button')].find(el=>el.offsetParent!==null)||null}
 function tvHomeRailDirectionalTarget(current,key){
   const card=current?.closest?.('.card'),section=card?.closest?.('[data-home-row-mounted]');if(!card||!section)return null;
   let cards=tvHomeSectionCards(section),index=cards.indexOf(card);if(index<0)return null;
@@ -2922,8 +2935,8 @@ function tvHomeRailDirectionalTarget(current,key){
     return index>=0&&index<cards.length-1?cards[index+1]:null;
   }
   if(key!=='ArrowUp'&&key!=='ArrowDown')return null;
-  let sections=[...document.querySelectorAll('[data-home-row-mounted]')].filter(el=>el.offsetParent!==null),sectionIndex=sections.indexOf(section);
-  if(key==='ArrowDown'&&sectionIndex===sections.length-1&&mountNextAndroidHomeRows(1)){sections=[...document.querySelectorAll('[data-home-row-mounted]')].filter(el=>el.offsetParent!==null);sectionIndex=sections.indexOf(section)}
+  let sections=tvHomeMountedSectionsWithCards(),sectionIndex=sections.indexOf(section);
+  if(key==='ArrowDown'&&sectionIndex===sections.length-1&&mountNextAndroidHomeRows(1)){sections=tvHomeMountedSectionsWithCards();sectionIndex=sections.indexOf(section)}
   const nextSection=sections[sectionIndex+(key==='ArrowDown'?1:-1)];if(!nextSection)return null;
   const nextCards=tvHomeSectionCards(nextSection);if(!nextCards.length)return null;
   const r=card.getBoundingClientRect(),cx=(r.left+r.right)/2;

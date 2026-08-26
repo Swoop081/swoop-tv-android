@@ -1609,21 +1609,21 @@ html.android-tv .empty p{font-size:10px;line-height:1.35;margin-bottom:12px}
 /* Home: the feature masthead now behaves like a compact TV header rather than
    a half-screen billboard. More of Top 100 is visible in the first frame. */
 html.android-tv .hero{
-  height:clamp(285px,30vh,325px);
-  min-height:clamp(285px,30vh,325px);
-  max-height:325px;
+  height:clamp(230px,25vh,260px);
+  min-height:clamp(230px,25vh,260px);
+  max-height:260px;
 }
-html.android-tv .hero-content{width:min(520px,44vw);padding:72px 0 22px var(--tv-safe-x);box-sizing:border-box;align-self:stretch;display:flex;flex-direction:column;justify-content:flex-end}
-html.android-tv .hero h1{font-size:clamp(29px,3.25vw,45px);line-height:.92;margin-bottom:7px;max-width:13ch}
-html.android-tv .hero-title-slot{min-height:34px;margin-bottom:7px}
-html.android-tv .hero-title-logo{max-width:min(285px,24vw);max-height:68px}
-html.android-tv .hero-brandline{margin-bottom:6px}
-html.android-tv .hero-meta{margin-bottom:7px}
-html.android-tv .hero p{font-size:10px;line-height:1.3;max-width:54ch;-webkit-line-clamp:2}
-html.android-tv .cta-row{margin-top:8px}
-html.android-tv .hero .btn{min-height:30px;padding:6px 11px;font-size:9px}
-html.android-tv .hero-poster{right:var(--tv-safe-x);top:22%;height:66%;max-width:20vw}
-html.android-tv .home-content{margin-top:-9px}
+html.android-tv .hero-content{width:min(520px,44vw);padding:68px 0 14px var(--tv-safe-x);box-sizing:border-box;align-self:stretch;display:flex;flex-direction:column;justify-content:flex-end}
+html.android-tv .hero h1{font-size:clamp(25px,2.85vw,38px);line-height:.94;margin-bottom:5px;max-width:15ch}
+html.android-tv .hero-title-slot{min-height:28px;margin-bottom:5px}
+html.android-tv .hero-title-logo{max-width:min(250px,22vw);max-height:54px}
+html.android-tv .hero-brandline{margin-bottom:4px}
+html.android-tv .hero-meta{margin-bottom:5px}
+html.android-tv .hero p{font-size:9px;line-height:1.25;max-width:58ch;-webkit-line-clamp:1}
+html.android-tv .cta-row{margin-top:6px}
+html.android-tv .hero .btn{min-height:28px;padding:5px 10px;font-size:8.5px}
+html.android-tv .hero-poster{right:var(--tv-safe-x);top:27%;height:62%;max-width:19vw}
+html.android-tv .home-content{margin-top:-5px}
 
 /* Ranked rows: give the first numeral a deliberate TV-safe inset, lift the
    numerals so their lower edge cannot collide with the following row, and keep
@@ -1676,7 +1676,8 @@ html.android-tv .live-hub-shade{
 html.android-tv .live-hub-content{padding-top:8px}
 
 @media (max-height:650px){
-  html.android-tv .hero{height:260px;min-height:260px;max-height:260px}
+  html.android-tv .hero{height:220px;min-height:220px;max-height:220px}
+  html.android-tv .hero-content{padding-top:64px;padding-bottom:12px}
   html.android-tv .page-hero{height:165px;min-height:165px}
   html.android-tv .live-hub-hero{min-height:185px;padding-top:70px;padding-bottom:15px}
   html.android-tv .live-hub-art{top:65px;height:105px}
@@ -1687,3 +1688,52 @@ html.android-tv .live-hub-content{padding-top:8px}
    while the remote is moving; expensive cinematic motion is reserved for non-TV. */
 html.android-tv .tv-home-rows .card{transition:transform .07s linear,outline-color .07s linear,box-shadow .07s linear}
 html.android-tv .tv-home-rows .card:hover,html.android-tv .tv-home-rows .card:focus-visible{transform:scale(1.03)}
+
+
+/* v0.8.21 — keep pending Top 100 feeds compact while real provider rows stay visible. */
+html.android-tv .android-home-row-pending{margin-bottom:18px}
+html.android-tv .android-home-row-pending .lazy-row-skeleton{height:auto;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,12vw);gap:7px;overflow:hidden;padding:5px 0 8px}
+html.android-tv .android-home-row-pending .lazy-row-skeleton i{display:block;aspect-ratio:2/3;border-radius:6px;background:linear-gradient(100deg,rgba(255,255,255,.035),rgba(255,255,255,.075),rgba(255,255,255,.035));background-size:220% 100%;animation:swoop-skeleton 1.25s ease-in-out infinite}
+
+/* ========================================================================== */
+/* v0.8.22 — Google TV Live hero brand-fill hotfix                           */
+/* ========================================================================== */
+/* A channel logo is hero artwork on TV, not a small badge. Give the whole
+   unused right side of the compact Live TV masthead to the current channel
+   brand, then oversize the transparent logo slightly so embedded whitespace
+   in provider icons does not leave a large dead black panel. */
+html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop{
+  left:48%;
+  right:var(--tv-safe-x);
+  top:58px;
+  bottom:8px;
+  overflow:hidden;
+}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-art{
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  max-height:none;
+  object-fit:contain;
+  object-position:center center;
+  transform:scale(1.38);
+  transform-origin:center center;
+  filter:drop-shadow(0 16px 34px rgba(0,0,0,.42));
+}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-art.loaded{opacity:1}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-shade{
+  background:linear-gradient(90deg,rgba(4,5,7,.98) 0%,rgba(4,5,7,.92) 36%,rgba(4,5,7,.46) 49%,rgba(4,5,7,.08) 62%,rgba(4,5,7,0) 100%),linear-gradient(0deg,var(--swoop-bg,#050505),transparent 34%);
+}
+html.android-tv .live-hub-hero.has-brand-art .live-hub-stat{
+  right:var(--tv-safe-x);
+  bottom:12px;
+  padding:4px 6px;
+  border-radius:6px;
+  background:rgba(3,4,6,.38);
+  backdrop-filter:blur(5px);
+}
+@media (max-height:650px){
+  html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop{top:54px;bottom:5px;left:49%}
+  html.android-tv .live-hub-hero.has-brand-art .live-hub-art{transform:scale(1.32)}
+}

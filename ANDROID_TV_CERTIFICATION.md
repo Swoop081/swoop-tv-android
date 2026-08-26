@@ -1,11 +1,25 @@
-# Swoop TV v0.8.20 — Google TV hardware test checklist
+# Swoop TV v0.8.22 — Google TV hardware test checklist
 
-## v0.8.20 Home hero / trending / input performance
+## v0.8.22 Live TV brand-fill regression checks
+
+- [ ] Open Live TV with FOX Footy (or another channel with a transparent logo) as the lead channel and confirm its logo occupies most of the unused right-side masthead area rather than appearing as a small badge.
+- [ ] Confirm the enlarged logo remains aspect-correct, centred and fully recognisable with no horizontal/vertical stretching.
+- [ ] Confirm the right-side dark shade is minimal over the logo while channel name/description/buttons remain readable on the left.
+- [ ] Confirm the live-stream count remains readable in its small lower-right translucent overlay without creating a separate empty column.
+- [ ] Repeat with several differently shaped channel logos and on a short-height TV viewport; no logo should escape the hero safe area or overlap the fixed top navigation.
+
+## v0.8.21 Home rows / compact hero regression checks
+
+- [ ] Cold-launch Home with no Continue Watching and confirm real content rails still appear even if both Top 100 feeds are refreshing.
+- [ ] Confirm Top 100 Movies / TV Shows can show pending placeholders briefly without replacing the rest of Home with the Customize Home callout.
+- [ ] Confirm the Home hero is visibly shorter than v0.8.20 while its title/logo, metadata and Play / More Info controls remain fully below the fixed navigation.
+- [ ] While a Top 100 placeholder is pending, verify Up/Down skips the placeholder and moves only between rails containing cards.
+- [ ] Simulate/reproduce a failed or empty Top 100 refresh and confirm the last good ranking remains visible.
 
 - [ ] Cold-launch Home and confirm the entire hero title/logo, metadata, description and Play / More Info controls are visible beneath the fixed navigation.
 - [ ] From the first Top 100 card press Up, then move Up/Down around the hero/top navigation; Home must return to scroll position 0 and never hide the hero title/logo above the viewport.
 - [ ] Confirm Top 100 Movies / TV Shows look like current hot/trending titles rather than a rating-sorted provider catalogue.
-- [ ] Install v0.8.20 over v0.8.19 and confirm the old cached Top 100 ranking refreshes automatically in the background after Home becomes interactive.
+- [ ] Install v0.8.22 over v0.8.21 and confirm the old cached Top 100 ranking refreshes automatically in the background after Home becomes interactive.
 - [ ] Hold Right across at least 20 cards and move Up/Down between the first three Home rows; focus should track immediately without the sluggish pauses seen in v0.8.19.
 - [ ] Continue Down beyond the third mounted row and confirm later rows mount smoothly without a large one-time stall.
 - [ ] While focused inside a ranked row, allow a background discovery refresh to complete; the focused row must not be replaced underneath the active cursor.
@@ -16,7 +30,7 @@
 ## v0.8.19 Home rails / navigation / Live logo (regression reference)
 
 - [ ] Verify the v0.8.19 ranked-number safe inset, duplicate-title filtering, poster-haze removal and Live TV logo treatment remain intact.
-- [ ] Verify v0.8.20 no longer reproduces the v0.8.19 Home hero clipping or sluggish Home navigation.
+- [ ] Verify v0.8.21 no longer reproduces the v0.8.19 Home hero clipping or sluggish Home navigation.
 
 ## v0.8.18 profile → Home runtime blocker
 
@@ -24,7 +38,7 @@
 - [ ] Focus the profile card and press the physical OK/Select button once.
 - [ ] Confirm the Who’s Watching screen disappears immediately.
 - [ ] Confirm Home renders without a JavaScript exception and remote input is responsive immediately.
-- [ ] Repeat after a cold process restart and after installing v0.8.20 over v0.8.19.
+- [ ] Repeat after a cold process restart and after installing v0.8.22 over v0.8.21.
 
 
 ## v0.8.18 launch freshness / deterministic Select

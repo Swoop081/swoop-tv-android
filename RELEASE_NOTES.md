@@ -1,5 +1,25 @@
 # Swoop TV Release Notes
 
+## v0.8.22 — Google TV Live Hero Brand Fill Hotfix
+
+- Reworks the compact **Live TV** hero so the current channel logo is treated as the primary right-side brand artwork rather than a small floating badge.
+- When a channel logo is available, the right-side art viewport now spans essentially the full unused half of the Live TV masthead, from just below the fixed navigation to the bottom safe edge.
+- Transparent provider logos are intentionally oversized inside that viewport so baked-in whitespace cannot leave a large empty black panel; the logo remains aspect-correct and centred rather than being stretched.
+- Reduces the right-side masthead shade to near-transparent over the brand area while keeping a strong left-side readability gradient behind channel name, description and controls.
+- Moves the live-stream count into a small translucent overlay at the lower-right so it can coexist with the enlarged channel branding without reserving a separate empty column.
+- Retains the v0.8.21 Home-row restore/compact-hero fixes, v0.8.20 trending/performance work and all cumulative Android TV playback/navigation fixes.
+- Android versionName is **0.8.22** and versionCode is **822**.
+
+## v0.8.21 — Google TV Home Rows Restore + Compact Hero Hotfix
+
+- Fixes the v0.8.20 regression where a large-library Google TV Home could render only the **Customize Home** callout. The first three selected rows were Continue Watching + both Top 100 feeds; when all three were temporarily empty, no actual row DOM existed and D-pad lazy mounting had nothing to advance from.
+- Android Home now keeps pending Top 100 placeholders in their pinned positions **without consuming the real-row budget**, so up to three populated provider rows still render immediately underneath while trending matching completes.
+- Pending/skeleton rows are excluded from D-pad row geometry, so Up/Down navigation only targets mounted rows that contain real cards.
+- Background Top 100 refresh now uses **last-good ranking preservation**: a transient empty trending match or network failure no longer erases a previously working ranked row. The old list stays visible and remains eligible for retry rather than advancing the ranking schema on an empty result.
+- Re-compacts the Home hero to **230–260 px** on normal TV viewports (220 px on short-height TV viewports), while retaining an explicit navigation-safe content zone. Title/logo sizing, metadata spacing and description density are reduced so the masthead fits rather than being clipped beneath the fixed navigation.
+- Retains v0.8.20 hot/trending-now Top 100 weighting, 90-minute refresh cadence and deterministic low-overhead Home D-pad navigation, plus all earlier ranking-number, artwork and Live TV visibility fixes.
+- Android versionName is **0.8.21** and versionCode is **821**.
+
 ## v0.8.20 — Google TV Home Trending + Performance Hotfix
 
 - Fixes the v0.8.19 Home masthead regression where compacting the hero allowed its title/logo area to sit underneath the fixed top navigation. The Home hero is restored to a still-compact but safe 285–325 px TV height, with a dedicated 72 px top-safe content zone.

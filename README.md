@@ -1,18 +1,24 @@
-# Swoop TV v0.8.20 — Google TV Home Trending + Performance Hotfix
+# Swoop TV v0.8.22 — Google TV Live Hero Brand Fill Hotfix
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
 
-## v0.8.20 Home trending + interaction hotfix
+## v0.8.22 Live TV hero brand-fill hotfix
 
-- Corrects the v0.8.19 Home hero regression: the hero is still compact, but now has enough vertical safe area below the fixed TV navigation for the full title/logo, metadata, description and actions to remain visible.
-- Returning focus to the Home hero/top navigation now pins the page to scroll position 0 instead of centring the hero action and hiding the top of the masthead.
-- Top 100 Movies / TV Shows are now explicitly **hot/trending-now** rankings. They prioritise current Trakt, JustWatch, Television Stats and TMDb daily/weekly signals and refresh on the fast 90-minute cadence. v0.8.19 ranking caches are invalidated once and refreshed after Home becomes interactive.
-- Removes the old local-library rating/recent-addition fill that could make the back half of Top 100 look like random provider catalogue titles. A ranked row now contains only titles matched from current external discovery signals.
-- Cuts initial Android Home DOM work from 5 rows × 20 cards to 3 rows × 12 cards, with 12-card incremental expansion as the user moves through the rails.
-- Adds direct deterministic card-to-card / row-to-row Home navigation so normal D-pad movement no longer runs a whole-page spatial search on every key press.
-- Removes the duplicate focusable scan and expensive `getComputedStyle()` pass from the TV focus hot path.
-- Keeps the v0.8.19 poster-number, duplicate-title, poster-haze and Live TV logo fixes, plus every v0.8.18 runtime/launch fix.
+- Gives the current Live TV channel logo the full unused right half of the compact Google TV masthead instead of leaving it as a small floating badge in a large black panel.
+- Oversizes transparent provider logos within that dedicated panel while preserving aspect ratio, which compensates for whitespace baked into many channel-logo files without distorting them.
+- Makes the right-side shade almost transparent over the logo and keeps the dark readability gradient concentrated behind the left-side channel copy/actions.
+- Places the live-stream count in a small translucent lower-right overlay so it no longer reserves a separate empty right-side region.
+- Retains the v0.8.21 Home-row restore + compact Home hero, v0.8.20 hot/trending Top 100 and performance improvements, and all earlier Google TV work.
+
+## v0.8.21 Home rows restore + compact hero hotfix
+
+- Fixes the blank-Home regression seen on large Google TV libraries when Continue Watching and both pinned Top 100 feeds were temporarily empty during refresh. Pending Top 100 rows stay pinned, but they no longer consume the three populated-row render budget, so useful library rows remain visible immediately.
+- Keeps the last good Top 100 ranking if a background trending refresh temporarily returns no matches or fails, rather than erasing a working row.
+- Excludes pending/skeleton Top 100 rows from D-pad row geometry so navigation targets only real card rails.
+- Shrinks the Home hero again to 230–260 px (220 px on shorter TV viewports) while retaining a fixed-navigation safe zone and fitting the title/logo, metadata and actions inside that height.
+- Retains the v0.8.20 hot/trending-now Top 100 model, 90-minute refresh cadence, reduced 3 × 12 populated-row/card budget and deterministic low-overhead Home D-pad path.
+- Keeps all v0.8.19 ranking-number, duplicate-title, poster-haze and Live TV logo fixes plus the v0.8.18 runtime/launch fixes.
 
 ## v0.8.18 blocker fix
 
@@ -104,8 +110,8 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.20`
-- versionCode: `820`
+- versionName: `0.8.22`
+- versionCode: `822`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -116,6 +122,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.20 (820)**. The workflow also publishes `Swoop-TV-v0.8.20-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.22 (822)**. The workflow also publishes `Swoop-TV-v0.8.22-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.
