@@ -1,7 +1,7 @@
 import {parseM3U} from './src/m3u.js';
 import {parseXMLTV} from './src/xmltv.js';
-import {testXtream, importXtream, fetchXtreamAssetBlob, fetchXtreamSeriesInfo, fetchXtreamVodInfo, fetchXtreamShortEpg, fetchXtreamSimpleEpg, fetchXtreamLiveCategories, fetchXtreamVodCategories, fetchXtreamSeriesCategories, fetchXtreamXmltvText, buildXtreamSeriesStreamUrl} from './src/xtream.js';
-import {isNativeWindows, isNativeAndroid, nativePlay, nativeStop, nativeFetchText, nativeDiagnostics, nativeControl, nativeSwitchLive} from './src/native.js';
+import {testXtream, importXtream, fetchXtreamAssetBlob, fetchXtreamSeriesInfo, fetchXtreamVodInfo, fetchXtreamShortEpg, fetchXtreamSimpleEpg, fetchXtreamLiveCategories, fetchXtreamVodCategories, fetchXtreamSeriesCategories, fetchXtreamXmltvText, buildXtreamXmltvUrl, buildXtreamSeriesStreamUrl} from './src/xtream.js';
+import {isNativeWindows, isNativeAndroid, nativePlay, nativeStop, nativeFetchText, nativeFetchXmltvIndex, nativeDiagnostics, nativeControl, nativeSwitchLive} from './src/native.js';
 import {nativeCatalogStatus,nativeCatalogReplaceProvider,nativeCatalogRemoveProvider,nativeCatalogQuery,nativeCatalogSearch,nativeCatalogCategories,nativeCatalogGet,nativeCatalogSources,nativeCatalogMatchPayload} from './src/nativeCatalog.js';
 import {getMDBListItems, getMDBListOfficialItems, getMDBListStreamingChart, matchMDBListToCatalog, normalizeMediaTitle} from './src/mdblist.js';
 import {fetchTitleMetadata, fetchTitleImdbRating, fetchPersonCredits, searchPeople, metadataServiceUrl} from './src/tmdb.js';
@@ -388,6 +388,7 @@ const mediaProviderCategoryCache={
 };
 let guideStart=Math.floor(Date.now()/1800000)*1800000;
 const epgCache=new Map();
+const EPG_TTL_MS=NATIVE_ANDROID?6*60*60*1000:5*60*1000;
 const guideChannelCache={key:'',items:[],total:0};
 const guideChannelRequests=new Map();
 const m3uGuideTextCache=new Map();
@@ -1153,8 +1154,8 @@ function card(item,poster=false,opts={}){
 }
 function profileAvatarHtml(profile,cls=''){
   const av=avatarById(profile?.avatar||'lion');
-  const glyph=profile?.name==='+'?'+':(av.glyph||'🦁');
-  return `<span class="profile-avatar ${cls} animal-avatar" style="--profile-bg:${av.gradient}" title="${esc(av.label)}"><b>${esc(glyph)}</b></span>`;
+  if(profile?.name==='+')return `<span class="profile-avatar ${cls} profile-avatar-add" title="Add profile"><b>+</b></span>`;
+  return `<span class="profile-avatar ${cls} photo-avatar" title="${esc(av.label)}"><img src="${esc(av.image)}" alt="${esc(av.label)} avatar" draggable="false"></span>`;
 }
 function profilePickerPage(){
   const profiles=state.profiles||[];
@@ -1165,7 +1166,7 @@ function profilesModal(){
 }
 function profileEditorModal(){
   const existing=state.profiles.find(p=>p.id===profileEditId)||null,p=existing||makeProfile({name:'New Profile',avatar:PROFILE_AVATARS[state.profiles.length%PROFILE_AVATARS.length].id,profileSettings:{themeId:'chill',backgroundColor:'#050505',backgroundOverride:false,movieSourcePreferences:{},homeRows:[...DEFAULT_HOME_ROWS],smartHomeOrder:true}}),selectedTheme=profileTheme(p);
-  return `<div class="modal-backdrop" data-close-modal><div class="modal profile-edit-modal" data-modal-card><div class="modal-head"><div><div class="eyebrow">${existing?'EDIT PROFILE':'NEW PROFILE'}</div><h2>${existing?'Personalise this profile':'Create a profile'}</h2><p>Theme, viewing activity and Home preferences are private to this profile.</p></div><button class="icon-btn" data-close>✕</button></div><div class="modal-body"><form id="profileForm"><input type="hidden" name="id" value="${esc(existing?.id||'')}"><input type="hidden" name="avatar" value="${esc(p.avatar)}" id="profileAvatarValue"><div class="field"><label>Profile name</label><input name="name" maxlength="24" value="${esc(p.name)}" required></div><div class="profile-avatar-picker"><label>Choose an avatar</label><div>${PROFILE_AVATARS.map(av=>`<button type="button" class="profile-avatar-option ${av.id===p.avatar?'active':''}" data-profile-avatar="${av.id}" aria-label="${esc(av.label)}"><span style="--profile-bg:${av.gradient}">${esc(av.glyph)}</span></button>`).join('')}</div></div><div class="profile-theme-picker"><div class="field-label"><strong>Choose a Swoop TV theme</strong><small>The whole interface changes with this profile.</small></div>${themePickerHtml(selectedTheme.id)}</div><label class="remember-row profile-kids-toggle"><input type="checkbox" name="kids" ${p.kids?'checked':''}><span><strong>Kids profile</strong><small>Hides explicit/adult groups and titles with known mature certifications. Provider metadata varies, so this is a convenience filter rather than a substitute for supervision.</small></span></label><label class="remember-row"><input type="checkbox" name="smartHome" ${p.profileSettings?.smartHomeOrder!==false?'checked':''}><span><strong>Smart Home ordering</strong><small>Automatically moves the most relevant rows higher based on this profile’s viewing history.</small></span></label><div class="field"><label>${p.pinHash?'Change profile PIN (optional)':'Profile PIN (optional)'}</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="${p.pinHash?'Leave blank to keep current PIN':'4–8 digits'}"><small class="form-hint">A PIN is required before switching into this profile when one is set.</small></div>${p.pinHash?`<label class="profile-remove-pin"><input type="checkbox" name="removePin"> Remove existing PIN</label>`:''}<div class="profile-form-actions"><button class="btn accent" type="submit">${existing?'Save Profile':'Create Profile'}</button>${existing&&state.profiles.length>1?`<button class="btn danger" type="button" data-profile-delete="${esc(existing.id)}">Delete Profile</button>`:''}</div></form></div></div></div>`;
+  return `<div class="modal-backdrop" data-close-modal><div class="modal profile-edit-modal" data-modal-card><div class="modal-head"><div><div class="eyebrow">${existing?'EDIT PROFILE':'NEW PROFILE'}</div><h2>${existing?'Personalise this profile':'Create a profile'}</h2><p>Theme, viewing activity and Home preferences are private to this profile.</p></div><button class="icon-btn" data-close>✕</button></div><div class="modal-body"><form id="profileForm"><input type="hidden" name="id" value="${esc(existing?.id||'')}"><input type="hidden" name="avatar" value="${esc(p.avatar)}" id="profileAvatarValue"><div class="field"><label>Profile name</label><input name="name" maxlength="24" value="${esc(p.name)}" required></div><div class="profile-avatar-picker"><label>Choose an avatar</label><div>${PROFILE_AVATARS.map(av=>`<button type="button" class="profile-avatar-option ${av.id===p.avatar?'active':''}" data-profile-avatar="${av.id}" aria-label="${esc(av.label)}"><span><img src="${esc(av.image)}" alt="" draggable="false"></span></button>`).join('')}</div></div><div class="profile-theme-picker"><div class="field-label"><strong>Choose a Swoop TV theme</strong><small>The whole interface changes with this profile.</small></div>${themePickerHtml(selectedTheme.id)}</div><label class="remember-row profile-kids-toggle"><input type="checkbox" name="kids" ${p.kids?'checked':''}><span><strong>Kids profile</strong><small>Hides explicit/adult groups and titles with known mature certifications. Provider metadata varies, so this is a convenience filter rather than a substitute for supervision.</small></span></label><label class="remember-row"><input type="checkbox" name="smartHome" ${p.profileSettings?.smartHomeOrder!==false?'checked':''}><span><strong>Smart Home ordering</strong><small>Automatically moves the most relevant rows higher based on this profile’s viewing history.</small></span></label><div class="field"><label>${p.pinHash?'Change profile PIN (optional)':'Profile PIN (optional)'}</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="${p.pinHash?'Leave blank to keep current PIN':'4–8 digits'}"><small class="form-hint">A PIN is required before switching into this profile when one is set.</small></div>${p.pinHash?`<label class="profile-remove-pin"><input type="checkbox" name="removePin"> Remove existing PIN</label>`:''}<div class="profile-form-actions"><button class="btn accent" type="submit">${existing?'Save Profile':'Create Profile'}</button>${existing&&state.profiles.length>1?`<button class="btn danger" type="button" data-profile-delete="${esc(existing.id)}">Delete Profile</button>`:''}</div></form></div></div></div>`;
 }
 function pinModal(){
   const p=state.profiles.find(x=>x.id===pendingProfileId);if(!p)return'';
@@ -1194,7 +1195,7 @@ async function switchProfile(id,{skipPin=false}={}){
 function nav(){
   const desktop=[['home','Home'],['live','Live TV'],['guide','Guide'],['movies','Movies'],['series','TV Shows'],['mylist','My List']];
   const mobile=[['home','⌂','Home'],['live','◉','Live'],['guide','▤','Guide'],['movies','▰','Movies'],['series','▦','Shows']];
-  return `<header class="topbar"><button class="brand" data-page="home" aria-label="Swoop TV Home"><i class="brand-mark">S</i><span>SWOOP</span><b>TV</b></button>
+  return `<header class="topbar"><button class="brand brand-logo-button" data-page="home" aria-label="Swoop TV Home"><img class="swoop-brand-logo" src="./assets/swoop-tv-logo.jpg" alt="Swoop TV" /></button>
   <nav class="desktop-nav">${desktop.map(([p,label])=>`<button class="nav-btn ${state.page===p?'active':''}" data-page="${p}">${label}</button>`).join('')}</nav>
   <div class="top-actions"><button class="icon-btn search-action" data-page="search" aria-label="Search">⌕</button><button class="top-provider" data-modal="provider">☰ Providers <span class="top-provider-count">${state.providers.length||''}</span></button><button class="icon-btn settings-action ${state.page==='settings'?'active':''}" data-page="settings" aria-label="Settings" title="Settings">⚙</button><button class="profile-btn profile-switch-btn" data-profile-picker aria-label="Switch profile">${profileAvatarHtml(activeProfile(),'profile-avatar-nav')}<span>${esc(activeProfile()?.name||'Profile')}</span></button></div></header>
   <nav class="bottom-nav">${mobile.map(([p,icon,label])=>`<button class="${state.page===p?'active':''}" data-page="${p}"><span>${icon}</span>${label}</button>`).join('')}<button class="${state.page==='settings'?'active':''}" data-page="settings"><span>⚙</span>Settings</button></nav>`;
@@ -1705,7 +1706,8 @@ async function loadGuideEpg(){
   if(state.page!=='guide'||guideLoading)return;
   const token=++guideLoadToken,currentKey=guideChannelKey();
   if(nativeCatalogMode){const before=guideChannelSnapshot();if(!before.ready){await ensureGuideChannels();if(state.page!=='guide'||token!==guideLoadToken||currentKey!==guideChannelKey())return;render();return;}}
-  const channels=guideChannelSnapshot().items,stale=Date.now()-5*60000;if(!channels.length)return;
+  const channels=guideChannelSnapshot().items,stale=Date.now()-EPG_TTL_MS;if(!channels.length)return;
+  if(NATIVE_ANDROID&&channels.every(ch=>Number(epgCache.get(ch.id)?.loadedAt||0)>=stale)){guideError='';return;}
   guideLoading=true;guideError='';document.querySelectorAll('.guide-loading span').forEach(el=>el.textContent='Loading programme guide…');const guideProgress=document.querySelector('[data-guide-load-progress]'),guideBar=document.querySelector('[data-guide-load-bar]'),guidePct=document.querySelector('[data-guide-load-percent]'),guideText=document.querySelector('[data-guide-load-text]');if(guideProgress)guideProgress.hidden=false;guideBar?.classList.remove('indeterminate');let guideDone=channels.filter(ch=>Number(epgCache.get(ch.id)?.loadedAt||0)>=stale).length;const updateGuideProgress=(done,total,label='Loading programme guide…')=>{const pct=Math.max(2,Math.min(98,Math.round((Number(done||0)/Math.max(1,Number(total||1)))*100)));if(guideBar)guideBar.style.width=`${pct}%`;if(guidePct)guidePct.textContent=`${pct}%`;if(guideText)guideText.textContent=label};updateGuideProgress(guideDone,channels.length,`Loading ${guideCategoryLabel()} programme data…`);
   try{
     // M3U/XMLTV is downloaded at most once per provider for 10 minutes, then filtered to the selected category.
@@ -1736,7 +1738,7 @@ let androidGuidePrewarmRunning=false,androidDestinationPrewarmStarted=false;
 async function prewarmAndroidGuideEpg(){
   if(!NATIVE_ANDROID||androidGuidePrewarmRunning||!state.catalog.length)return;androidGuidePrewarmRunning=true;
   try{
-    const stale=Date.now()-5*60000,channels=tvFastItems('live').filter(ch=>{const src=preferredLiveSource(ch);return src?.source==='xtream'&&(!epgCache.get(ch.id)||Number(epgCache.get(ch.id)?.loadedAt||0)<stale)}).slice(0,18);let cursor=0;
+    const stale=Date.now()-EPG_TTL_MS,channels=tvFastItems('live').filter(ch=>{const src=preferredLiveSource(ch);return src?.source==='xtream'&&(!epgCache.get(ch.id)||Number(epgCache.get(ch.id)?.loadedAt||0)<stale)}).slice(0,18);let cursor=0;
     const worker=async()=>{while(cursor<channels.length){const ch=channels[cursor++],src=preferredLiveSource(ch),cfg=providerConfigFor(src);if(!cfg?.server||!cfg?.username||!cfg?.password)continue;try{let payload=await fetchXtreamShortEpg(cfg,src.streamId,12),list=normalizeXtreamEpg(payload);if(!list.length){payload=await fetchXtreamSimpleEpg(cfg,src.streamId);list=normalizeXtreamEpg(payload)}epgCache.set(ch.id,{loadedAt:Date.now(),list})}catch{}}};
     await Promise.all(Array.from({length:Math.min(2,channels.length||1)},worker));
   }finally{androidGuidePrewarmRunning=false}
@@ -1785,7 +1787,7 @@ function scheduleHeroRotation(){
 
 function startupRefreshPage(){
   const pct=Math.max(0,Math.min(100,Number(startupRefreshState.progress||0)));
-  return `<main class="page restoring-page"><div class="restore-card startup-refresh-card"><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">UPDATING SWOOP TV</div><h1>Refreshing your TV library…</h1><p id="startupRefreshText">${esc(startupRefreshState.detail||'Swoop TV is refreshing your provider before opening the app.')}</p><div class="restore-progress"><div><span id="startupRefreshCount">${esc(startupRefreshState.provider||startupRefreshState.title||'Updating your TV library…')}</span><strong id="startupRefreshPercent">${Math.round(pct)}%</strong></div><i><b id="startupRefreshBar" style="width:${pct}%"></b></i></div><small id="startupRefreshSummary">${esc(startupRefreshState.summary||'Keep Swoop TV open while your library updates.')}</small></div></main>`;
+  return `<main class="page restoring-page"><div class="restore-card startup-refresh-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo.jpg" alt="Swoop TV" /><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">UPDATING SWOOP TV</div><h1>Refreshing your TV library…</h1><p id="startupRefreshText">${esc(startupRefreshState.detail||'Swoop TV is refreshing your provider before opening the app.')}</p><div class="restore-progress"><div><span id="startupRefreshCount">${esc(startupRefreshState.provider||startupRefreshState.title||'Updating your TV library…')}</span><strong id="startupRefreshPercent">${Math.round(pct)}%</strong></div><i><b id="startupRefreshBar" style="width:${pct}%"></b></i></div><small id="startupRefreshSummary">${esc(startupRefreshState.summary||'Keep Swoop TV open while your library updates.')}</small></div></main>`;
 }
 function updateStartupRefreshProgress({progress,title,detail,provider,summary}={}){
   if(progress!==undefined&&Number.isFinite(Number(progress)))startupRefreshState.progress=Math.max(0,Math.min(100,Number(progress)));
@@ -1808,7 +1810,7 @@ function providerCanRefreshOnLaunch(provider){
 }
 
 function restoringPage(){
-  return `<main class="page restoring-page"><div class="restore-card"><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">RESTORING SWOOP TV</div><h1>Loading your TV library…</h1><p id="restoreProgressText">Swoop TV is loading your channels, movies and TV shows.</p><div class="restore-progress"><div><span id="restoreProgressCount">Loading your library…</span><strong id="restoreProgressPercent">4%</strong></div><i><b id="restoreProgressBar" style="width:4%"></b></i></div><small>Your library will open as soon as it is ready.</small></div></main>`;
+  return `<main class="page restoring-page"><div class="restore-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo.jpg" alt="Swoop TV" /><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">RESTORING SWOOP TV</div><h1>Loading your TV library…</h1><p id="restoreProgressText">Swoop TV is loading your channels, movies and TV shows.</p><div class="restore-progress"><div><span id="restoreProgressCount">Loading your library…</span><strong id="restoreProgressPercent">4%</strong></div><i><b id="restoreProgressBar" style="width:4%"></b></i></div><small>Your library will open as soon as it is ready.</small></div></main>`;
 }
 function updateRestoreProgress(info={}){
   const bar=document.querySelector('#restoreProgressBar'),count=document.querySelector('#restoreProgressCount'),text=document.querySelector('#restoreProgressText'),percent=document.querySelector('#restoreProgressPercent');
@@ -2308,7 +2310,7 @@ async function loadPlayerNowNext(item){
   if(item?.kind!=='live')return;const box=document.querySelector('#liveNowNext');if(!box)return;
   try{
     let cached=epgCache.get(item.id);
-    if(!cached||Date.now()-cached.loadedAt>300000){const src=preferredLiveSource(item),cfg=providerConfigFor(src);if(src.source==='xtream'&&cfg.server){const payload=await fetchXtreamShortEpg(cfg,src.streamId,8);cached={loadedAt:Date.now(),list:normalizeXtreamEpg(payload)};epgCache.set(item.id,cached)}}
+    if(!cached||Date.now()-cached.loadedAt>EPG_TTL_MS){const src=preferredLiveSource(item),cfg=providerConfigFor(src);if(src.source==='xtream'&&cfg.server){const payload=await fetchXtreamShortEpg(cfg,src.streamId,8);cached={loadedAt:Date.now(),list:normalizeXtreamEpg(payload)};epgCache.set(item.id,cached)}}
     const now=Date.now(),list=cached?.list||[],current=list.find(p=>now>=p.startMs&&now<p.endMs),next=list.find(p=>p.startMs>=now&&p!==current);
     box.innerHTML=current?`<div class="live-program current"><span>NOW</span><strong>${esc(current.title)}</strong><small>${new Date(current.startMs).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}–${new Date(current.endMs).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</small></div>${next?`<div class="live-program"><span>NEXT</span><strong>${esc(next.title)}</strong><small>${new Date(next.startMs).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</small></div>`:''}`:`<div class="live-program"><span>LIVE</span><strong>${esc(item.name)}</strong><small>Programme information unavailable</small></div>`;
   }catch{box.innerHTML=`<div class="live-program"><span>LIVE</span><strong>${esc(item.name)}</strong><small>Open Guide for programme information</small></div>`}
@@ -2324,7 +2326,7 @@ function liveMiniGuideChannels(item,count=7){
 function currentProgramme(channel){const cached=epgCache.get(channel?.id),now=Date.now(),list=cached?.list||[];return list.find(p=>now>=p.startMs&&now<p.endMs)||null}
 async function ensureLiveEpg(channel){
   if(!channel)return;
-  const cached=epgCache.get(channel.id);if(cached&&Date.now()-cached.loadedAt<300000)return cached;
+  const cached=epgCache.get(channel.id);if(cached&&Date.now()-cached.loadedAt<EPG_TTL_MS)return cached;
   const src=preferredLiveSource(channel),cfg=providerConfigFor(src);if(src.source==='xtream'&&cfg.server&&src.streamId){try{const payload=await fetchXtreamShortEpg(cfg,src.streamId,6),next={loadedAt:Date.now(),list:normalizeXtreamEpg(payload)};epgCache.set(channel.id,next);return next}catch{}}
   return cached||{loadedAt:Date.now(),list:[]};
 }
@@ -2756,6 +2758,41 @@ async function ensureDurableLibraryRestored(){
 }
 
 
+async function prepareAndroidEpgBeforeEntry(onProgress=null){
+  if(!NATIVE_ANDROID||!state.catalog.length)return {providers:0,matched:0,programmes:0,failed:0};
+  const live=state.catalog.filter(x=>x?.kind==='live'&&!isDemoItem(x));
+  const sources=[];
+  for(const provider of enabledProviders()){
+    const cfg=providerConfigById(provider.id)||providerConfigFor(provider.id)||provider||{};
+    let url='';
+    if(provider.type==='xtream'&&cfg.server&&cfg.username&&cfg.password){
+      try{url=buildXtreamXmltvUrl(cfg.server,cfg.username,cfg.password)}catch{}
+    }else if(provider.type==='m3u')url=String(cfg.epgUrl||provider.epgUrl||'').trim();
+    if(!url)continue;
+    const channels=live.filter(ch=>ch.providerId===provider.id);
+    const keyByItem=new Map(),wanted=[];
+    for(const ch of channels){const key=String(ch.tvgId||ch.epgChannelId||((provider.type==='m3u')?ch.name:'')||'').trim();if(!key)continue;keyByItem.set(ch.id,key);wanted.push(key)}
+    if(wanted.length)sources.push({provider,url,channels,keyByItem,wanted:[...new Set(wanted)]});
+  }
+  if(!sources.length)return {providers:0,matched:0,programmes:0,failed:0};
+  let matched=0,programmes=0,failed=0;
+  const now=Date.now(),windowStartMs=now-90*60000,windowEndMs=now+8*3600000;
+  for(let i=0;i<sources.length;i++){
+    const src=sources[i],label=src.provider.name||'TV provider';
+    try{onProgress?.({providerIndex:i,totalProviders:sources.length,label,phase:'download',detail:`Downloading ${label} programme guide…`})}catch{}
+    try{
+      const payload=await nativeFetchXmltvIndex(src.url,src.wanted,{windowStartMs,windowEndMs,timeoutMs:240000});
+      const index=payload?.channels&&typeof payload.channels==='object'?payload.channels:{};
+      const loadedAt=Date.now();let providerMatched=0;
+      for(const ch of src.channels){const key=src.keyByItem.get(ch.id);if(!key)continue;const list=Array.isArray(index[key])?index[key]:[];epgCache.set(ch.id,{loadedAt,list});if(list.length)providerMatched++}
+      matched+=providerMatched;programmes+=Number(payload?.programmes||0);
+      try{onProgress?.({providerIndex:i+1,totalProviders:sources.length,label,phase:'ready',detail:`${label} guide ready · ${providerMatched.toLocaleString()} channels`})}catch{}
+    }catch(err){failed++;try{onProgress?.({providerIndex:i+1,totalProviders:sources.length,label,phase:'error',detail:`${label} programme guide unavailable`})}catch{}}
+    await new Promise(r=>setTimeout(r,0));
+  }
+  return {providers:sources.length,matched,programmes,failed};
+}
+
 async function prepareAndroidHomeBeforeEntry(onProgress=null){
   if(!NATIVE_ANDROID||!state.catalog.length){androidPreparedHomeReady=true;return}
   clearAndroidPreparedHome();tvHomeSnapshotActive=false;resetAndroidFastCatalog();
@@ -2795,7 +2832,7 @@ async function runAndroidStartupGate(){
       const providers=enabledProviders(),refreshable=providers.filter(providerCanRefreshOnLaunch),skipped=providers.length-refreshable.length;
       if(refreshable.length){
         for(let i=0;i<refreshable.length;i++){
-          const provider=refreshable[i],base=6+(i/refreshable.length)*58,span=58/refreshable.length;
+          const provider=refreshable[i],base=6+(i/refreshable.length)*48,span=48/refreshable.length;
           updateStartupRefreshProgress({progress:base,provider:`${provider.name||'TV Provider'} · ${i+1} of ${refreshable.length}`,detail:'Downloading channels, movies and TV shows…'});
           const success=await refreshProvider(provider.id,{quiet:true,manageTask:false,deferPersist:true,onProgress:info=>{
             const fraction=Math.max(0,Math.min(1,Number(info.progress||0)/100));
@@ -2805,13 +2842,25 @@ async function runAndroidStartupGate(){
           await new Promise(r=>setTimeout(r,0));
         }
       }
+      let epgSummary={providers:0,matched:0,programmes:0,failed:0};
       if(state.catalog.length){
         tvHomeSnapshotActive=false;libraryRestored=true;resetMovieStackIndex();syncProviderCounts();
-        updateStartupRefreshProgress({progress:66,provider:`${catalogLogicalTotal().toLocaleString()} items`,detail:'Saving your refreshed library…'});
+        updateStartupRefreshProgress({progress:55,provider:'TV Guide',detail:'Downloading programme guide data…'});
+        let softProgress=55;
+        const epgTicker=setInterval(()=>{softProgress=Math.min(69,softProgress+Math.max(.25,(69-softProgress)*.045));updateStartupRefreshProgress({progress:softProgress,provider:'TV Guide',detail:'Preparing programme guide…'})},450);
+        try{
+          epgSummary=await prepareAndroidEpgBeforeEntry(info=>{
+            const fraction=Math.max(0,Math.min(1,Number(info.providerIndex||0)/Math.max(1,Number(info.totalProviders||1))));
+            softProgress=Math.max(softProgress,55+fraction*14);
+            updateStartupRefreshProgress({progress:softProgress,provider:`TV Guide · ${info.label||''}`.replace(/ · $/,''),detail:info.detail||'Preparing programme guide…'});
+          });
+        }finally{clearInterval(epgTicker)}
+        updateStartupRefreshProgress({progress:70,provider:'TV Guide ready',detail:epgSummary.matched?`${epgSummary.matched.toLocaleString()} channels have programme data ready.`:(epgSummary.providers?'Programme guide checked.':'No programme guide source configured.')});
+        updateStartupRefreshProgress({progress:72,provider:`${catalogLogicalTotal().toLocaleString()} items`,detail:'Saving your refreshed library…'});
         await persist(true);
-        updateStartupRefreshProgress({progress:70,provider:'Preparing Home',detail:'Building your Home screen in priority order…'});
+        updateStartupRefreshProgress({progress:75,provider:'Preparing Home',detail:'Building your Home screen in priority order…'});
         await prepareAndroidHomeBeforeEntry(info=>{
-          const mapped=70+Math.max(0,Math.min(1,Number(info.progress||0)))*28;
+          const mapped=75+Math.max(0,Math.min(1,Number(info.progress||0)))*23;
           updateStartupRefreshProgress({progress:mapped,provider:info.label||'Preparing Home',detail:info.detail||'Preparing Home…'});
         });
         updateStartupRefreshProgress({progress:99,provider:'Finalising',detail:'Saving your prepared Home screen…'});
@@ -2819,7 +2868,7 @@ async function runAndroidStartupGate(){
       }else{
         clearAndroidPreparedHome();androidPreparedHomeReady=true;
       }
-      const parts=[];if(ok)parts.push(`${ok} provider${ok===1?'':'s'} updated`);if(failed)parts.push(`${failed} using previous data`);if(skipped)parts.push(`${skipped} unchanged`);
+      const parts=[];if(ok)parts.push(`${ok} provider${ok===1?'':'s'} updated`);if(epgSummary?.matched)parts.push(`${epgSummary.matched.toLocaleString()} guide channels ready`);else if(epgSummary?.failed)parts.push('guide fallback active');if(failed)parts.push(`${failed} using previous data`);if(skipped)parts.push(`${skipped} unchanged`);
       updateStartupRefreshProgress({progress:100,provider:'Ready',detail:state.catalog.length?'Your library is ready.':'Swoop TV is ready.',summary:parts.join(' · ')||'Ready to watch.'});
       androidStartupGateComplete=true;startupRefreshActive=false;state.page='home';clearPersistentPageViews(['home']);render();forceAndroidHomeEntry();return true;
     }catch(err){

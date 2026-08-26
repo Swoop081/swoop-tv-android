@@ -1,8 +1,8 @@
-# Swoop TV v0.8.5 — Google TV Launch Refresh + Ready Home
+# Swoop TV v0.8.8 — Google TV Profile Avatars
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.5 launch contract
+## v0.8.8 launch contract
 
 Swoop TV now treats launch as a gated library-preparation phase on Google TV. The app does not expose Home until the provider library and priority Home content are ready.
 
@@ -22,11 +22,24 @@ Swoop TV now treats launch as a gated library-preparation phase on Google TV. Th
 
 The intended customer experience is therefore: **choose profile → watch one clear progress screen → enter a complete, responsive Home**. There is no half-loaded Home phase.
 
+### v0.8.8 TV-specific additions
+- Profile avatars now use the ten supplied animal portraits: Lion, Elephant, Giraffe, Zebra, Rhino, Turtle, Monkey, Meerkat, Parrot and Tiger.
+- Avatar portraits are used consistently in profile selection, profile editing, profile switching, PIN screens and Settings.
+
+- The Home hero is capped at roughly **43% of the TV viewport (300–355px on the logical TV canvas)** instead of the previous 520px/74vh treatment. More of the first content rail is visible immediately.
+- Programme-guide preparation is now part of startup. Xtream XMLTV and configured M3U XMLTV feeds are checked before Home is revealed.
+- Android parses large XMLTV feeds **natively as a stream**, retaining only near-term programmes for live channels actually present in the playlist. This avoids handing a huge XML document to the WebView/JavaScript thread.
+- Gzipped XMLTV is supported even when a provider does not correctly advertise the compression header.
+- The startup progress bar has a dedicated **TV Guide** stage, and the prepared guide cache is reused by Guide and Live Now/Next.
+
+
+The supplied neon **Swoop TV** logo is now the canonical visible brand asset for this TV test branch. It is used on the Android launcher icon/banner, the launch-refresh/library-preparation screen, and the top-left application brand control.
+
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.5`
-- versionCode: `805`
+- versionName: `0.8.8`
+- versionCode: `808`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -37,6 +50,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.5 (805)**. The workflow also publishes `Swoop-TV-v0.8.5-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.8 (808)**. The workflow also publishes `Swoop-TV-v0.8.8-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

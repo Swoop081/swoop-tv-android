@@ -150,11 +150,35 @@ export async function nativeFetchText(url) {
   return nativeRequest('/native/fetch-text', {url}, {expect:'text', timeoutMs:60000});
 }
 
+export async function nativeFetchXmltvIndex(url, wantedIds=[], {windowStartMs=Date.now()-2*3600000, windowEndMs=Date.now()+24*3600000, timeoutMs=240000}={}) {
+  if(!isNativeAndroid())return null;
+  const bridge=androidBridge();
+  if(typeof bridge.fetchXmltvIndexAsync!=='function')return null;
+  bindAndroidFetchListener();
+  const requestId=`epg-${Date.now()}-${++androidFetchSeq}`;
+  const meta=await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{androidFetchPending.delete(requestId);try{bridge.releaseFetchText?.(requestId)}catch{}reject(new Error('Programme guide request timed out.'))},timeoutMs);
+    androidFetchPending.set(requestId,{resolve,reject,timer});
+    try{bridge.fetchXmltvIndexAsync(requestId,String(url||''),JSON.stringify(Array.from(new Set((wantedIds||[]).map(x=>String(x||'').trim()).filter(Boolean)))),Math.round(Number(windowStartMs||0)),Math.round(Number(windowEndMs||0)))}catch(err){clearTimeout(timer);androidFetchPending.delete(requestId);reject(err)}
+  });
+  const length=Math.max(0,Number(meta?.length||0)),parts=[],chunkSize=256*1024;let offset=0;
+  try{
+    while(offset<length){
+      const chunk=String(bridge.fetchTextChunk(requestId,offset,chunkSize)||'');
+      if(chunk.startsWith('__SWOOP_NATIVE_ERROR__'))throw new Error(chunk.slice('__SWOOP_NATIVE_ERROR__'.length)||'Could not load programme guide.');
+      if(!chunk)throw new Error('Programme guide response ended unexpectedly.');
+      parts.push(chunk);offset+=chunk.length;if(offset<length)await nextFrame();
+    }
+    const text=parts.join('');
+    try{return JSON.parse(text||'{}')}catch{throw new Error('Programme guide returned invalid data.')}
+  }finally{try{bridge.releaseFetchText?.(requestId)}catch{}}
+}
+
 
 export async function nativeStatus() {
   const info=nativeInfo();
   if(!info) return null;
-  if(isNativeAndroid())return {ok:true,platform:'android',version:String(androidBridge().version?.()||'0.8.5')};
+  if(isNativeAndroid())return {ok:true,platform:'android',version:String(androidBridge().version?.()||'0.8.6')};
   const res=await fetch('/native/status',{cache:'no-store'});
   if(!res.ok)return null;
   return res.json();

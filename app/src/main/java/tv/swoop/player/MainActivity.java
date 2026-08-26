@@ -22,6 +22,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.util.Xml;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
@@ -34,13 +35,21 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
+import org.xmlpull.v1.XmlPullParser;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.PushbackInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -124,7 +133,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.5 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.8 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -328,24 +337,35 @@ public class MainActivity extends Activity {
         return ref.get();
     }
 
+    private InputStream maybeGunzip(InputStream raw, String contentEncoding) throws Exception {
+        PushbackInputStream push = new PushbackInputStream(raw, 2);
+        int b1 = push.read();
+        int b2 = push.read();
+        if (b2 >= 0) push.unread(b2);
+        if (b1 >= 0) push.unread(b1);
+        boolean gzip = "gzip".equalsIgnoreCase(contentEncoding) || (b1 == 0x1f && b2 == 0x8b);
+        return gzip ? new GZIPInputStream(push, 32 * 1024) : push;
+    }
+
     private String fetchTextBlocking(String urlString) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(urlString).openConnection();
         c.setConnectTimeout(20_000);
-        c.setReadTimeout(60_000);
+        c.setReadTimeout(90_000);
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.5 AndroidTV");
+        c.setRequestProperty("Accept-Encoding", "gzip");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.8 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
-        InputStream raw = new BufferedInputStream(c.getInputStream());
-        InputStream in = "gzip".equalsIgnoreCase(c.getContentEncoding()) ? new GZIPInputStream(raw) : raw;
+        InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
+        InputStream in = maybeGunzip(raw, c.getContentEncoding());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buffer = new byte[32 * 1024];
         int total = 0;
         int n;
         while ((n = in.read(buffer)) != -1) {
             total += n;
-            if (total > 64 * 1024 * 1024) throw new Exception("Playlist is too large for this test build.");
+            if (total > 128 * 1024 * 1024) throw new Exception("Provider response is too large for direct text transfer.");
             out.write(buffer, 0, n);
         }
         in.close();
@@ -353,12 +373,108 @@ public class MainActivity extends Activity {
         return out.toString(StandardCharsets.UTF_8.name());
     }
 
+    private long parseXmltvDateMs(String value) {
+        try {
+            String raw = value == null ? "" : value.trim();
+            if (raw.length() < 12) return 0L;
+            String[] parts = raw.split("\\s+");
+            String digits = parts[0].replaceAll("[^0-9]", "");
+            if (digits.length() < 12) return 0L;
+            if (digits.length() == 12) digits += "00";
+            if (digits.length() > 14) digits = digits.substring(0, 14);
+            if (parts.length > 1 && !parts[1].isEmpty()) {
+                String tz = "Z".equalsIgnoreCase(parts[1]) ? "+0000" : parts[1];
+                SimpleDateFormat f = new SimpleDateFormat("yyyyMMddHHmmss Z", Locale.US);
+                Date d = f.parse(digits + " " + tz);
+                return d == null ? 0L : d.getTime();
+            }
+            SimpleDateFormat f = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
+            Date d = f.parse(digits);
+            return d == null ? 0L : d.getTime();
+        } catch (Exception ignored) { return 0L; }
+    }
+
+    private String fetchXmltvIndexBlocking(String urlString, String wantedJson, long windowStartMs, long windowEndMs) throws Exception {
+        Set<String> wanted = new HashSet<>();
+        JSONArray wantedArray = new JSONArray(wantedJson == null ? "[]" : wantedJson);
+        for (int i = 0; i < wantedArray.length(); i++) {
+            String id = wantedArray.optString(i, "").trim();
+            if (!id.isEmpty()) wanted.add(id);
+        }
+        JSONObject channels = new JSONObject();
+        if (wanted.isEmpty()) return new JSONObject().put("channels", channels).put("matched", 0).put("programmes", 0).toString();
+
+        HttpURLConnection c = (HttpURLConnection) new URL(urlString).openConnection();
+        c.setConnectTimeout(20_000);
+        c.setReadTimeout(120_000);
+        c.setInstanceFollowRedirects(true);
+        c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
+        c.setRequestProperty("Accept-Encoding", "gzip");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.8 AndroidTV");
+        int code = c.getResponseCode();
+        if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
+
+        InputStream raw = new BufferedInputStream(c.getInputStream(), 64 * 1024);
+        InputStream in = maybeGunzip(raw, c.getContentEncoding());
+        XmlPullParser parser = Xml.newPullParser();
+        parser.setInput(in, "UTF-8");
+
+        boolean capture = false;
+        String channelId = "";
+        String title = "Programme";
+        long startMs = 0L;
+        long endMs = 0L;
+        int programmes = 0;
+        Set<String> matchedChannels = new HashSet<>();
+        int event = parser.getEventType();
+        while (event != XmlPullParser.END_DOCUMENT) {
+            if (event == XmlPullParser.START_TAG) {
+                String name = parser.getName();
+                if ("programme".equals(name)) {
+                    channelId = parser.getAttributeValue(null, "channel");
+                    if (channelId == null) channelId = "";
+                    startMs = parseXmltvDateMs(parser.getAttributeValue(null, "start"));
+                    endMs = parseXmltvDateMs(parser.getAttributeValue(null, "stop"));
+                    capture = wanted.contains(channelId) && startMs > 0L && endMs > startMs && endMs > windowStartMs && startMs < windowEndMs;
+                    title = "Programme";
+                } else if (capture && "title".equals(name)) {
+                    String t = parser.nextText();
+                    if (t != null && !t.trim().isEmpty()) title = t.trim();
+                }
+            } else if (event == XmlPullParser.END_TAG && "programme".equals(parser.getName())) {
+                if (capture) {
+                    JSONArray list = channels.optJSONArray(channelId);
+                    if (list == null) { list = new JSONArray(); channels.put(channelId, list); }
+                    if (list.length() < 24) {
+                        JSONObject item = new JSONObject();
+                        item.put("title", title);
+                        item.put("startMs", startMs);
+                        item.put("endMs", endMs);
+                        list.put(item);
+                        programmes++;
+                        matchedChannels.add(channelId);
+                    }
+                }
+                capture = false;
+                channelId = "";
+            }
+            event = parser.next();
+        }
+        in.close();
+        c.disconnect();
+        JSONObject out = new JSONObject();
+        out.put("channels", channels);
+        out.put("matched", matchedChannels.size());
+        out.put("programmes", programmes);
+        return out.toString();
+    }
+
     public class AndroidBridge {
         @JavascriptInterface
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.5"; }
+        public String version() { return "0.8.8"; }
 
         @JavascriptInterface
         public String play(String payloadJson) {
@@ -449,6 +565,34 @@ public class MainActivity extends Activity {
                     detail.put("length", text.length());
                 } catch (Exception e) {
                     String message = e.getMessage() == null ? "Could not load provider data." : e.getMessage();
+                    asyncFetchErrors.put(id, message);
+                    try {
+                        detail.put("requestId", id);
+                        detail.put("ok", false);
+                        detail.put("error", message);
+                    } catch (Exception ignored) {}
+                }
+                emitNativeEvent("swoop-native-fetch", detail);
+            });
+        }
+
+        @JavascriptInterface
+        public void fetchXmltvIndexAsync(String requestId, String url, String wantedJson, long windowStartMs, long windowEndMs) {
+            final String id = requestId == null ? "" : requestId.trim();
+            final String target = url == null ? "" : url.trim();
+            if (id.isEmpty() || target.isEmpty()) return;
+            asyncFetchResults.remove(id);
+            asyncFetchErrors.remove(id);
+            networkExecutor.execute(() -> {
+                JSONObject detail = new JSONObject();
+                try {
+                    String text = fetchXmltvIndexBlocking(target, wantedJson, windowStartMs, windowEndMs);
+                    asyncFetchResults.put(id, text);
+                    detail.put("requestId", id);
+                    detail.put("ok", true);
+                    detail.put("length", text.length());
+                } catch (Exception e) {
+                    String message = e.getMessage() == null ? "Could not load programme guide." : e.getMessage();
                     asyncFetchErrors.put(id, message);
                     try {
                         detail.put("requestId", id);

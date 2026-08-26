@@ -1,5 +1,57 @@
 # Swoop TV Release Notes
 
+## v0.8.8 — Supplied Profile Avatar Set
+
+- Replaces the previous emoji/gradient profile avatars with the **10 user-supplied animal portraits**.
+- Avatar order is **Lion, Elephant, Giraffe, Zebra, Rhino, Turtle, Monkey, Meerkat, Parrot, Tiger**.
+- Uses the supplied artwork directly in profile selection, profile editing, profile switching, PIN screens, Settings and navigation.
+- Existing profile IDs remain compatible; existing Lion/Elephant/Monkey/Tiger/Zebra/Giraffe/Rhino/Meerkat profiles automatically display the new supplied artwork.
+- Adds Turtle and Parrot as new selectable profile avatars.
+- Preserves v0.8.7 branding plus all v0.8.6 ready-at-launch/EPG and TV responsiveness work.
+- Android versionName is **0.8.8** and versionCode is **808**.
+
+## v0.8.7 — Supplied Logo Integration
+
+- Integrates the user-supplied neon **Swoop TV** logo artwork as the canonical Google TV test branding asset.
+- Replaces the previous generated/lettermark Android launcher icon with the supplied Swoop TV logo, centred on black.
+- Updates the Google TV launcher banner to use the same supplied logo.
+- Replaces the top-left SWOOP/TV text-and-lettermark treatment with the supplied Swoop TV logo.
+- Adds the supplied logo above the launch-refresh / library-preparation progress UI, including the durable-library restore path.
+- Updates the PWA icon/manifest and shell cache to include the supplied logo artwork.
+- Preserves the v0.8.6 compact Home hero, gated provider refresh, EPG-ready-at-launch flow, test signing identity and stable Downloader code **3682231**.
+- Android versionName is **0.8.7** and versionCode is **807**.
+
+## v0.8.6 — Google TV Compact Hero + EPG Ready-at-Launch
+
+### Google TV Home scale
+- Reduces the Android TV Home hero from the v0.8.5 520px / 74vh treatment to a compact **300–355px / ~43vh** TV-first hero.
+- Shrinks hero title/logo, description, vertical padding and the right-side poster/rotation art so substantially more Home content is visible without scrolling.
+- Reduces the Home overlap offset to keep the first content row visually attached to the hero without consuming the screen.
+
+### Programme guide / EPG
+- Moves EPG preparation into the same gated startup refresh used for playlist/catalogue preparation. Home is not revealed until the app has checked and prepared the programme guide stage.
+- Adds an Android-native **streaming XMLTV indexer**. Large Xtream/XMLTV feeds are parsed while streaming instead of transferring the entire XML document into the WebView and parsing it on the JavaScript UI thread.
+- The native XMLTV path supports gzip feeds by both HTTP content encoding and gzip file signature.
+- Only programme data for the user’s actual live-channel EPG IDs and the useful near-term viewing window is retained, keeping memory and WebView transfer size bounded.
+- Startup progress now includes a dedicated **TV Guide** stage and continues moving while a large guide is being prepared.
+- Prepared EPG entries remain fresh for the Google TV session for up to six hours, avoiding thousands of per-channel EPG requests immediately after startup.
+- Opening Guide with a fresh launch-prepared EPG now uses the existing cache immediately instead of starting another visible guide load.
+- Existing per-channel Xtream EPG requests remain as a fallback for providers/channels that do not expose usable XMLTV IDs.
+
+### Android bridge
+- Android bridge/user agent reports **0.8.6**.
+- Direct provider text fetching now detects gzip by magic bytes as well as response headers and raises the direct-text safety ceiling to 128 MiB; full EPG uses the streaming index path instead.
+
+### Build / update channel
+- Android application ID remains `tv.swoop.player`; versionName is **0.8.6** and versionCode is **806**.
+- Stable test signing is unchanged.
+- The GitHub workflow continues to overwrite `Swoop-TV-v0.8.1-Google-TV-Test.apk` under `google-tv-test-v0.8.1`, preserving Downloader code **3682231**.
+
+### Verification
+- JavaScript syntax validation passes for `app.js` and the Android native bridge module.
+- Android manifest/XML and GitHub workflow structure are validated during packaging.
+- Existing v0.8.5 launch-refresh, Top 100 ordering, ready-Home gating, no-demo catalogue and TV responsiveness behaviour is preserved.
+
 ## v0.8.5 — Google TV Launch Refresh + Ready Home
 
 - Google TV now gates entry to Home behind a complete launch refresh instead of showing a partially prepared library.

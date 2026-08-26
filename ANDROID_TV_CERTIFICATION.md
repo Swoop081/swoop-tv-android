@@ -1,4 +1,4 @@
-# Swoop TV v0.8.5 — Google TV hardware test checklist
+# Swoop TV v0.8.6 — Google TV hardware test checklist
 
 ## Launch refresh / ready-Home gate
 - [ ] Profile picker responds immediately after cold launch.
@@ -17,6 +17,22 @@
 - [ ] Rapid D-pad navigation remains responsive after Home appears while optional background work continues.
 - [ ] No Home row appears as a skeleton, spinner, blank loading rail or anonymous colour tile.
 - [ ] Relaunching the app repeats the launch refresh/preparation gate before exposing the library.
+
+
+## Compact Home hero
+- [ ] Home hero occupies roughly the upper 40–44% of the usable TV viewport rather than most of the screen.
+- [ ] At least the first Home row is substantially visible below the hero on a 1080p television without scrolling.
+- [ ] Hero poster/rotation art remains readable but does not dominate the right half of the television.
+- [ ] Play / More Info and hero metadata remain fully on-screen with no overscan clipping.
+
+## TV Guide / EPG
+- [ ] Startup refresh shows a dedicated **TV Guide** stage before Home is revealed.
+- [ ] Xtream XMLTV programme data is prepared during startup rather than waiting for the Guide page to open.
+- [ ] M3U providers with an XMLTV URL are prepared during the same startup stage.
+- [ ] Large/gzipped XMLTV feeds do not freeze the startup progress animation or remote input.
+- [ ] Entering Guide after startup shows programme titles immediately with no blank/loading rows.
+- [ ] Live player Now / Next and mini-guide can reuse the launch-prepared EPG cache.
+- [ ] Providers without usable XMLTV data still retain per-channel Xtream EPG fallback where available.
 
 ## Remote / navigation
 - [ ] Swoop TV appears in the Google TV Apps list with its TV banner.

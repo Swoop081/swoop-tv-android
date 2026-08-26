@@ -56,18 +56,18 @@ jobs:
       - name: Name APK and checksum
         shell: bash
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.5-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.5-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.5-Google-TV-Test.apk > Swoop-TV-v0.8.5-Google-TV-Test.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.8-Google-TV-Test.apk
+          cp Swoop-TV-v0.8.8-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.8-Google-TV-Test.apk > Swoop-TV-v0.8.8-Google-TV-Test.apk.sha256
           sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.5-Google-TV-Test
+          name: Swoop-TV-v0.8.8-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.5-Google-TV-Test.apk
-            Swoop-TV-v0.8.5-Google-TV-Test.apk.sha256
+            Swoop-TV-v0.8.8-Google-TV-Test.apk
+            Swoop-TV-v0.8.8-Google-TV-Test.apk.sha256
             Swoop-TV-v0.8.1-Google-TV-Test.apk
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
           if-no-files-found: error
@@ -89,13 +89,13 @@ jobs:
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.5" \
-              --notes "Current hardware-test channel. v0.8.5 refreshes the provider library before Home, shows real startup progress, prepares Top 100 and Recently Added in priority order, and keeps the Google TV UI responsive with asynchronous native provider fetching. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v0.8.8" \
+              --notes "Current hardware-test channel. v0.8.8 preserves the ready-at-launch library, EPG and supplied Swoop TV branding, and replaces the profile avatar set with the ten supplied animal portraits. Test-only signing identity; not a production release." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.5-Google-TV-Test.apk \
-            Swoop-TV-v0.8.5-Google-TV-Test.apk.sha256 \
+            Swoop-TV-v0.8.8-Google-TV-Test.apk \
+            Swoop-TV-v0.8.8-Google-TV-Test.apk.sha256 \
             Swoop-TV-v0.8.1-Google-TV-Test.apk \
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
             --clobber
