@@ -1,8 +1,18 @@
-# Swoop TV v0.8.9 — Google TV Rail Alignment + Full Top 100
+# Swoop TV v0.8.11 — Swoop Neon Theme + Premium TV Controls
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.9 launch contract
+## v0.8.11 visual/control additions
+
+- Makes the supplied neon Swoop TV logo the visual source for the **default theme**: deep black, hot magenta and electric cyan.
+- Keeps the historical internal theme ID `chill` for saved-profile compatibility, but presents it as **Swoop — Neon signature** so existing default profiles migrate automatically without a reset.
+- Applies the active profile theme to the Google TV control system: Home / Live TV / Guide / Movies / TV Shows / My List tabs, header utilities, action buttons, filter/category tabs, Guide controls and secondary text actions.
+- Focused controls use the current theme gradient and glow rather than a generic white block; selected tabs use restrained theme colour at rest.
+- Continue Watching **Remove** retains a semantic destructive red treatment but now uses the same premium glass geometry and focus language.
+- Provider/library progress, Guide current-programme accents, badges and playback progress now inherit the active theme rather than old hard-coded red/purple accents.
+- Retains the v0.8.10 compact Home poster geometry and scroll-first Up navigation.
+
+## v0.8.10 launch contract
 
 Swoop TV now treats launch as a gated library-preparation phase on Google TV. The app does not expose Home until the provider library and priority Home content are ready.
 
@@ -22,20 +32,14 @@ Swoop TV now treats launch as a gated library-preparation phase on Google TV. Th
 
 The intended customer experience is therefore: **choose profile → watch one clear progress screen → enter a complete, responsive Home**. There is no half-loaded Home phase.
 
-### v0.8.9 TV-specific additions
+### v0.8.10 TV-specific additions
 
-- Adds a dedicated Google TV top safe-area inset so the Swoop TV logo, navigation and profile controls are fully visible on overscanned displays.
-- Unifies every poster-based Home rail to the same card width, aspect ratio, gap and baseline as the Top 100 rails. Top 100 ranks remain overlays and no longer shift poster alignment.
-- Top 100 Movies and Top 100 TV Shows now prepare up to 100 actual titles. When external ranking feeds match fewer than 100 provider titles, the remainder is filled from the strongest titles in the connected library.
-- Keeps only 20 cards mounted initially per TV rail, then appends 20 more as D-pad navigation approaches the right edge. The list remains 100 titles without bringing back the large-DOM responsiveness problem.
-- Profile avatars now use the ten supplied animal portraits: Lion, Elephant, Giraffe, Zebra, Rhino, Turtle, Monkey, Meerkat, Parrot and Tiger.
-- Avatar portraits are used consistently in profile selection, profile editing, profile switching, PIN screens and Settings.
-
-- The Home hero is capped at roughly **43% of the TV viewport (300–355px on the logical TV canvas)** instead of the previous 520px/74vh treatment. More of the first content rail is visible immediately.
-- Programme-guide preparation is now part of startup. Xtream XMLTV and configured M3U XMLTV feeds are checked before Home is revealed.
-- Android parses large XMLTV feeds **natively as a stream**, retaining only near-term programmes for live channels actually present in the playlist. This avoids handing a huge XML document to the WebView/JavaScript thread.
-- Gzipped XMLTV is supported even when a provider does not correctly advertise the compression header.
-- The startup progress bar has a dedicated **TV Guide** stage, and the prepared guide cache is reused by Guide and Live Now/Next.
+- Corrects the v0.8.9 sizing inversion: the compact Top 100 poster geometry is the reference size, and **all other Home poster rails are reduced to that same compact size**.
+- Top 100 retains its rank-number overlay; non-ranked rails use the identical card shell without a number.
+- Keeps complete 100-title Top 100 data while mounting cards incrementally for responsiveness.
+- Adds **scroll-first Up navigation** on Home. While the page is below the top, the top navigation is removed from D-pad targeting, so Up continues through higher rows and scrolls the page upward.
+- Home / Live TV / Guide / Movies / TV Shows / My List can only receive focus once Home is actually back at the top.
+- Retains the Google TV safe-area header inset, gated launch refresh, native XMLTV preparation, supplied branding and ten supplied animal profile avatars.
 
 
 The supplied neon **Swoop TV** logo is now the canonical visible brand asset for this TV test branch. It is used on the Android launcher icon/banner, the launch-refresh/library-preparation screen, and the top-left application brand control.
@@ -43,8 +47,8 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.9`
-- versionCode: `809`
+- versionName: `0.8.11`
+- versionCode: `811`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -55,6 +59,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.9 (809)**. The workflow also publishes `Swoop-TV-v0.8.9-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.11 (811)**. The workflow also publishes `Swoop-TV-v0.8.11-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

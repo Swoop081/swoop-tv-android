@@ -1,4 +1,4 @@
-# Swoop TV v0.8.9 — Google TV hardware test checklist
+# Swoop TV v0.8.11 — Google TV hardware test checklist
 
 ## Launch refresh / ready-Home gate
 - [ ] Profile picker responds immediately after cold launch.

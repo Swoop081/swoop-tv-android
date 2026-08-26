@@ -1,15 +1,15 @@
 :root{
   color-scheme:dark;
-  --bg:#050505;
-  --surface:#111216;
-  --surface-2:#181a20;
-  --surface-3:#22242b;
+  --bg:#030306;
+  --surface:#0b0b12;
+  --surface-2:#12121d;
+  --surface-3:#1a1a29;
   --text:#fff;
   --muted:#a9adb8;
   --muted-2:#727783;
   --line:rgba(255,255,255,.11);
-  --accent:#6d62ff;
-  --accent-2:#15d6b1;
+  --accent:#ff2bbd;
+  --accent-2:#18e6f2;
   --danger:#ff536b;
   --safe-bottom:env(safe-area-inset-bottom,0px);
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -94,9 +94,9 @@ button{color:inherit}
 .card-title{font-weight:900;font-size:15px;line-height:1.15;text-shadow:0 2px 8px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-sub{font-size:11px;color:#bfc0c5;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-imdb-rating{position:absolute;right:10px;bottom:10px;z-index:7;display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border-radius:5px;background:rgba(8,8,9,.84);border:1px solid rgba(245,197,24,.55);box-shadow:0 5px 16px rgba(0,0,0,.42);color:#f5c518;font-size:10px;font-weight:950;letter-spacing:.01em;line-height:1;backdrop-filter:blur(7px);pointer-events:none}.card-imdb-rating b{font-weight:1000;letter-spacing:-.02em}.card.poster.poster-art-title .card-imdb-rating{bottom:10px}.ranked-card .card-imdb-rating{right:9px}
-.badge{position:absolute;left:10px;top:10px;z-index:4;background:#e50914;color:#fff;border-radius:4px;padding:5px 7px;font-size:10px;font-weight:950;letter-spacing:.08em;box-shadow:0 3px 12px rgba(0,0,0,.35)}
+.badge{position:absolute;left:10px;top:10px;z-index:4;background:var(--accent);color:#fff;border-radius:4px;padding:5px 7px;font-size:10px;font-weight:950;letter-spacing:.08em;box-shadow:0 3px 12px rgba(0,0,0,.35)}
 .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff;margin-right:5px;vertical-align:1px}
-.progress{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.2);z-index:5}.progress>i{display:block;height:100%;background:#e50914}
+.progress{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.2);z-index:5}.progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
 .genre-row{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:9px}.genre-tile{min-height:110px;border-radius:8px;padding:17px;display:flex;align-items:flex-end;background:radial-gradient(circle at 80% 20%,hsla(var(--genre-hue) 80% 65%/.32),transparent 35%),linear-gradient(135deg,hsl(var(--genre-hue) 46% 22%),#111);border:1px solid rgba(255,255,255,.08);font-size:18px;font-weight:900;letter-spacing:-.03em}
 
 /* Content pages */
@@ -145,7 +145,7 @@ button{color:inherit}
 
 /* Provider setup */
 .provider-modal{width:min(800px,100%);max-height:min(92vh,920px);overflow:auto;background:#0e0f12}.provider-modal-head{align-items:flex-start;padding:25px 27px 21px}.provider-modal-head>div{max-width:620px}.provider-modal-head h2{font-size:31px;margin:4px 0 7px}.provider-modal-head p{margin:0;color:#979aa2;font-size:12px;line-height:1.5}.provider-modal-body{padding:23px 27px 29px}.provider-current{display:flex;align-items:center;gap:10px;border:1px solid rgba(21,214,177,.18);background:rgba(21,214,177,.05);border-radius:8px;padding:11px 13px;margin-bottom:16px}.provider-current-dot{width:8px;height:8px;border-radius:50%;background:#21d39f;box-shadow:0 0 0 5px rgba(33,211,159,.08)}.provider-current div{display:grid;gap:2px}.provider-current strong{font-size:12px}.provider-current span:last-child{font-size:10px;color:#8e9199}.provider-methods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}.provider-method{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;text-align:left;gap:12px;border:1px solid rgba(255,255,255,.1);background:#090a0c;color:#fff;border-radius:9px;padding:15px;cursor:pointer;min-height:76px}.provider-method:hover{border-color:rgba(255,255,255,.24);background:#121317}.provider-method.active{border-color:#7369ff;background:linear-gradient(135deg,rgba(109,98,255,.18),rgba(109,98,255,.045));box-shadow:inset 0 0 0 1px rgba(109,98,255,.1)}.provider-method-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:8px;background:#1a1b21;font-size:12px;font-weight:950}.provider-method>span:nth-child(2){display:grid;gap:3px}.provider-method strong{font-size:14px}.provider-method small{font-size:10px;color:#8f929a;font-weight:600}.provider-method-check{opacity:0;color:#9f99ff;font-weight:900}.provider-method.active .provider-method-check{opacity:1}.provider-form{display:grid;gap:14px;border:1px solid rgba(255,255,255,.09);background:#111216;border-radius:9px;padding:19px}.provider-form[hidden]{display:none}.provider-form-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:3px}.provider-form-intro h3{font-size:22px;margin:3px 0 4px}.provider-form-intro p{margin:0;color:#9699a1;font-size:11px;line-height:1.5}.provider-badge{border:1px solid rgba(109,98,255,.3);background:rgba(109,98,255,.09);color:#cbc8ff;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;white-space:nowrap}.provider-form .field input{padding:14px;border-radius:7px;background:#070708}.optional{font-size:9px;color:#777b83;font-weight:700;margin-left:4px}.provider-or{height:1px;background:rgba(255,255,255,.08);position:relative;margin:5px 0}.provider-or span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#111216;padding:0 9px;color:#767981;font-size:9px;text-transform:uppercase;letter-spacing:.1em}.provider-note{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:flex-start;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);border-radius:8px;padding:12px 13px}.provider-note.native-note{border-color:rgba(21,214,177,.18);background:rgba(21,214,177,.045)}.provider-note-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);font-size:10px;font-weight:900}.provider-note>div:last-child{display:grid;gap:3px}.provider-note strong{font-size:11px}.provider-note span{font-size:10px;color:#8e9199;line-height:1.45}.provider-remember{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:2px;color:#d6d7db}.provider-remember>span{display:grid;gap:2px}.provider-remember strong{font-size:11px}.provider-remember small{font-size:9px;color:#7f828a;font-weight:500;line-height:1.4}.provider-primary{width:100%;justify-content:space-between;padding:14px 17px;font-size:14px}.compact-helper{margin-top:1px}.compact-helper summary{padding:11px 12px}
-.provider-progress{border:1px solid rgba(109,98,255,.25);background:linear-gradient(180deg,rgba(109,98,255,.09),rgba(255,255,255,.015));border-radius:9px;padding:23px}.provider-progress[hidden]{display:none}.provider-progress-top{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}.provider-progress-top h3{font-size:24px;margin:3px 0 5px}.provider-progress-top p{margin:0;color:#92959d;font-size:11px;line-height:1.55}.provider-spinner{width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.1);border-top-color:#817aff;animation:swoopSpin .8s linear infinite}.provider-spinner.success,.provider-spinner.error{display:grid;place-items:center;animation:none;border:0;font-size:21px;font-weight:950}.provider-spinner.success{background:rgba(21,214,177,.12);color:#78f0d0}.provider-spinner.error{background:rgba(255,83,107,.12);color:#ff91a3}@keyframes swoopSpin{to{transform:rotate(360deg)}}.provider-progress-bar{height:7px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:20px 0 17px}.provider-progress-bar span{display:block;height:100%;width:5%;border-radius:inherit;background:linear-gradient(90deg,#655aff,#918aff);transition:width .3s ease}.provider-progress-steps{display:grid;gap:7px}.provider-progress-step{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:10px;border-radius:7px;color:#858890;font-size:11px}.provider-progress-step .step-indicator{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.055);font-size:9px;font-weight:900}.provider-progress-step strong{font-size:9px;color:#858890;font-weight:700}.provider-progress-step.active{background:rgba(109,98,255,.09);color:#fff}.provider-progress-step.active .step-indicator{background:rgba(109,98,255,.25);color:#d5d2ff}.provider-progress-step.done{color:#dfe0e4}.provider-progress-step.done .step-indicator{background:rgba(21,214,177,.12);color:#79f0d0}.provider-progress-step.error .step-indicator{background:rgba(255,83,107,.12);color:#ff91a3}.provider-progress-summary{margin-top:14px;padding:11px 12px;border-radius:7px;background:#080809;color:#858890;font-size:10px;line-height:1.5}.provider-progress-summary strong{color:#fff}.provider-progress-actions{display:flex;justify-content:flex-end;margin-top:13px}
+.provider-progress{border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 9%,transparent),rgba(255,255,255,.015));border-radius:9px;padding:23px}.provider-progress[hidden]{display:none}.provider-progress-top{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}.provider-progress-top h3{font-size:24px;margin:3px 0 5px}.provider-progress-top p{margin:0;color:#92959d;font-size:11px;line-height:1.55}.provider-spinner{width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.1);border-top-color:var(--accent-2);animation:swoopSpin .8s linear infinite}.provider-spinner.success,.provider-spinner.error{display:grid;place-items:center;animation:none;border:0;font-size:21px;font-weight:950}.provider-spinner.success{background:rgba(21,214,177,.12);color:#78f0d0}.provider-spinner.error{background:rgba(255,83,107,.12);color:#ff91a3}@keyframes swoopSpin{to{transform:rotate(360deg)}}.provider-progress-bar{height:7px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin:20px 0 17px}.provider-progress-bar span{display:block;height:100%;width:5%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .3s ease}.provider-progress-steps{display:grid;gap:7px}.provider-progress-step{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:10px;border-radius:7px;color:#858890;font-size:11px}.provider-progress-step .step-indicator{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.055);font-size:9px;font-weight:900}.provider-progress-step strong{font-size:9px;color:#858890;font-weight:700}.provider-progress-step.active{background:color-mix(in srgb,var(--accent) 9%,transparent);color:#fff}.provider-progress-step.active .step-indicator{background:color-mix(in srgb,var(--accent) 24%,transparent);color:#fff}.provider-progress-step.done{color:#dfe0e4}.provider-progress-step.done .step-indicator{background:rgba(21,214,177,.12);color:#79f0d0}.provider-progress-step.error .step-indicator{background:rgba(255,83,107,.12);color:#ff91a3}.provider-progress-summary{margin-top:14px;padding:11px 12px;border-radius:7px;background:#080809;color:#858890;font-size:10px;line-height:1.5}.provider-progress-summary strong{color:#fff}.provider-progress-actions{display:flex;justify-content:flex-end;margin-top:13px}
 
 /* Responsive */
 @media(max-width:1000px){
@@ -172,7 +172,7 @@ button{color:inherit}
 .detail-episodes,.detail-info,.detail-related{padding:38px 4.6vw 12px}.detail-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}.detail-section-head h3,.detail-info h3{font-size:30px;letter-spacing:-.04em;margin:4px 0 0}.season-pills{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}.season-pills button{border:1px solid rgba(255,255,255,.11);background:#15161a;color:#b8bac1;border-radius:999px;padding:9px 13px;font-size:10px;font-weight:850;cursor:pointer;white-space:nowrap}.season-pills button.active{background:#fff;color:#060606}.episode-list{display:grid;gap:5px}.episode-card{width:100%;display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:19px;align-items:center;border:0;border-bottom:1px solid rgba(255,255,255,.08);background:transparent;color:#fff;text-align:left;padding:12px 6px;cursor:pointer;border-radius:7px}.episode-card:hover,.episode-card:focus-visible{background:rgba(255,255,255,.055)}.episode-thumb{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:var(--episode-bg,#15161a)}.episode-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}.episode-thumb img.loaded{opacity:1}.episode-thumb>span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.72);border:2px solid rgba(255,255,255,.8);font-size:13px}.episode-copy>div{display:flex;justify-content:space-between;gap:16px}.episode-copy strong{font-size:15px}.episode-copy>div span{font-size:10px;color:#999ca4}.episode-copy p{color:#9ea0a8;font-size:12px;line-height:1.5;margin:8px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.detail-loading,.detail-error,.detail-empty{min-height:140px;border:1px solid rgba(255,255,255,.08);background:#0d0e11;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:12px;color:#aeb0b6}.detail-loading i{width:24px;height:24px;border:3px solid rgba(255,255,255,.13);border-top-color:#7c72ff;border-radius:50%;animation:swoopSpin .8s linear infinite}.detail-error{color:#ff9bab;border-color:rgba(255,83,107,.2)}.detail-info{display:grid;grid-template-columns:minmax(260px,.8fr) 1.5fr;gap:45px;border-top:1px solid rgba(255,255,255,.07);margin-top:28px}.detail-facts{display:grid;gap:10px}.detail-facts>div{display:grid;grid-template-columns:100px 1fr;gap:12px}.detail-facts span{color:#747781;font-size:11px}.detail-facts strong{font-size:12px;line-height:1.45;font-weight:700;color:#d6d7dc}.detail-related{padding-bottom:64px}.detail-related .section{margin-bottom:0}
 
 /* TV Guide */
-.guide-page{padding-top:74px;background:#050505}.guide-hero{min-height:250px;padding:58px 4.6vw 34px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;background:radial-gradient(circle at 82% 10%,rgba(229,9,20,.16),transparent 31%),linear-gradient(180deg,#121318,#050505)}.guide-hero h1{font-size:clamp(55px,7vw,94px);letter-spacing:-.07em;line-height:.9;margin:8px 0 12px}.guide-hero p{color:#9ca0a8;margin:0}.guide-now{display:grid;justify-items:end;gap:3px}.guide-now span{font-size:10px;font-weight:950;letter-spacing:.14em;color:#ff6571}.guide-now strong{font-size:31px;letter-spacing:-.04em}.guide-shell{padding:0 4.6vw 60px}.guide-toolbar{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}.guide-date{display:flex;align-items:baseline;gap:9px}.guide-date strong{font-size:15px}.guide-date span{font-size:11px;color:#858890}.guide-alert{margin:16px 0;padding:12px 14px;border:1px solid rgba(255,184,79,.18);background:rgba(255,184,79,.06);border-radius:7px;color:#e7c98f;font-size:11px}.guide-grid{min-width:840px;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;background:#0c0d10}.guide-header,.guide-row{display:grid;grid-template-columns:230px 1fr}.guide-header{position:sticky;top:74px;z-index:20;background:#111216;border-bottom:1px solid rgba(255,255,255,.09)}.guide-channel-head{padding:13px 15px;font-size:10px;font-weight:900;color:#8d9098;text-transform:uppercase;letter-spacing:.12em;border-right:1px solid rgba(255,255,255,.08)}.guide-times{display:grid;grid-template-columns:repeat(7,1fr);padding:0}.guide-times span{padding:13px 9px;border-left:1px solid rgba(255,255,255,.06);font-size:10px;color:#8d9098;font-weight:800}.guide-row{min-height:83px;border-bottom:1px solid rgba(255,255,255,.055)}.guide-row:last-child{border-bottom:0}.guide-channel{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border:0;border-right:1px solid rgba(255,255,255,.08);background:#0b0c0e;color:#fff;text-align:left;padding:10px 12px;cursor:pointer}.guide-channel:hover{background:#17181d}.guide-channel img,.guide-logo-fallback{width:50px;height:50px;object-fit:contain;background:#15161b;border-radius:7px;padding:5px}.guide-channel img{opacity:0}.guide-channel img.loaded{opacity:1}.guide-logo-fallback{display:grid;place-items:center;font-size:10px;font-weight:900}.guide-channel>span{display:grid;gap:3px;min-width:0}.guide-channel strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-channel small{font-size:9px;color:#727681;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-channel b{font-size:10px;color:#fff;opacity:.55}.guide-programs{position:relative;min-height:83px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(16.666% - 1px),rgba(255,255,255,.035) calc(16.666% - 1px),rgba(255,255,255,.035) 16.666%)}.guide-program{position:absolute;top:7px;bottom:7px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:#17191f;color:#fff;text-align:left;padding:10px;overflow:hidden;cursor:pointer}.guide-program:hover,.guide-program:focus-visible{background:#272a33;border-color:rgba(255,255,255,.24);z-index:4}.guide-program.current{background:linear-gradient(135deg,rgba(229,9,20,.25),rgba(109,98,255,.16));border-color:rgba(255,83,107,.35)}.guide-program strong{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-program span{display:block;font-size:8px;color:#979aa3;margin-top:5px;white-space:nowrap}.guide-program-empty{background:#101116;color:#8b8e97}.guide-now-line{position:absolute;top:0;bottom:0;width:2px;background:#e50914;z-index:8;box-shadow:0 0 0 1px rgba(229,9,20,.1)}.guide-now-line:before{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#e50914;left:-3px;top:0}.guide-loading{position:absolute;inset:0;display:flex;align-items:center;gap:10px;padding:0 14px;color:#71757e;font-size:10px}.guide-loading i{width:18px;height:18px;border:2px solid rgba(255,255,255,.09);border-top-color:#6d62ff;border-radius:50%;animation:swoopSpin .8s linear infinite}
+.guide-page{padding-top:74px;background:#050505}.guide-hero{min-height:250px;padding:58px 4.6vw 34px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;background:radial-gradient(circle at 82% 10%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 31%),linear-gradient(180deg,#121318,#050505)}.guide-hero h1{font-size:clamp(55px,7vw,94px);letter-spacing:-.07em;line-height:.9;margin:8px 0 12px}.guide-hero p{color:#9ca0a8;margin:0}.guide-now{display:grid;justify-items:end;gap:3px}.guide-now span{font-size:10px;font-weight:950;letter-spacing:.14em;color:var(--accent-2)}.guide-now strong{font-size:31px;letter-spacing:-.04em}.guide-shell{padding:0 4.6vw 60px}.guide-toolbar{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}.guide-date{display:flex;align-items:baseline;gap:9px}.guide-date strong{font-size:15px}.guide-date span{font-size:11px;color:#858890}.guide-alert{margin:16px 0;padding:12px 14px;border:1px solid rgba(255,184,79,.18);background:rgba(255,184,79,.06);border-radius:7px;color:#e7c98f;font-size:11px}.guide-grid{min-width:840px;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;background:#0c0d10}.guide-header,.guide-row{display:grid;grid-template-columns:230px 1fr}.guide-header{position:sticky;top:74px;z-index:20;background:#111216;border-bottom:1px solid rgba(255,255,255,.09)}.guide-channel-head{padding:13px 15px;font-size:10px;font-weight:900;color:#8d9098;text-transform:uppercase;letter-spacing:.12em;border-right:1px solid rgba(255,255,255,.08)}.guide-times{display:grid;grid-template-columns:repeat(7,1fr);padding:0}.guide-times span{padding:13px 9px;border-left:1px solid rgba(255,255,255,.06);font-size:10px;color:#8d9098;font-weight:800}.guide-row{min-height:83px;border-bottom:1px solid rgba(255,255,255,.055)}.guide-row:last-child{border-bottom:0}.guide-channel{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border:0;border-right:1px solid rgba(255,255,255,.08);background:#0b0c0e;color:#fff;text-align:left;padding:10px 12px;cursor:pointer}.guide-channel:hover{background:#17181d}.guide-channel img,.guide-logo-fallback{width:50px;height:50px;object-fit:contain;background:#15161b;border-radius:7px;padding:5px}.guide-channel img{opacity:0}.guide-channel img.loaded{opacity:1}.guide-logo-fallback{display:grid;place-items:center;font-size:10px;font-weight:900}.guide-channel>span{display:grid;gap:3px;min-width:0}.guide-channel strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-channel small{font-size:9px;color:#727681;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-channel b{font-size:10px;color:#fff;opacity:.55}.guide-programs{position:relative;min-height:83px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(16.666% - 1px),rgba(255,255,255,.035) calc(16.666% - 1px),rgba(255,255,255,.035) 16.666%)}.guide-program{position:absolute;top:7px;bottom:7px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:#17191f;color:#fff;text-align:left;padding:10px;overflow:hidden;cursor:pointer}.guide-program:hover,.guide-program:focus-visible{background:#272a33;border-color:rgba(255,255,255,.24);z-index:4}.guide-program.current{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 24%,transparent),color-mix(in srgb,var(--accent-2) 14%,transparent));border-color:color-mix(in srgb,var(--accent) 38%,rgba(255,255,255,.10))}.guide-program strong{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-program span{display:block;font-size:8px;color:#979aa3;margin-top:5px;white-space:nowrap}.guide-program-empty{background:#101116;color:#8b8e97}.guide-now-line{position:absolute;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--accent),var(--accent-2));z-index:8;box-shadow:0 0 10px color-mix(in srgb,var(--accent) 42%,transparent)}.guide-now-line:before{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:var(--accent);left:-3px;top:0;box-shadow:0 0 9px color-mix(in srgb,var(--accent) 55%,transparent)}.guide-loading{position:absolute;inset:0;display:flex;align-items:center;gap:10px;padding:0 14px;color:#71757e;font-size:10px}.guide-loading i{width:18px;height:18px;border:2px solid rgba(255,255,255,.09);border-top-color:var(--accent-2);border-radius:50%;animation:swoopSpin .8s linear infinite}
 
 @media(max-width:1000px){.desktop-nav .nav-btn{padding-inline:7px}.detail-copy{width:64vw}.detail-poster{right:2vw;width:29vw}.guide-shell{overflow-x:auto;padding-bottom:70px}.guide-grid{min-width:920px}}
 @media(max-width:760px){
@@ -891,7 +891,7 @@ html.android-tv .profile-avatar-option{padding:3px}
 html.android-tv .profile-avatar-option>span{width:54px;height:54px}
 
 
-/* v0.8.9 — Google TV safe header + unified Home poster rails. */
+/* v0.8.10 — Google TV safe header + compact unified Home poster rails. */
 html.android-tv .topbar{
   height:74px;
   padding:14px 4.2vw 0;
@@ -904,12 +904,12 @@ html.android-tv .desktop-nav,html.android-tv .top-actions{align-self:center}
 html.android-tv .search-page,html.android-tv .settings-page{padding-top:74px}
 html.android-tv .guide-categories{top:86px;max-height:calc(100vh - 104px)}
 
-/* Every poster-based Home rail uses one geometry. Top 100 adds a rank overlay,
-   but does not get a different card width, baseline or horizontal offset. */
+/* Top 100 is the compact TV reference geometry. Every other poster-based Home
+   rail uses the same compact width/baseline; ranked rails only add the number. */
 html.android-tv .poster-section .rail,
 html.android-tv .ranked-section .rail{
-  grid-auto-columns:minmax(180px,14.5vw);
-  gap:9px;
+  grid-auto-columns:minmax(154px,12vw);
+  gap:8px;
   padding:8px 32px 14px 10px;
   margin:-6px -32px -10px -10px;
   scroll-snap-type:none;
@@ -918,11 +918,303 @@ html.android-tv .ranked-section .rail{
 html.android-tv .poster-section .card.poster,
 html.android-tv .ranked-section .card.poster{aspect-ratio:2/3}
 html.android-tv .ranked-card{margin-left:0;overflow:visible;background:#111}
-html.android-tv .rank-badge{left:-8px;bottom:-4px;width:58px;height:72px}
-html.android-tv .rank-badge span{font-size:66px}
-html.android-tv .rank-badge.rank-two-digit{left:-10px;width:74px}
-html.android-tv .rank-badge.rank-two-digit span{font-size:58px}
-html.android-tv .rank-badge.rank-three-digit{left:-12px;width:92px}
-html.android-tv .rank-badge.rank-three-digit span{font-size:47px}
-html.android-tv .ranked-card .card-copy{left:13px}
-html.android-tv .ranked-card .card-saved{left:auto;right:9px}
+html.android-tv .rank-badge{left:-7px;bottom:-3px;width:52px;height:66px}
+html.android-tv .rank-badge span{font-size:60px}
+html.android-tv .rank-badge.rank-two-digit{left:-9px;width:68px}
+html.android-tv .rank-badge.rank-two-digit span{font-size:53px}
+html.android-tv .rank-badge.rank-three-digit{left:-11px;width:84px}
+html.android-tv .rank-badge.rank-three-digit span{font-size:43px}
+html.android-tv .ranked-card .card-copy{left:12px}
+html.android-tv .ranked-card .card-saved{left:auto;right:8px}
+
+/* v0.8.11 — Google TV premium control system.
+   Quiet glass at rest, unmistakable white/brand focus, consistent geometry. */
+html.android-tv{
+  --tv-control-bg:rgba(12,13,17,.72);
+  --tv-control-bg-strong:rgba(18,19,24,.92);
+  --tv-control-line:rgba(255,255,255,.14);
+  --tv-control-line-strong:rgba(255,255,255,.26);
+  --tv-control-shadow:0 8px 22px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04);
+  --tv-control-radius:9px;
+}
+
+/* Primary navigation: one polished tab language across Home / Live / Guide / VOD. */
+html.android-tv .desktop-nav{gap:5px;padding:3px;border-radius:12px;background:rgba(7,8,11,.34);border:1px solid rgba(255,255,255,.035);backdrop-filter:blur(14px)}
+html.android-tv .nav-btn{
+  position:relative;
+  min-height:34px;
+  padding:7px 11px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:rgba(255,255,255,.72);
+  font-size:11px;
+  font-weight:760;
+  letter-spacing:-.01em;
+  transition:background .1s ease,color .1s ease,border-color .1s ease,box-shadow .1s ease,transform .06s ease;
+}
+html.android-tv .nav-btn:hover{color:#fff;background:rgba(255,255,255,.06)}
+html.android-tv .nav-btn.active{
+  color:#fff;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.075));
+  border-color:rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 5px 14px rgba(0,0,0,.22);
+}
+html.android-tv .nav-btn.active:after{
+  content:'';
+  position:absolute;
+  left:28%;right:28%;bottom:3px;
+  height:2px;border-radius:999px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  box-shadow:0 0 8px color-mix(in srgb,var(--accent) 48%,transparent);
+}
+html.android-tv .nav-btn:focus-visible{
+  outline:0!important;
+  color:#08090b!important;
+  background:#fff!important;
+  border-color:#fff!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 78%,#fff 22%),0 9px 24px rgba(0,0,0,.48)!important;
+  transform:translateY(-1px);
+}
+html.android-tv .nav-btn:focus-visible:after{background:#08090b;box-shadow:none}
+
+/* Header utility controls. */
+html.android-tv .top-provider,
+html.android-tv .icon-btn,
+html.android-tv .profile-btn{
+  border:1px solid var(--tv-control-line);
+  background:var(--tv-control-bg);
+  box-shadow:var(--tv-control-shadow);
+  backdrop-filter:blur(14px);
+  transition:background .1s ease,border-color .1s ease,box-shadow .1s ease,transform .06s ease;
+}
+html.android-tv .top-provider{min-height:34px;border-radius:9px;padding:7px 11px;color:#f5f6f8}
+html.android-tv .icon-btn{border-radius:9px}
+html.android-tv .profile-btn{border-radius:9px;overflow:hidden}
+html.android-tv .top-provider:hover,html.android-tv .icon-btn:hover{background:rgba(255,255,255,.11);border-color:var(--tv-control-line-strong)}
+html.android-tv .top-provider:focus-visible,
+html.android-tv .icon-btn:focus-visible,
+html.android-tv .profile-btn:focus-visible{
+  outline:0!important;
+  border-color:#fff!important;
+  background:#fff!important;
+  color:#090a0c!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 75%,#fff 25%),0 9px 24px rgba(0,0,0,.52)!important;
+  transform:translateY(-1px);
+}
+html.android-tv .profile-btn:focus-visible{background:var(--tv-control-bg-strong)!important}
+
+/* Shared action buttons. Keep the exact footprint compact for TV density. */
+html.android-tv .btn{
+  min-height:36px;
+  border:1px solid var(--tv-control-line);
+  border-radius:var(--tv-control-radius);
+  padding:8px 15px;
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.055));
+  color:#f8f9fb;
+  box-shadow:var(--tv-control-shadow);
+  backdrop-filter:blur(12px);
+  font-weight:820;
+  letter-spacing:-.01em;
+  transition:transform .06s ease,background .1s ease,border-color .1s ease,box-shadow .1s ease,filter .1s ease;
+}
+html.android-tv .btn:hover{filter:none;background:rgba(255,255,255,.13);border-color:var(--tv-control-line-strong)}
+html.android-tv .btn.play-btn{
+  border-color:rgba(255,255,255,.94);
+  background:linear-gradient(180deg,#fff,#e9ebef);
+  color:#08090b;
+  box-shadow:0 8px 24px rgba(0,0,0,.30),inset 0 1px 0 #fff;
+}
+html.android-tv .btn.secondary{background:linear-gradient(180deg,rgba(32,34,41,.90),rgba(18,19,24,.86));border-color:rgba(255,255,255,.14);color:#f5f6f8}
+html.android-tv .btn.accent{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent-2) 55%,var(--accent) 45%));border-color:color-mix(in srgb,var(--accent) 72%,#fff 28%);color:var(--accent-text,#fff);box-shadow:0 9px 24px color-mix(in srgb,var(--accent) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.16)}
+html.android-tv .btn.danger{background:rgba(255,83,107,.08);border-color:rgba(255,110,130,.24);color:#ffb3bf;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+html.android-tv .btn:focus-visible{
+  outline:0!important;
+  background:#fff!important;
+  border-color:#fff!important;
+  color:#08090b!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 76%,#fff 24%),0 10px 28px rgba(0,0,0,.54)!important;
+  transform:translateY(-1px);
+}
+html.android-tv .btn.danger:focus-visible{background:#ff536b!important;color:#fff!important;box-shadow:0 0 0 3px #fff,0 10px 28px rgba(0,0,0,.54)!important}
+html.android-tv .btn:active{transform:scale(.975)!important}
+html.android-tv .compact-btn{min-height:31px;padding:6px 11px;border-radius:8px;font-size:9px}
+
+/* Continue Watching: unobtrusive at rest, premium and unmistakable on focus. */
+html.android-tv .continue-remove-btn{
+  top:7px;right:7px;
+  min-height:28px;
+  padding:5px 8px 5px 6px;
+  gap:5px;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:8px;
+  background:rgba(8,9,12,.72);
+  color:rgba(255,255,255,.78);
+  box-shadow:0 6px 16px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.035);
+  backdrop-filter:blur(12px);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.01em;
+}
+html.android-tv .continue-remove-btn span{
+  width:17px;height:17px;
+  display:grid;place-items:center;
+  border-radius:5px;
+  background:rgba(255,83,107,.13);
+  color:#ff9bab;
+  font-size:10px;
+  line-height:1;
+}
+html.android-tv .continue-remove-btn:hover{background:rgba(18,19,24,.92);border-color:rgba(255,255,255,.24);color:#fff;transform:none}
+html.android-tv .continue-remove-btn:focus-visible{
+  outline:0!important;
+  background:#ff536b!important;
+  border-color:#ff8da0!important;
+  color:#fff!important;
+  box-shadow:0 0 0 3px #fff,0 9px 24px rgba(0,0,0,.48)!important;
+  transform:translateY(-1px);
+}
+html.android-tv .continue-remove-btn:focus-visible span{background:rgba(0,0,0,.16);color:#fff}
+
+/* Low-priority text actions become compact glass buttons instead of bare text. */
+html.android-tv .section-link,
+html.android-tv .library-manage{
+  min-height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 10px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:8px;
+  background:rgba(12,13,17,.56);
+  color:rgba(255,255,255,.70);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+  font-size:9px;
+  font-weight:800;
+}
+html.android-tv .section-link:hover,html.android-tv .library-manage:hover{background:rgba(255,255,255,.09);color:#fff;border-color:rgba(255,255,255,.20)}
+html.android-tv .section-link:focus-visible,html.android-tv .library-manage:focus-visible{
+  outline:0!important;background:#fff!important;color:#08090b!important;border-color:#fff!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 76%,#fff 24%),0 8px 20px rgba(0,0,0,.45)!important;
+}
+
+/* Pill/tab controls inside Live TV, providers, episodes and filters. */
+html.android-tv .provider-filter-pills button,
+html.android-tv .live-category-pills button,
+html.android-tv .category-pills button,
+html.android-tv .season-pills button{
+  min-height:31px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.11);
+  background:rgba(14,15,19,.72);
+  color:rgba(255,255,255,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+  backdrop-filter:blur(10px);
+  transition:background .1s ease,color .1s ease,border-color .1s ease,box-shadow .1s ease,transform .06s ease;
+}
+html.android-tv .provider-filter-pills button.active,
+html.android-tv .live-category-pills button.active,
+html.android-tv .season-pills button.active{
+  background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));
+  color:#fff;
+  border-color:rgba(255,255,255,.20);
+  box-shadow:inset 0 -2px 0 var(--accent),inset 0 1px 0 rgba(255,255,255,.05);
+}
+html.android-tv .provider-filter-pills button:focus-visible,
+html.android-tv .live-category-pills button:focus-visible,
+html.android-tv .category-pills button:focus-visible,
+html.android-tv .season-pills button:focus-visible{
+  outline:0!important;background:#fff!important;color:#08090b!important;border-color:#fff!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 76%,#fff 24%),0 8px 20px rgba(0,0,0,.45)!important;
+  transform:translateY(-1px);
+}
+
+/* Guide category buttons follow the same premium selected/focus language. */
+html.android-tv .guide-category{border-radius:8px;border:1px solid transparent;transition:background .1s ease,border-color .1s ease,color .1s ease,box-shadow .1s ease}
+html.android-tv .guide-category.active{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 18%,transparent),rgba(255,255,255,.035));border-color:color-mix(in srgb,var(--accent) 42%,rgba(255,255,255,.08));box-shadow:inset 3px 0 0 var(--accent),inset 0 1px 0 rgba(255,255,255,.035)}
+html.android-tv .guide-category:focus-visible{outline:0!important;background:#fff!important;color:#08090b!important;border-color:#fff!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 76%,#fff 24%),0 8px 20px rgba(0,0,0,.45)!important}
+html.android-tv .guide-category:focus-visible strong{color:#34363c!important}
+
+/* Small directional/utility buttons should still feel part of the same family. */
+html.android-tv .home-row-order button,
+html.android-tv .provider-priority-btn{
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.11);
+  background:rgba(18,19,24,.86);
+  color:#e8e9ed;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+html.android-tv .home-row-order button:focus-visible,
+html.android-tv .provider-priority-btn:focus-visible{outline:0!important;background:#fff!important;color:#08090b!important;border-color:#fff!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 76%,#fff 24%)!important}
+
+
+/* v0.8.11 — theme-owned premium controls.
+   The active profile theme now owns button/tab focus and selected states. */
+html.android-tv{
+  --tv-brand-gradient:linear-gradient(110deg,var(--accent),var(--accent-2));
+  --tv-brand-soft:linear-gradient(110deg,color-mix(in srgb,var(--accent) 18%,transparent),color-mix(in srgb,var(--accent-2) 12%,transparent));
+  --tv-brand-glow:0 0 0 2px rgba(255,255,255,.92),0 0 0 5px color-mix(in srgb,var(--accent) 64%,transparent),0 10px 28px rgba(0,0,0,.52);
+}
+html.android-tv .desktop-nav{background:linear-gradient(180deg,rgba(8,8,13,.74),rgba(4,4,8,.55));border-color:color-mix(in srgb,var(--accent) 12%,rgba(255,255,255,.05))}
+html.android-tv .nav-btn.active{
+  background:var(--tv-brand-soft);
+  border-color:color-mix(in srgb,var(--accent) 32%,rgba(255,255,255,.12));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 5px 16px rgba(0,0,0,.28);
+}
+html.android-tv .nav-btn:focus-visible,
+html.android-tv .top-provider:focus-visible,
+html.android-tv .icon-btn:focus-visible,
+html.android-tv .profile-btn:focus-visible,
+html.android-tv .btn:focus-visible,
+html.android-tv .section-link:focus-visible,
+html.android-tv .library-manage:focus-visible,
+html.android-tv .provider-filter-pills button:focus-visible,
+html.android-tv .live-category-pills button:focus-visible,
+html.android-tv .category-pills button:focus-visible,
+html.android-tv .season-pills button:focus-visible,
+html.android-tv .guide-category:focus-visible,
+html.android-tv .home-row-order button:focus-visible,
+html.android-tv .provider-priority-btn:focus-visible{
+  outline:0!important;
+  background:var(--tv-brand-gradient)!important;
+  border-color:rgba(255,255,255,.94)!important;
+  color:#fff!important;
+  box-shadow:var(--tv-brand-glow)!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.36);
+}
+html.android-tv .nav-btn:focus-visible:after{background:#fff;box-shadow:0 0 8px rgba(255,255,255,.45)}
+html.android-tv .profile-btn:focus-visible{background:var(--tv-brand-gradient)!important}
+html.android-tv .btn.play-btn:focus-visible{background:var(--tv-brand-gradient)!important;color:#fff!important}
+html.android-tv .btn.accent{
+  background:var(--tv-brand-gradient);
+  border-color:color-mix(in srgb,var(--accent) 62%,#fff 38%);
+  box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 17%,transparent),inset 0 1px 0 rgba(255,255,255,.18);
+}
+html.android-tv .provider-filter-pills button.active,
+html.android-tv .live-category-pills button.active,
+html.android-tv .category-pills button.active,
+html.android-tv .season-pills button.active{
+  background:var(--tv-brand-soft);
+  color:#fff;
+  border-color:color-mix(in srgb,var(--accent) 30%,rgba(255,255,255,.13));
+  box-shadow:inset 0 -2px 0 var(--accent-2),inset 0 1px 0 rgba(255,255,255,.055);
+}
+html.android-tv .guide-category.active{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent-2) 8%,transparent));
+  border-color:color-mix(in srgb,var(--accent) 34%,rgba(255,255,255,.08));
+  box-shadow:inset 3px 0 0 var(--accent),inset 0 1px 0 rgba(255,255,255,.035);
+}
+/* Destructive actions keep their semantic red while gaining the same premium geometry. */
+html.android-tv .btn.danger:focus-visible,
+html.android-tv .continue-remove-btn:focus-visible{
+  background:linear-gradient(135deg,#ff355e,#ff5d7a)!important;
+  border-color:#ff9bad!important;
+  color:#fff!important;
+  box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(255,53,94,.42),0 10px 28px rgba(0,0,0,.52)!important;
+  text-shadow:none;
+}
+/* Canonical Swoop theme gets a restrained neon surface accent rather than a flat black slab. */
+:root[data-theme="chill"] html.android-tv,
+html.android-tv[data-theme="chill"]{background:#030306}
+html.android-tv[data-theme="chill"] .topbar{background:linear-gradient(180deg,rgba(3,3,6,.96),rgba(3,3,6,.78),transparent)}
+html.android-tv[data-theme="chill"] .restore-card{border-color:color-mix(in srgb,var(--accent) 18%,rgba(255,255,255,.08));box-shadow:0 20px 70px rgba(0,0,0,.42),0 0 46px color-mix(in srgb,var(--accent) 8%,transparent)}

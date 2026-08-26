@@ -1,11 +1,13 @@
 export const SWOOP_THEMES=[
   {
+    // Keep the historical `chill` id so existing profiles migrate into the new
+    // canonical Swoop look without losing their saved theme selection.
     id:'chill',
-    name:'Chill',
-    tagline:'Cinema after dark',
-    description:'Black, red and cinematic. Big artwork, bold rails and a relaxed premium streaming feel.',
-    bg:'#050505',surface:'#111216',surface2:'#181a20',surface3:'#22242b',accent:'#e50914',accent2:'#ff4d61',text:'#ffffff',muted:'#a9adb8',
-    swatch:'linear-gradient(135deg,#050505 0 48%,#e50914 48% 72%,#ff5968 72%)'
+    name:'Swoop',
+    tagline:'Neon signature',
+    description:'Deep black, hot magenta and electric cyan inspired by the Swoop TV logo. Premium glass controls and restrained neon highlights.',
+    bg:'#030306',surface:'#0b0b12',surface2:'#12121d',surface3:'#1a1a29',accent:'#ff2bbd',accent2:'#18e6f2',text:'#ffffff',muted:'#b7b4c6',
+    swatch:'linear-gradient(135deg,#030306 0 44%,#ff2bbd 44% 68%,#18e6f2 68%)'
   },
   {
     id:'prime-time',

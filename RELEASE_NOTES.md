@@ -1,5 +1,25 @@
 # Swoop TV Release Notes
 
+## v0.8.11 — Swoop Neon Theme + Premium TV Controls
+
+- Reworks the default Swoop TV theme around the supplied neon logo: deep black surfaces with **hot magenta + electric cyan** accents.
+- Keeps the legacy internal `chill` theme ID for profile/save compatibility while renaming the visible default theme to **Swoop — Neon signature**. Existing default-theme profiles automatically receive the new look.
+- Adds a unified premium Google TV control system across Home / Live TV / Guide / Movies / TV Shows / My List navigation, Providers, Settings/profile utilities, hero/detail actions, filter/category tabs and secondary actions.
+- Active/selected states now use restrained theme colour; D-pad focus uses the active theme gradient and glow so controls match whichever profile theme is selected.
+- Continue Watching **Remove** is compact and quiet at rest, with a polished destructive-red focus state rather than an oversized floating pill.
+- Theme colours now drive provider/library progress, Guide current-programme highlighting, Guide now-line, badges and watch-progress accents instead of older hard-coded red/purple colours.
+- Preserves v0.8.10 compact unified Home card sizing and scroll-first Up navigation, plus all v0.8.9 full-Top-100, v0.8.8 avatar, v0.8.7 branding and v0.8.6 EPG work.
+- Android versionName is **0.8.11** and versionCode is **811**.
+
+## v0.8.10 — Google TV Compact Rails + Scroll-First Navigation
+
+- Corrects the v0.8.9 Home-card sizing inversion. The compact Top 100 card size is restored as the reference geometry, and all other poster-based Home rows now use that same compact size and alignment.
+- Top 100 rows retain rank overlays; all non-ranked rows use the same title cards without rank numbers.
+- Keeps the full 100-item Top 100 datasets and incremental 20-card D-pad expansion.
+- Fixes Home Up-navigation: while Home is scrolled below the top, the top bar is excluded from spatial D-pad targets. Up moves through higher content rows or scrolls upward instead of jumping to Home in the navigation bar.
+- The primary top navigation becomes focusable from Home content only once the page has returned to the top.
+- Android versionName is **0.8.10** and versionCode is **810**.
+
 ## v0.8.9 — Google TV Rail Alignment + Full Top 100
 
 - Fixes the Google TV header being clipped at the top edge by adding a TV-specific safe-area offset and wider safe horizontal padding.
