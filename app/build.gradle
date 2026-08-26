@@ -10,8 +10,8 @@ android {
         applicationId 'tv.swoop.player'
         minSdk 23
         targetSdk 36
-        versionCode 804
-        versionName '0.8.4'
+        versionCode 805
+        versionName '0.8.5'
     }
 
     signingConfigs {

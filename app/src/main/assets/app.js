@@ -198,15 +198,19 @@ const HOME_EAGER_ROWS=5;
 const HOME_EAGER_CARDS=12;
 const HOME_RANKED_ROW_LIMIT=100;
 const HOME_STANDARD_ROW_LIMIT=100;
-const ANDROID_TV_HOME_EAGER_ROWS=3;
+const ANDROID_TV_HOME_EAGER_ROWS=5;
 const ANDROID_TV_HOME_STANDARD_LIMIT=18;
 const ANDROID_TV_HOME_RANKED_LIMIT=20;
+const ANDROID_DYNAMIC_HOME_ROWS=new Set(['continue','recently-watched','recommended','recent-live','mylist']);
 let androidLibraryLoading=false,tvForceHomeTop=false;
+let androidStartupGateComplete=false,androidStartupGatePromise=null,androidPreparedHomeReady=false;
+const androidPreparedHomeRows=new Map();
+function clearAndroidPreparedHome(){androidPreparedHomeReady=false;androidPreparedHomeRows.clear()}
 let androidFastCatalogRef=null,androidFastCatalogContext='',androidFastCatalogCache=null;
 let lazyHomeObserver=null,searchDebounceTimer=null,peopleSearchSeq=0;
 function largeLibraryMode(){return state.settings.performanceMode!=='cinematic'&&catalogLogicalTotal()>=LARGE_LIBRARY_THRESHOLD}
 function androidFastHomeMode(){return NATIVE_ANDROID&&!nativeCatalogMode&&state.page==='home'&&(tvHomeSnapshotActive||catalogLogicalTotal()>=LARGE_LIBRARY_THRESHOLD)}
-function resetAndroidFastCatalog(){androidFastCatalogRef=null;androidFastCatalogContext='';androidFastCatalogCache=null}
+function resetAndroidFastCatalog(){androidFastCatalogRef=null;androidFastCatalogContext='';androidFastCatalogCache=null;clearAndroidPreparedHome()}
 function androidFastCatalog(){
   const cat=activeCatalog(),context=activeCatalogContext;
   if(androidFastCatalogRef===cat&&androidFastCatalogContext===context&&androidFastCatalogCache)return androidFastCatalogCache;
@@ -238,6 +242,7 @@ function androidFastRowItems(id){
     if(!terms.size)return [];
     const out=[];for(const item of [...fast.movie,...fast.series]){const text=mediaSearchText(item);if([...terms].some(g=>text.includes(g))){out.push(item);if(out.length>=limit)break}}return out;
   }
+  if(id==='top20-movies'||id==='top20-shows'){const source=id==='top20-movies'?fast.movie:fast.series;return [...source].sort((a,b)=>ratingNumber(b)-ratingNumber(a)||providerAddedNumber(b)-providerAddedNumber(a)||String(a?.name||'').localeCompare(String(b?.name||''))).slice(0,limit)}
   if(id==='live-now')return fast.live.slice(0,limit);
   if(id==='movies')return fast.movie.slice(0,limit);
   if(id==='shows')return fast.series.slice(0,limit);
@@ -306,7 +311,7 @@ function stopTvCatalogWorker(){
   tvMovieStackWorker=null;tvCatalogWorkerReady=false;tvMovieStackBuild=[];
   for(const pending of tvCatalogWorkerPending.values()){clearTimeout(pending.timer);pending.resolve(null)}tvCatalogWorkerPending.clear();
 }
-function startTvMovieStackWorker(){
+function startTvMovieStackWorker(immediate=false,onInitProgress=null){
   if(!NATIVE_ANDROID||tvHomeSnapshotActive||tvMovieStackWorker||state.catalog.length<2000)return;
   const run=()=>{try{
     const worker=new Worker(new URL('./src/catalog-index-worker.js',import.meta.url),{type:'module'});tvMovieStackWorker=worker;tvCatalogWorkerReady=false;
@@ -317,11 +322,20 @@ function startTvMovieStackWorker(){
       if(data.requestId&&tvCatalogWorkerPending.has(data.requestId)){const pending=tvCatalogWorkerPending.get(data.requestId);clearTimeout(pending.timer);tvCatalogWorkerPending.delete(data.requestId);pending.resolve(data.type==='worker-error'?null:data)}
     };
     worker.onerror=()=>stopTvCatalogWorker();
-    const catalogRef=state.catalog,chunkSize=1500;worker.postMessage({type:'init-start',providerPriority:providerPriorityMap(),enabledProviderIds:enabledProviders().map(p=>p.id)});
-    let offset=0;const sendNext=()=>{if(worker!==tvMovieStackWorker||catalogRef!==state.catalog)return;const chunk=catalogRef.slice(offset,offset+chunkSize);if(chunk.length){worker.postMessage({type:'init-chunk',catalog:chunk});offset+=chunk.length;const again=()=>sendNext();if('requestIdleCallback'in window)requestIdleCallback(again,{timeout:900});else setTimeout(again,12)}else worker.postMessage({type:'init-end'})};sendNext();
+    const catalogRef=state.catalog,chunkSize=1500,total=Math.max(1,catalogRef.length);worker.postMessage({type:'init-start',providerPriority:providerPriorityMap(),enabledProviderIds:enabledProviders().map(p=>p.id)});
+    let offset=0;const sendNext=()=>{if(worker!==tvMovieStackWorker||catalogRef!==state.catalog)return;const chunk=catalogRef.slice(offset,offset+chunkSize);if(chunk.length){worker.postMessage({type:'init-chunk',catalog:chunk});offset+=chunk.length;try{onInitProgress?.({loaded:Math.min(offset,total),total});}catch{}const again=()=>sendNext();if(immediate)setTimeout(again,0);else if('requestIdleCallback'in window)requestIdleCallback(again,{timeout:900});else setTimeout(again,12)}else worker.postMessage({type:'init-end'})};sendNext();
   }catch{stopTvCatalogWorker()}};
-  if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:5000});else setTimeout(run,1800);
+  if(immediate)run();else if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:5000});else setTimeout(run,1800);
 }
+async function ensureTvCatalogWorkerReady(timeout=30000,onProgress=null){
+  if(!NATIVE_ANDROID||state.catalog.length<2000)return false;
+  if(tvCatalogWorkerReady)return true;
+  startTvMovieStackWorker(true,onProgress);
+  const started=Date.now();
+  while(Date.now()-started<timeout){if(tvCatalogWorkerReady)return true;if(!tvMovieStackWorker)return false;await new Promise(r=>setTimeout(r,80))}
+  return tvCatalogWorkerReady;
+}
+
 function startAndroidBackgroundRestore(){
   if(!NATIVE_ANDROID||tvBackgroundRestoreStarted||libraryRestored||!state.providers.length)return;
   tvBackgroundRestoreStarted=true;
@@ -459,6 +473,12 @@ function prewarmArtworkUrls(items=[],limit=28){
     if(location.protocol==='https:'&&/^http:\/\//i.test(url)&&canRelayArtwork()){relayArtworkUrl(url,'normal').catch(()=>null);continue}
     try{const img=new Image();img.decoding='async';img.src=/image\.tmdb\.org\/t\/p\//i.test(url)?url.replace(/\/t\/p\/(?:original|w\d+)\//i,'/t/p/w342/'):url}catch{}
   }
+}
+async function preloadCriticalArtwork(items=[],limit=36,timeoutMs=4200){
+  const urls=[];for(const raw of items){const item=visualItem(raw||{});for(const url of [item?.logo,item?.backdrop]){const value=String(url||'').trim();if(value&&!urls.includes(value))urls.push(value);if(urls.length>=limit)break}if(urls.length>=limit)break}
+  if(!urls.length)return;
+  let timer=null;const all=Promise.all(urls.map(url=>new Promise(resolve=>{try{const img=new Image();let done=false;const finish=()=>{if(done)return;done=true;resolve()};img.onload=finish;img.onerror=finish;img.decoding='async';img.src=/image\.tmdb\.org\/t\/p\//i.test(url)?url.replace(/\/t\/p\/(?:original|w\d+)\//i,'/t/p/w342/'):url;if(img.complete)finish();setTimeout(finish,timeoutMs)}catch{resolve()}})));
+  await Promise.race([all,new Promise(resolve=>{timer=setTimeout(resolve,timeoutMs)})]);if(timer)clearTimeout(timer);
 }
 async function warmBrowseTabs(){
   if(browseWarmupRunning||!nativeCatalogMode||startupRefreshActive||storageRestoring||!state.catalog.length)return;
@@ -685,7 +705,7 @@ function queueVisibleMetadata(item,{forceArtwork=false}={}){
 }
 function hydrateVisibleImdbRatings(root=document){
   const nodes=[...root.querySelectorAll('[data-imdb-item]')].filter(el=>el.dataset.imdbHydrated!=='1');if(!nodes.length)return;
-  const activate=el=>{const id=el.dataset.imdbItem,item=savedItem(id);if(!item){el.dataset.imdbHydrated='1';return}const visual=visualItem(item),cached=state.metadataCache?.[id]||{};if(!visual?.logo){queueVisibleMetadata(item,{forceArtwork:false});return}if(displayImdbRating({id})){updateVisibleCardMetadata(id);return}if(cached.imdbRatingCheckedAt&&Date.now()-cached.imdbRatingCheckedAt<30*86400000){el.dataset.imdbHydrated='1';return}queueVisibleMetadata(item)};
+  const activate=el=>{const id=el.dataset.imdbItem,item=savedItem(id);if(!item){el.dataset.imdbHydrated='1';return}const visual=visualItem(item),cached=state.metadataCache?.[id]||{};if(displayImdbRating({id})){updateVisibleCardMetadata(id);return}if(NATIVE_ANDROID){el.dataset.imdbHydrated='1';return}if(!visual?.logo){queueVisibleMetadata(item,{forceArtwork:false});return}if(cached.imdbRatingCheckedAt&&Date.now()-cached.imdbRatingCheckedAt<30*86400000){el.dataset.imdbHydrated='1';return}queueVisibleMetadata(item)};
   const near=el=>{const r=el.getBoundingClientRect();return r.bottom>=-500&&r.top<=innerHeight+700&&r.right>=-900&&r.left<=innerWidth+1400};
   const immediate=nodes.filter(near);immediate.forEach(activate);
   const deferred=nodes.filter(el=>!immediate.includes(el));if(!deferred.length)return;
@@ -938,7 +958,9 @@ function localHomeRowItems(id){
 }
 function cachedWebRowItems(id){const cache=state.webDiscovery?.[id];if(androidFastHomeMode()){const source=Array.isArray(cache?.items)&&cache.items.length?cache.items:(cache?.itemIds||[]).map(androidFastSavedItem).filter(Boolean);return source.slice(0,String(id).startsWith('top20-')?ANDROID_TV_HOME_RANKED_LIMIT:ANDROID_TV_HOME_STANDARD_LIMIT)}if(nativeCatalogMode&&Array.isArray(cache?.items))return cacheNativeItems(cache.items);return collapseMovieSources((cache?.itemIds||[]).map(savedItem).filter(Boolean),activeCatalog())}
 function customHomeRowItems(id){const uid=String(id).slice(7),row=state.mdblistRows.find(x=>String(x.uid)===uid);if(androidFastHomeMode())return (row?.items||[]).slice(0,ANDROID_TV_HOME_STANDARD_LIMIT);return collapseMovieSources(row?.items||[],activeCatalog())}
-function homeRowItems(id){if(androidFastHomeMode())return androidFastRowItems(id);let result;if(WEB_ROW_IDS.has(id)){result=cachedWebRowItems(id);if(!result.length&&SNOAK_CURATED_ROWS.has(id))result=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);}else if(String(id).startsWith('custom:'))result=customHomeRowItems(id);else if(nativeCatalogMode&&nativeHomeRowCache.has(id))result=nativeHomeRowCache.get(id);else if(String(id).startsWith('cat:')){const parts=String(id).split(':'),kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));result=stableDailyOrder(items(kind).filter(x=>x.group===name),id)}else result=localHomeRowItems(id);const profile=activeProfile();return (result||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{}))}
+function homeRowItems(id){
+  if(NATIVE_ANDROID&&androidPreparedHomeReady&&!ANDROID_DYNAMIC_HOME_ROWS.has(String(id))&&androidPreparedHomeRows.has(String(id))){const profile=activeProfile();return (androidPreparedHomeRows.get(String(id))||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{}))}
+  if(androidFastHomeMode())return androidFastRowItems(id);let result;if(WEB_ROW_IDS.has(id)){result=cachedWebRowItems(id);if(!result.length&&SNOAK_CURATED_ROWS.has(id))result=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);}else if(String(id).startsWith('custom:'))result=customHomeRowItems(id);else if(nativeCatalogMode&&nativeHomeRowCache.has(id))result=nativeHomeRowCache.get(id);else if(String(id).startsWith('cat:')){const parts=String(id).split(':'),kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));result=stableDailyOrder(items(kind).filter(x=>x.group===name),id)}else result=localHomeRowItems(id);const profile=activeProfile();return (result||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{}))}
 function relativeRefreshTime(ts){if(!ts)return'Not refreshed yet';const mins=Math.max(0,Math.floor((Date.now()-ts)/60000));if(mins<1)return'Updated just now';if(mins<60)return`Updated ${mins}m ago`;const hrs=Math.floor(mins/60);if(hrs<24)return`Updated ${hrs}h ago`;return`Updated ${Math.floor(hrs/24)}d ago`}
 function discoveryMeta(id,data){
   if(WEB_ROW_IDS.has(id)||SNOAK_CURATED_ROWS.has(id)||String(id).startsWith('custom:'))return data.length?`${data.length.toLocaleString()} available`:'Updating…';
@@ -959,6 +981,14 @@ async function discoveryBundle(mediaType,force=false){
   const data=await fetchSwoopDiscovery({settings:state.settings,mediaType:key});
   discoveryBundleMemory.set(key,{at:now,data});return data;
 }
+async function androidMatchDiscoveryPayload(payload,mediaType,{sourceLimit=800,limit=100}={}){
+  if(NATIVE_ANDROID&&tvCatalogWorkerReady){
+    const result=await tvCatalogWorkerRequest('catalog-match',{payload,mediaType,sourceLimit,limit},20000);
+    if(Array.isArray(result?.items))return result.items;
+  }
+  return matchMDBListToCatalog(payload,activeCatalog(),{sourceLimit,limit,mediaType});
+}
+
 function blendDiscoverySources(bundle,mediaType,mode='trending',limit=20){
   const kind=mediaType==='show'?'series':'movie',sources=bundle?.sources||{};
   const weights={
@@ -984,6 +1014,28 @@ function blendDiscoverySources(bundle,mediaType,mode='trending',limit=20){
   const ranked=[...score.entries()].map(([id,value])=>{const item=logicalById.get(id),year=yearNumber(item),hits=sourceHits.get(id)||1;let bonus=Math.min(.28,(hits-1)*.065);if((mode==='trending'||mode==='newhot')&&year===currentYear)bonus+=.18;if(mode==='newhot'&&year===currentYear-1)bonus+=.06;return {item,score:value+bonus,hits,tie:Math.abs(hash(`${mode}|${id}`))}}).filter(x=>x.item?.kind===kind).sort((a,b)=>b.score-a.score||b.hits-a.hits||a.tie-b.tie).map(x=>x.item);
   return collapseMovieSources(ranked,activeCatalog()).slice(0,limit);
 }
+async function blendDiscoverySourcesAndroid(bundle,mediaType,mode='trending',limit=20){
+  const kind=mediaType==='show'?'series':'movie',sources=bundle?.sources||{};
+  const weights={
+    trending:{snoakTrakt:2.05,snoakJustwatch:1.55,snoakTvStats:1.25,snoakImdb:.9,tmdbDay:.8,traktTrending:.7,justwatch:.6,tmdbWeek:.5},
+    top20:{snoakJustwatch:1.8,snoakTvStats:1.65,snoakImdb:1.5,snoakRotten:1.3,snoakTrakt:1.15,stable:.55,imdbPopular:.5,tmdbPopular:.45,tmdbWeek:.35},
+    newhot:{snoakLatest:2.0,snoakTraktDigital:1.45,snoakTrakt:1.15,snoakJustwatch:1.0,fresh:.8,tmdbDay:.65,tmdbWeek:.35},
+    streaming:{snoakJustwatch:2.0,snoakLatest:1.05,justwatch:.8,snoakTrakt:.7,stable:.35},
+    watched:{mostWatched:1.7,snoakTvStats:1.45,snoakTrakt:1.0,snoakJustwatch:.65,tmdbWeek:.45},
+    boxoffice:{boxOffice:1.8,fresh:1.2,snoakTvStats:.7,snoakTrakt:.55,tmdbDay:.45}
+  }[mode]||{};
+  const score=new Map(),sourceHits=new Map(),logicalById=new Map();
+  for(const [name,weight] of Object.entries(weights)){
+    const payload=sources[name];if(!payload||!(Array.isArray(payload)?payload.length:Object.keys(payload||{}).length))continue;
+    const sourceLimit=mode==='top20'?600:200,matchLimit=mode==='top20'?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT;
+    const matched=await androidMatchDiscoveryPayload(payload,mediaType,{sourceLimit,limit:matchLimit});
+    matched.forEach((raw,rank)=>{const item=androidFastSavedItem(raw.id)||raw,id=item.id;logicalById.set(id,item);const decay=1/(1+rank*.095);score.set(id,(score.get(id)||0)+weight*decay);sourceHits.set(id,(sourceHits.get(id)||0)+1)});
+    await new Promise(r=>setTimeout(r,0));
+  }
+  const currentYear=new Date().getFullYear();
+  return [...score.entries()].map(([id,value])=>{const item=logicalById.get(id),year=yearNumber(item),hits=sourceHits.get(id)||1;let bonus=Math.min(.28,(hits-1)*.065);if((mode==='trending'||mode==='newhot')&&year===currentYear)bonus+=.18;if(mode==='newhot'&&year===currentYear-1)bonus+=.06;return {item,score:value+bonus,hits,tie:Math.abs(hash(`${mode}|${id}`))}}).filter(x=>x.item?.kind===kind).sort((a,b)=>b.score-a.score||b.hits-a.hits||a.tie-b.tie).map(x=>x.item).slice(0,limit);
+}
+
 async function blendDiscoverySourcesNative(bundle,mediaType,mode='trending',limit=20){
   const kind=mediaType==='show'?'series':'movie',sources=bundle?.sources||{};
   const weights={
@@ -1011,10 +1063,11 @@ async function legacyDiscoveryFallback(id,apiKey){
   if(id==='top20-movies'||id==='top20-shows'){
     const slug=mediaType==='movie'?'movies/popular':'shows/popular',payload=await getMDBListOfficialItems({apiKey,slug});
     if(nativeCatalogMode){const result=await nativeCatalogMatchPayload(payload,mediaType,{sourceLimit:800,limit:HOME_RANKED_ROW_LIMIT,providerIds:nativeEnabledProviderIds()});return cacheNativeItems(result?.items||[])}
+    if(NATIVE_ANDROID)return androidMatchDiscoveryPayload(payload,mediaType,{sourceLimit:800,limit:HOME_RANKED_ROW_LIMIT});
     return matchMDBListToCatalog(payload,activeCatalog(),{sourceLimit:800,limit:HOME_RANKED_ROW_LIMIT,mediaType});
   }
   if(id==='trending-movies'||id==='trending-shows'||id==='streaming-movies'||id==='streaming-shows'){
-    const payload=await getMDBListStreamingChart({apiKey,mediaType});return matchMDBListToCatalog(payload,activeCatalog(),{limit:HOME_STANDARD_ROW_LIMIT,mediaType});
+    const payload=await getMDBListStreamingChart({apiKey,mediaType});return NATIVE_ANDROID?androidMatchDiscoveryPayload(payload,mediaType,{limit:HOME_STANDARD_ROW_LIMIT}):matchMDBListToCatalog(payload,activeCatalog(),{limit:HOME_STANDARD_ROW_LIMIT,mediaType});
   }
   return[];
 }
@@ -1025,7 +1078,7 @@ async function fetchBuiltInDiscovery(id,apiKey,force=false){
     try{
       const payload=await fetchSwoopCuratedList({settings:state.settings,listKey});
       const source=payload?.items||[];
-      const items=nativeCatalogMode?cacheNativeItems((await nativeCatalogMatchPayload(source,mediaType,{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT,providerIds:nativeEnabledProviderIds()})).items||[]):matchMDBListToCatalog(source,activeCatalog(),{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT,mediaType});
+      const items=nativeCatalogMode?cacheNativeItems((await nativeCatalogMatchPayload(source,mediaType,{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT,providerIds:nativeEnabledProviderIds()})).items||[]):NATIVE_ANDROID?await androidMatchDiscoveryPayload(source,mediaType,{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT}):matchMDBListToCatalog(source,activeCatalog(),{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT,mediaType});
       return {items:items.slice(0,rowLimit),enhanced:true,snoak:true,source:'snoak',sourceUpdatedAt:Number(payload?.sourceUpdatedAt||0)};
     }catch(err){
       const fallback=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);
@@ -1033,7 +1086,7 @@ async function fetchBuiltInDiscovery(id,apiKey,force=false){
     }
   }
   try{
-    const bundle=await discoveryBundle(mediaType,force);let items=nativeCatalogMode?await blendDiscoverySourcesNative(bundle,mediaType,mode,rowLimit):blendDiscoverySources(bundle,mediaType,mode,rowLimit);
+    const bundle=await discoveryBundle(mediaType,force);let items=nativeCatalogMode?await blendDiscoverySourcesNative(bundle,mediaType,mode,rowLimit):NATIVE_ANDROID?await blendDiscoverySourcesAndroid(bundle,mediaType,mode,rowLimit):blendDiscoverySources(bundle,mediaType,mode,rowLimit);
     if(String(id).startsWith('top20-')&&items.length<HOME_RANKED_ROW_LIMIT&&apiKey){
       const supplement=await legacyDiscoveryFallback(id,apiKey).catch(()=>[]),seen=new Set(items.map(x=>x.id));
       for(const item of supplement){if(item&&!seen.has(item.id)){seen.add(item.id);items.push(item)}if(items.length>=HOME_RANKED_ROW_LIMIT)break}
@@ -1042,20 +1095,21 @@ async function fetchBuiltInDiscovery(id,apiKey,force=false){
   }
   catch(err){const fallback=await legacyDiscoveryFallback(id,apiKey).catch(()=>[]);if(fallback.length)return {items:fallback,enhanced:false,source:'legacy',warning:err.message||String(err)};throw err}
 }
-async function refreshDiscoveryRows(force=false,userInitiated=false){
+async function refreshDiscoveryRows(force=false,userInitiated=false,onProgress=null,idsOverride=null){
   if(discoveryRefreshing||!state.catalog.length)return;
   const apiKey=String(state.settings.mdblistApiKey||'').trim();
   const mandatory=['top20-movies','top20-shows'];
-  const wanted=[...new Set([...state.settings.homeRows.filter(id=>WEB_ROW_IDS.has(id)),...mandatory])];
-  const custom=state.settings.homeRows.filter(id=>String(id).startsWith('custom:'));
+  const requested=Array.isArray(idsOverride)&&idsOverride.length?idsOverride:state.settings.homeRows;
+  const wanted=[...new Set([...requested.filter(id=>WEB_ROW_IDS.has(id)),...mandatory])];
+  const custom=requested.filter(id=>String(id).startsWith('custom:'));
   const now=Date.now(),staleIds=wanted.filter(id=>force||!state.webDiscovery?.[id]?.updatedAt||now-state.webDiscovery[id].updatedAt>discoveryRowTtl(id));
   const staleCustom=apiKey?custom.map(id=>state.mdblistRows.find(r=>`custom:${r.uid}`===id)).filter(r=>r?.source&&(force||!r.updatedAt||now-r.updatedAt>DISCOVERY_REFRESH_MS)):[];
   if(!staleIds.length&&!staleCustom.length)return;
-  discoveryRefreshing=true;discoveryMessage='Refreshing Swoop TV discovery…';const totalJobs=Math.max(1,staleIds.length+staleCustom.length),manualTask=Boolean(userInitiated);if(manualTask)taskProgressStart({title:'Refreshing Swoop TV discovery…',detail:`Updating 0 of ${totalJobs} discovery rows…`,progress:3});let completedJobs=0;
+  discoveryRefreshing=true;discoveryMessage='Refreshing Swoop TV discovery…';const totalJobs=Math.max(1,staleIds.length+staleCustom.length),manualTask=Boolean(userInitiated);if(manualTask)taskProgressStart({title:'Refreshing Swoop TV discovery…',detail:`Updating 0 of ${totalJobs} discovery rows…`,progress:3});let completedJobs=0;try{onProgress?.({completed:0,total:totalJobs,id:'',label:'Preparing Home'});}catch{}
   try{
     if(force)discoveryBundleMemory.clear();
-    for(const id of staleIds){if(manualTask)taskProgressUpdate({detail:`Updating ${homeRowDef(id)?.label||'discovery row'}…`,progress:5+(completedJobs/totalJobs)*88});try{const result=await fetchBuiltInDiscovery(id,apiKey,false);state.webDiscovery[id]={itemIds:result.items.map(x=>x.id),items:nativeCatalogMode?result.items:undefined,updatedAt:Date.now(),sourceUpdatedAt:Number(result.sourceUpdatedAt||0),error:'',enhanced:result.enhanced,snoak:Boolean(result.snoak),source:result.source};}catch(err){state.webDiscovery[id]={...(state.webDiscovery[id]||{}),updatedAt:Date.now(),error:err.message||String(err)};}completedJobs++;if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});}
-    for(const row of staleCustom){if(manualTask)taskProgressUpdate({detail:`Updating ${row.name||'custom discovery row'}…`,progress:5+(completedJobs/totalJobs)*88});try{const payload=await getMDBListItems({apiKey,listId:row.source.listId,username:row.source.username,listName:row.source.listName});row.items=nativeCatalogMode?cacheNativeItems((await nativeCatalogMatchPayload(payload,'movie',{sourceLimit:200,limit:120,providerIds:nativeEnabledProviderIds()})).items||[]):matchMDBListToCatalog(payload,activeCatalog());row.updatedAt=Date.now();row.error='';}catch(err){row.updatedAt=Date.now();row.error=err.message||String(err);}completedJobs++;if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});}
+    for(const id of staleIds){const label=homeRowDef(id)?.label||'Home row';try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updating ${label}…`,progress:5+(completedJobs/totalJobs)*88});try{const result=await fetchBuiltInDiscovery(id,apiKey,false);state.webDiscovery[id]={itemIds:result.items.map(x=>x.id),items:NATIVE_ANDROID||nativeCatalogMode?result.items:undefined,updatedAt:Date.now(),sourceUpdatedAt:Number(result.sourceUpdatedAt||0),error:'',enhanced:result.enhanced,snoak:Boolean(result.snoak),source:result.source};}catch(err){state.webDiscovery[id]={...(state.webDiscovery[id]||{}),updatedAt:Date.now(),error:err.message||String(err)};}completedJobs++;try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});await new Promise(r=>setTimeout(r,0));}
+    for(const row of staleCustom){const id=`custom:${row.uid}`,label=row.name||'Custom row';try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updating ${label}…`,progress:5+(completedJobs/totalJobs)*88});try{const payload=await getMDBListItems({apiKey,listId:row.source.listId,username:row.source.username,listName:row.source.listName});row.items=nativeCatalogMode?cacheNativeItems((await nativeCatalogMatchPayload(payload,'movie',{sourceLimit:200,limit:120,providerIds:nativeEnabledProviderIds()})).items||[]):matchMDBListToCatalog(payload,activeCatalog());row.updatedAt=Date.now();row.error='';}catch(err){row.updatedAt=Date.now();row.error=err.message||String(err);}completedJobs++;try{onProgress?.({completed:completedJobs,total:totalJobs,id,label});}catch{}if(manualTask)taskProgressUpdate({detail:`Updated ${completedJobs} of ${totalJobs} discovery rows…`,progress:5+(completedJobs/totalJobs)*88});await new Promise(r=>setTimeout(r,0));}
     if(manualTask)taskProgressUpdate({detail:'Saving refreshed discovery rows…',progress:96});await persist('cache');discoveryMessage='Discovery updated';if(manualTask)taskProgressEnd({success:true,title:'Discovery updated',detail:`${completedJobs} discovery row${completedJobs===1?'':'s'} refreshed.`,hold:1100});
   }catch(err){if(manualTask)taskProgressEnd({success:false,title:'Discovery refresh stopped',detail:err.message||String(err),hold:2200});throw err}finally{
     discoveryRefreshing=false;
@@ -1130,9 +1184,9 @@ async function switchProfile(id,{skipPin=false}={}){
   const changed=target.id!==state.activeProfileId;
   if(changed){clearPersistentPageViews();syncActiveProfileFromState();state.activeProfileId=target.id;applyProfileToState(target);detailItem=null;sourceChoiceItem=null;heroRotationIndex=0;}
   profilePickerOpen=false;modal=null;state.page='home';clearPersistentPageViews(['home']);
+  if(NATIVE_ANDROID&&!androidStartupGateComplete){await persist();await runAndroidStartupGate();toast(changed?`Switched to ${target.name}`:`Welcome, ${target.name}`);return}
   if(!libraryRestored&&state.providers.length&&!state.catalog.length){
-    if(NATIVE_ANDROID){startAndroidBackgroundRestore();}
-    else{storageRestoring=true;render();const nativeReady=await activateNativeCatalogIfAvailable().catch(()=>false);if(!nativeReady)await ensureDurableLibraryRestored();storageRestoring=false;}
+    storageRestoring=true;render();const nativeReady=await activateNativeCatalogIfAvailable().catch(()=>false);if(!nativeReady)await ensureDurableLibraryRestored();storageRestoring=false;
   }
   else if(nativeCatalogMode)await hydrateNativeProfileItems();
   await persist();render();if(NATIVE_ANDROID)forceAndroidHomeEntry();toast(changed?`Switched to ${target.name}`:`Welcome, ${target.name}`);
@@ -1195,13 +1249,25 @@ function prepareTvHomeRow(def){
   const imgs=[...next.querySelectorAll('img[data-swoop-art]')].slice(0,10);if(!imgs.length)return Promise.resolve(next);
   return Promise.all(imgs.map(img=>new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;resolve()};img.addEventListener('load',finish,{once:true});img.addEventListener('error',finish,{once:true});loadArtwork(img,{priority:'high'});setTimeout(finish,700)}))).then(()=>next);
 }
+function mountNextAndroidHomeRows(count=1){
+  if(!NATIVE_ANDROID||profilePickerOpen||state.page!=='home'||!androidPreparedHomeReady)return false;
+  const host=document.querySelector('[data-tv-home-rows]');if(!host)return false;
+  const mounted=new Set([...host.querySelectorAll('[data-home-row-mounted]')].map(el=>String(el.dataset.homeRowMounted||'')));
+  let added=0;
+  for(const def of selectedHomeRows()){
+    if(mounted.has(String(def.id)))continue;
+    const wrap=document.createElement('div');wrap.innerHTML=homeRowMarkup(def);const next=wrap.firstElementChild;
+    if(!next)continue;
+    host.appendChild(next);bindDynamicCards(next);bindRailStability(next);hydrateArtwork(next);mounted.add(String(def.id));added++;
+    if(added>=Math.max(1,Number(count||1)))break;
+  }
+  return added>0;
+}
 function scheduleAndroidHomeExpansion(){
-  if(!NATIVE_ANDROID||profilePickerOpen||state.page!=='home')return;
-  const token=++tvHomeExpansionToken,defs=selectedHomeRows().slice(ANDROID_TV_HOME_EAGER_ROWS),run=index=>{
-    if(token!==tvHomeExpansionToken||profilePickerOpen||state.page!=='home'||index>=defs.length)return;
-    const task=async()=>{if(token!==tvHomeExpansionToken||profilePickerOpen||state.page!=='home')return;const def=defs[index],exists=[...document.querySelectorAll('[data-home-row-mounted]')].some(el=>el.dataset.homeRowMounted===String(def.id));if(!exists){const next=await prepareTvHomeRow(def);if(next&&token===tvHomeExpansionToken&&state.page==='home'&&!profilePickerOpen){const host=document.querySelector('[data-tv-home-rows]');if(host){host.appendChild(next);bindDynamicCards(next);bindRailStability(next);hydrateArtwork(next)}}}run(index+1)};
-    if('requestIdleCallback'in window)requestIdleCallback(()=>task(),{timeout:900});else setTimeout(task,80);
-  };run(0);
+  // v0.8.5: no automatic post-Home expansion. Every row's data is prepared during the launch
+  // gate, then additional DOM rows are mounted only as navigation reaches them. This prevents
+  // background row construction/artwork work from stealing the remote's interaction budget.
+  return false;
 }
 
 function mountLazyHomeRows(root=document){
@@ -1708,7 +1774,7 @@ function replaceHomeHero(){
   heroRotationIndex=((heroRotationIndex%pool.length)+pool.length)%pool.length;
   const item=pool[heroRotationIndex],wrap=document.createElement('div');wrap.innerHTML=hero(item,providerSummaryName(),{total:pool.length,index:heroRotationIndex});
   const next=wrap.firstElementChild;if(!next)return;current.replaceWith(next);hydrateArtwork(next);bindDynamicCards(next);bindHeroControls(next);
-  if(item&&['movie','series'].includes(item.kind))enrichItemMetadata(item,{rerender:false}).then(()=>patchHomeHeroTitle(item));
+  if(!NATIVE_ANDROID&&item&&['movie','series'].includes(item.kind))enrichItemMetadata(item,{rerender:false}).then(()=>patchHomeHeroTitle(item));
 }
 
 function scheduleHeroRotation(){
@@ -1768,7 +1834,7 @@ function render(){
   const detailRoute=Boolean(!profilePickerOpen&&!personRoute&&detailItem);
   const mediaRoute=personRoute||detailRoute;
   let body;
-  if(startupRefreshActive&&!NATIVE_ANDROID)body=startupRefreshPage();
+  if(startupRefreshActive)body=startupRefreshPage();
   else if(storageRestoring&&!NATIVE_ANDROID)body=restoringPage();
   else if(profilePickerOpen)body=profilePickerPage();
   else if(personRoute)body=personHtml();
@@ -1794,10 +1860,10 @@ function render(){
   if(!profilePickerOpen&&!mediaRoute&&state.page==='movies')setTimeout(async()=>{const changed=await ensureMediaProviderCategoryOrder('movie').catch(()=>false);if(changed&&state.page==='movies'&&!detailItem&&!personView){render();return}primeMediaCategoryRails('movie')},0);
   if(!profilePickerOpen&&!mediaRoute&&state.page==='series')setTimeout(async()=>{const changed=await ensureMediaProviderCategoryOrder('series').catch(()=>false);if(changed&&state.page==='series'&&!detailItem&&!personView){render();return}primeMediaCategoryRails('series')},0);
   if(!profilePickerOpen&&!mediaRoute&&state.page==='home'){
-    mountLazyHomeRows(document);if(NATIVE_ANDROID){setTimeout(scheduleAndroidHomeExpansion,0);setTimeout(scheduleAndroidDestinationPrewarm,500);}
-    // The visible hero is presentation-critical: begin its logo lookup immediately
-    // instead of waiting for the broader large-library metadata queue.
-    const heroNow=featureItem();if(heroNow&&['movie','series'].includes(heroNow.kind))setTimeout(()=>enrichItemMetadata(heroNow,{rerender:false}).then(()=>patchHomeHeroTitle(heroNow)),40);
+    mountLazyHomeRows(document);if(NATIVE_ANDROID){/* All launch-critical TV work is completed before Home. No automatic post-Home expansion/prewarm. */}
+    // Browser/desktop can enrich the hero immediately. Google TV enters Home with a fully
+    // prepared frame and defers optional metadata work so remote input always wins.
+    const heroNow=featureItem();if(!NATIVE_ANDROID&&heroNow&&['movie','series'].includes(heroNow.kind))setTimeout(()=>enrichItemMetadata(heroNow,{rerender:false}).then(()=>patchHomeHeroTitle(heroNow)),40);
     if(state.catalog.length&&!androidFastHomeMode()&&!NATIVE_ANDROID)setTimeout(()=>refreshDiscoveryRows(false),largeLibraryMode()?1200:0);
     if(nativeCatalogMode)setTimeout(primeNativeHomeRows,140);
     if(!androidFastHomeMode()&&!NATIVE_ANDROID)scheduleBrowseWarmup(largeLibraryMode()?650:1000);
@@ -2386,9 +2452,9 @@ function normalizeProviderPriorities(){state.providers.sort((a,b)=>Number(a.prio
 function upsertProviderRecord(record){const i=state.providers.findIndex(p=>p.id===record.id);const existing=i>=0?state.providers[i]:null;const next={...existing,...record,enabled:record.enabled!==false,priority:existing?.priority??state.providers.length,status:record.status||'connected',lastRefreshed:record.lastRefreshed||Date.now()};if(i>=0)state.providers[i]=next;else state.providers.push(next);normalizeProviderPriorities();return next}
 function saveProviderCredentials(profile){const id=providerProfileId(profile);const next={...profile,id,savedAt:Date.now()};const i=savedProviderProfiles.findIndex(p=>providerProfileId(p)===id);if(i>=0)savedProviderProfiles[i]=next;else savedProviderProfiles.push(next);sessionProviderConfigs.set(id,next);saveProviderProfiles(savedProviderProfiles);savedProviderProfile=savedProviderProfiles[0]||null;return next}
 function removeSavedProviderCredentials(id){savedProviderProfiles=savedProviderProfiles.filter(p=>providerProfileId(p)!==id);sessionProviderConfigs.delete(id);saveProviderProfiles(savedProviderProfiles);savedProviderProfile=savedProviderProfiles[0]||null}
-function replaceProviderCatalog(providerId,newItems=[]){state.catalog=[...state.catalog.filter(x=>x.providerId!==providerId),...newItems];tvMovieStackedCache=null;androidDestinationPrewarmStarted=false;stopTvCatalogWorker();resetMovieStackIndex();syncProviderCounts();state.webDiscovery={};epgCache.clear();m3uGuideTextCache.delete(providerId);xtreamGuideTextCache.delete(providerId);guideProviderCategoryCache.key='';guideProviderCategoryCache.names=[];guideChannelCache.key='';guideChannelCache.items=[];detailCache.clear()}
+function replaceProviderCatalog(providerId,newItems=[]){state.catalog=[...state.catalog.filter(x=>x.providerId!==providerId),...newItems];tvMovieStackedCache=null;androidDestinationPrewarmStarted=false;stopTvCatalogWorker();resetMovieStackIndex();syncProviderCounts();if(NATIVE_ANDROID){for(const cache of Object.values(state.webDiscovery||{}))if(cache&&typeof cache==='object')cache.updatedAt=0}else state.webDiscovery={};epgCache.clear();m3uGuideTextCache.delete(providerId);xtreamGuideTextCache.delete(providerId);guideProviderCategoryCache.key='';guideProviderCategoryCache.names=[];guideChannelCache.key='';guideChannelCache.items=[];detailCache.clear()}
 function providerStatusCopy(p){if(p.status==='error')return p.lastError||'Provider refresh failed';if(p.status==='refreshing')return`${Math.round(Math.max(0,Math.min(100,Number(p.refreshProgress||0))))}% · ${p.refreshDetail||'Updating your library…'}`;if(p.enabled===false)return'Provider is disabled';return p.lastRefreshed?`Last refreshed ${new Date(p.lastRefreshed).toLocaleString()}`:'Connected'}
-async function refreshProvider(id,{quiet=false,manageTask=true,onProgress=null}={}){
+async function refreshProvider(id,{quiet=false,manageTask=true,onProgress=null,deferPersist=false}={}){
   const p=providerById(id);if(!p)return false;const cfg=providerConfigById(id)||{};p.status='refreshing';p.lastError='';p.refreshProgress=2;p.refreshDetail='Updating provider…';if(!quiet)render();else patchProviderRefreshCard(p);if(manageTask)taskProgressStart({title:`Refreshing ${p.name||'TV provider'}…`,detail:'Updating provider…',progress:2});
   const report=(progress,detail)=>{p.refreshProgress=Math.max(0,Math.min(100,Number(progress)||0));p.refreshDetail=detail||p.refreshDetail;patchProviderRefreshCard(p);if(manageTask)taskProgressUpdate({title:`Refreshing ${p.name||'TV provider'}…`,detail:p.refreshDetail,progress:p.refreshProgress});try{onProgress?.({provider:p,progress:p.refreshProgress,detail:p.refreshDetail})}catch{}};
   try{
@@ -2396,7 +2462,7 @@ async function refreshProvider(id,{quiet=false,manageTask=true,onProgress=null}=
     if(p.type==='xtream'){
       if(!cfg.server||!cfg.username||!cfg.password)throw new Error('Saved Xtream login is required to refresh this provider.');
       report(8,'Connecting…');const auth=await testXtream(cfg);if(String(auth?.user_info?.auth)==='0')throw new Error('Xtream account is not authorised.');expiresAt=providerExpiryFromProfile(auth);expiryNever=!expiresAt&&String(auth?.user_info?.exp_date??'').trim()==='0';report(17,'Loading Live TV, Movies and TV Shows…');
-      const completed=new Set(),result=await importXtream(cfg,p.id,info=>{if(!info?.section)return;completed.add(info.section);const loaded=[...completed].map(section=>`${section==='live'?'Live TV':section==='movie'?'Movies':'TV Shows'} ✓`).join(' · '),pct=17+completed.size*18;report(Math.min(71,pct),`${loaded}. ${completed.size<3?'Loading…':'Ready to save.'}`)});resultItems=result.items;counts=result.counts||counts;report(76,`Preparing your library…`);
+      const completed=new Set(),result=await importXtream(cfg,p.id,info=>{if(info?.phase==='prepare'){const loaded=Number(info.loaded||0),total=Math.max(1,Number(info.total||1)),pct=71+(loaded/total)*5;report(Math.min(76,pct),`Preparing ${loaded.toLocaleString()} of ${total.toLocaleString()} items…`);return}if(!info?.section)return;completed.add(info.section);const loaded=[...completed].map(section=>`${section==='live'?'Live TV':section==='movie'?'Movies':'TV Shows'} ✓`).join(' · '),pct=17+completed.size*18;report(Math.min(71,pct),`${loaded}. ${completed.size<3?'Loading…':'Ready to prepare.'}`)});resultItems=result.items;counts=result.counts||counts;report(76,`Preparing your library…`);
     }else{
       if(!cfg.url&&!p.url)throw new Error('This M3U provider came from a local file and has no URL to refresh. Re-import the file to update it.');
       const url=cfg.url||p.url;report(10,'Loading playlist…');const text=NATIVE_PLAYBACK?await nativeFetchText(url):await (await fetch(url,{cache:'no-store'})).text();report(58,'Preparing your library…');resultItems=parseM3U(text,p.id).filter(x=>!isDemoItem(x));counts={live:resultItems.filter(x=>x.kind==='live').length,movie:resultItems.filter(x=>x.kind==='movie').length,series:resultItems.filter(x=>x.kind==='series').length};report(75,`Preparing your library…`);
@@ -2404,8 +2470,8 @@ async function refreshProvider(id,{quiet=false,manageTask=true,onProgress=null}=
     if(!resultItems.length)throw new Error('This provider returned no playable content.');
     replaceProviderCatalog(p.id,resultItems);report(81,'Updating your library…');if(NATIVE_WINDOWS){await nativeCatalogReplaceProvider(p.id,resultItems,{onProgress:info=>{const pct=82+Math.round((Number(info.loaded||0)/Math.max(1,Number(info.total||1)))*14);report(Math.min(96,pct),`Saving ${Number(info.loaded||0).toLocaleString()} of ${Number(info.total||0).toLocaleString()} items…`)}});report(97,'Finishing your library…');await activateNativeCatalogIfAvailable();}Object.assign(p,{lastRefreshed:Date.now(),lastError:'',counts,...(p.type==='xtream'?{expiresAt,expiryNever}:{})});
     const saved=savedProviderProfiles.find(x=>providerProfileId(x)===p.id);if(saved){Object.assign(saved,{lastRefreshed:p.lastRefreshed,counts,name:p.name,enabled:p.enabled,priority:p.priority,expiresAt:p.expiresAt||0,expiryNever:Boolean(p.expiryNever)});saveProviderProfiles(savedProviderProfiles)}
-    report(99,'Finishing…');p.status='connected';await persist(NATIVE_WINDOWS?'cache':true);p.refreshProgress=100;p.refreshDetail='Updated';patchProviderRefreshCard(p);try{onProgress?.({provider:p,progress:100,detail:'Updated'})}catch{}if(manageTask)taskProgressEnd({success:true,title:`${p.name||'Provider'} refreshed`,detail:`${Number(counts.live||0).toLocaleString()} live · ${Number(counts.movie||0).toLocaleString()} movies · ${Number(counts.series||0).toLocaleString()} shows`});setTimeout(()=>{delete p.refreshProgress;delete p.refreshDetail;patchProviderRefreshCard(p)},1200);if(!quiet){render();toast(`${p.name} refreshed`)}return true;
-  }catch(err){p.status='error';p.lastError=err.message||String(err);p.refreshDetail=p.lastError;patchProviderRefreshCard(p);if(manageTask)taskProgressEnd({success:false,title:`Could not refresh ${p.name||'provider'}`,detail:p.lastError,hold:2200});await persist();if(!quiet){render();toast(`${p.name}: ${p.lastError}`)}return false}
+    report(99,'Finishing…');p.status='connected';if(!deferPersist)await persist(NATIVE_WINDOWS?'cache':true);p.refreshProgress=100;p.refreshDetail='Updated';patchProviderRefreshCard(p);try{onProgress?.({provider:p,progress:100,detail:'Updated'})}catch{}if(manageTask)taskProgressEnd({success:true,title:`${p.name||'Provider'} refreshed`,detail:`${Number(counts.live||0).toLocaleString()} live · ${Number(counts.movie||0).toLocaleString()} movies · ${Number(counts.series||0).toLocaleString()} shows`});setTimeout(()=>{delete p.refreshProgress;delete p.refreshDetail;patchProviderRefreshCard(p)},1200);if(!quiet){render();toast(`${p.name} refreshed`)}return true;
+  }catch(err){p.status='error';p.lastError=err.message||String(err);p.refreshDetail=p.lastError;patchProviderRefreshCard(p);if(manageTask)taskProgressEnd({success:false,title:`Could not refresh ${p.name||'provider'}`,detail:p.lastError,hold:2200});if(!deferPersist)await persist();if(!quiet){render();toast(`${p.name}: ${p.lastError}`)}return false}
 }
 async function refreshAllProviders(){const list=enabledProviders();if(!list.length){toast('No enabled providers to refresh');return}taskProgressStart({title:'Refreshing all TV providers…',detail:`Starting provider 1 of ${list.length}.`,progress:1});let ok=0;for(let i=0;i<list.length;i++){const p=list[i];const success=await refreshProvider(p.id,{quiet:true,manageTask:false,onProgress:info=>{const overall=((i+(Number(info.progress||0)/100))/list.length)*100;taskProgressUpdate({title:`Refreshing all TV providers…`,detail:`Provider ${i+1} of ${list.length}: ${p.name} · ${info.detail}`,progress:overall})}});if(success)ok++;}render();taskProgressUpdate({progress:100,detail:`Finished checking ${list.length} provider${list.length===1?'':'s'}.`});taskProgressEnd({success:ok===list.length,title:'Provider refresh finished',detail:`${ok} of ${list.length} provider${list.length===1?'':'s'} refreshed successfully.`,hold:1500});toast(ok===list.length?'Provider refresh finished':`${ok} of ${list.length} providers refreshed`)}
 async function removeProvider(id){const p=providerById(id);if(!p)return;state.catalog=state.catalog.filter(x=>x.providerId!==id);if(NATIVE_WINDOWS){await nativeCatalogRemoveProvider(id).catch(()=>{});await refreshNativeCatalogStats();}state.providers=state.providers.filter(x=>x.id!==id);removeSavedProviderCredentials(id);normalizeProviderPriorities();syncProviderCounts();state.webDiscovery={};epgCache.clear();m3uGuideTextCache.delete(id);xtreamGuideTextCache.delete(id);guideProviderCategoryCache.key='';guideProviderCategoryCache.names=[];guideChannelCache.key='';guideChannelCache.items=[];detailCache.clear();await persist(NATIVE_WINDOWS?'cache':true);if(nativeCatalogMode&&nativeCatalogStats?.rowCount)await activateNativeCatalogIfAvailable();render();toast(`${p.name} removed`)}
@@ -2627,10 +2693,14 @@ function tvSpatialTarget(current,key,focusables){
   return best;
 }
 function tvMoveFocus(key){
-  const focusables=tvFocusableElements();if(!focusables.length)return false;
+  let focusables=tvFocusableElements();if(!focusables.length)return false;
   let current=document.activeElement;
   if(!focusables.includes(current)){const first=tvInitialFocus(focusables);if(first){first.focus();first.scrollIntoView({block:'nearest',inline:'nearest'});return true}return false}
-  const target=tvSpatialTarget(current,key,focusables);if(!target)return false;
+  let target=tvSpatialTarget(current,key,focusables);
+  if(!target&&NATIVE_ANDROID&&state.page==='home'&&key==='ArrowDown'&&mountNextAndroidHomeRows(2)){
+    focusables=tvFocusableElements();target=tvSpatialTarget(current,key,focusables);
+  }
+  if(!target)return false;
   rememberTvFocus();
   try{target.focus({preventScroll:true})}catch{target.focus()}
   target.scrollIntoView({behavior:NATIVE_ANDROID?'auto':'smooth',block:'nearest',inline:'nearest'});
@@ -2685,8 +2755,86 @@ async function ensureDurableLibraryRestored(){
   return libraryRestorePromise;
 }
 
+
+async function prepareAndroidHomeBeforeEntry(onProgress=null){
+  if(!NATIVE_ANDROID||!state.catalog.length){androidPreparedHomeReady=true;return}
+  clearAndroidPreparedHome();tvHomeSnapshotActive=false;resetAndroidFastCatalog();
+  try{onProgress?.({phase:'catalog',progress:0,detail:'Organising your library…'});}catch{}
+  androidFastCatalog();
+  const workerReady=await ensureTvCatalogWorkerReady(45000,info=>{try{onProgress?.({phase:'index',progress:Math.min(.45,Number(info.loaded||0)/Math.max(1,Number(info.total||1))*.45),detail:`Indexing ${Number(info.loaded||0).toLocaleString()} of ${Number(info.total||0).toLocaleString()} items…`});}catch{}});
+  try{onProgress?.({phase:'index',progress:.5,detail:workerReady?'Library index ready.':'Finishing library index…'});}catch{}
+  const rows=selectedHomeRows();
+  // Only the two priority ranking feeds are network-refreshed during launch. The much larger
+  // curated Home set is built from its last good match or an immediate provider-library
+  // fallback, so launch never becomes 20+ sequential web requests before the customer can watch.
+  await refreshDiscoveryRows(true,false,info=>{const fraction=Number(info.completed||0)/Math.max(1,Number(info.total||1));try{onProgress?.({phase:'discovery',progress:.5+fraction*.22,detail:info.label?`Preparing ${info.label}…`:'Preparing Top 100…',label:info.label||''});}catch{}},['top20-movies','top20-shows']);
+  const prepared=rows.filter(def=>!ANDROID_DYNAMIC_HOME_ROWS.has(def.id)),total=Math.max(1,prepared.length);let done=0;
+  for(const def of prepared){
+    const data=androidFastHomeMode()?androidFastRowItems(def.id):homeRowItems(def.id);
+    androidPreparedHomeRows.set(def.id,(data||[]).slice(0,String(def.id).startsWith('top20-')?ANDROID_TV_HOME_RANKED_LIMIT:ANDROID_TV_HOME_STANDARD_LIMIT));
+    done++;try{onProgress?.({phase:'rows',progress:.72+(done/total)*.26,detail:`Preparing ${def.label}…`,label:def.label});}catch{}
+    await new Promise(r=>setTimeout(r,0));
+  }
+  androidPreparedHomeReady=true;
+  const warm=[];for(const def of rows.slice(0,5))warm.push(...homeRowItems(def.id).slice(0,8));
+  try{onProgress?.({phase:'artwork',progress:.985,detail:'Loading Home artwork…',label:'Home artwork'});}catch{}
+  await preloadCriticalArtwork(warm,36,4200);prewarmArtworkUrls(warm,40);
+  try{onProgress?.({phase:'ready',progress:1,detail:'Home is ready.'});}catch{}
+}
+
+async function runAndroidStartupGate(){
+  if(!NATIVE_ANDROID||androidStartupGateComplete)return true;
+  if(androidStartupGatePromise)return androidStartupGatePromise;
+  androidStartupGatePromise=(async()=>{
+    startupRefreshActive=true;startupRefreshState={progress:2,title:'Updating your TV library…',detail:'Checking your TV provider…',provider:'Starting…',summary:'Your Home screen will open when everything is ready.'};render();
+    let ok=0,failed=0,usedPrevious=false;
+    try{
+      updateStartupRefreshProgress({progress:3,provider:'Loading saved library',detail:'Preparing your existing library before the update.'});
+      if(!libraryRestored||tvHomeSnapshotActive){try{await ensureDurableLibraryRestored()}catch{}}
+      usedPrevious=Boolean(state.catalog.length);
+      const providers=enabledProviders(),refreshable=providers.filter(providerCanRefreshOnLaunch),skipped=providers.length-refreshable.length;
+      if(refreshable.length){
+        for(let i=0;i<refreshable.length;i++){
+          const provider=refreshable[i],base=6+(i/refreshable.length)*58,span=58/refreshable.length;
+          updateStartupRefreshProgress({progress:base,provider:`${provider.name||'TV Provider'} · ${i+1} of ${refreshable.length}`,detail:'Downloading channels, movies and TV shows…'});
+          const success=await refreshProvider(provider.id,{quiet:true,manageTask:false,deferPersist:true,onProgress:info=>{
+            const fraction=Math.max(0,Math.min(1,Number(info.progress||0)/100));
+            updateStartupRefreshProgress({progress:base+fraction*span,provider:`${provider.name||'TV Provider'} · ${i+1} of ${refreshable.length}`,detail:info.detail||'Updating your library…'});
+          }});
+          if(success)ok++;else failed++;
+          await new Promise(r=>setTimeout(r,0));
+        }
+      }
+      if(state.catalog.length){
+        tvHomeSnapshotActive=false;libraryRestored=true;resetMovieStackIndex();syncProviderCounts();
+        updateStartupRefreshProgress({progress:66,provider:`${catalogLogicalTotal().toLocaleString()} items`,detail:'Saving your refreshed library…'});
+        await persist(true);
+        updateStartupRefreshProgress({progress:70,provider:'Preparing Home',detail:'Building your Home screen in priority order…'});
+        await prepareAndroidHomeBeforeEntry(info=>{
+          const mapped=70+Math.max(0,Math.min(1,Number(info.progress||0)))*28;
+          updateStartupRefreshProgress({progress:mapped,provider:info.label||'Preparing Home',detail:info.detail||'Preparing Home…'});
+        });
+        updateStartupRefreshProgress({progress:99,provider:'Finalising',detail:'Saving your prepared Home screen…'});
+        await persist('cache');scheduleTvHomeSnapshotSave(0);
+      }else{
+        clearAndroidPreparedHome();androidPreparedHomeReady=true;
+      }
+      const parts=[];if(ok)parts.push(`${ok} provider${ok===1?'':'s'} updated`);if(failed)parts.push(`${failed} using previous data`);if(skipped)parts.push(`${skipped} unchanged`);
+      updateStartupRefreshProgress({progress:100,provider:'Ready',detail:state.catalog.length?'Your library is ready.':'Swoop TV is ready.',summary:parts.join(' · ')||'Ready to watch.'});
+      androidStartupGateComplete=true;startupRefreshActive=false;state.page='home';clearPersistentPageViews(['home']);render();forceAndroidHomeEntry();return true;
+    }catch(err){
+      if(usedPrevious&&state.catalog.length){
+        try{await prepareAndroidHomeBeforeEntry()}catch{}
+        androidStartupGateComplete=true;startupRefreshActive=false;state.page='home';render();forceAndroidHomeEntry();toast('Using your last successful library');return true;
+      }
+      startupRefreshActive=false;androidStartupGateComplete=true;state.page='home';render();toast(err?.message||'Could not update your library');return false;
+    }finally{androidStartupGatePromise=null}
+  })();
+  return androidStartupGatePromise;
+}
+
 async function bootstrapApp(){
-  if(NATIVE_ANDROID){render();startAndroidBackgroundRestore();return}
+  if(NATIVE_ANDROID){render();return}
   const providers=enabledProviders();
   if(!providers.length){render();return}
   const refreshable=providers.filter(providerCanRefreshOnLaunch);

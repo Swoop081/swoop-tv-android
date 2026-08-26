@@ -1,31 +1,32 @@
-# Swoop TV v0.8.4 — Google TV Instant UI
+# Swoop TV v0.8.5 — Google TV Launch Refresh + Ready Home
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.4 performance contract
+## v0.8.5 launch contract
 
-Swoop TV on Google TV now treats interaction as higher priority than catalogue/background work:
+Swoop TV now treats launch as a gated library-preparation phase on Google TV. The app does not expose Home until the provider library and priority Home content are ready.
 
-- The visible screen must remain responsive to D-pad input while background work is running.
-- Unfinished Home rows are kept off-screen rather than shown as loading skeletons or blank rails.
-- A compact cached Home snapshot is saved for repeat launches so Home can open from already prepared data while the full catalogue restores silently.
-- Older installs without a v0.8.4 snapshot can build a fast multi-chunk preview from durable storage behind the profile picker, then replace it internally with the full library without forcing a visible rerender.
-- Full-catalogue indexing is prepared in a persistent Web Worker instead of monopolising the WebView UI thread. The catalogue is handed to that worker in small idle-time chunks rather than one large structured-clone operation.
-- Movie source stacking is returned from the worker in bounded chunks, preventing one large result handoff from causing a late navigation hitch.
-- Large-library Search and People/filmography matching can use the prepared worker index, keeping expensive matching away from remote input and rendering.
-- People routes on Google TV are complete-frame transitions: the current finished screen stays visible while the person/filmography result is prepared, then Swoop TV swaps to the finished route in one step.
-- TV Guide data for likely channels is opportunistically prewarmed after Home settles. Missing EPG data never appears as a spinner/placeholder row on Google TV.
-- Google TV poster cards always retain a readable title fallback, so slow artwork decoding cannot leave anonymous colour tiles on screen.
-- Home initially paints a small set of complete rows. Remaining rows are built during idle time, artwork is prewarmed off-screen, and ready rows are appended below the current viewport.
-- Movie/series detail data is prewarmed when a card receives focus. On selection, the current complete screen stays visible until the detail payload is ready rather than opening a half-built detail page.
-- Heavy automatic discovery/metadata warmups remain off the immediate TV interaction path.
-- The v0.8.3 startup fixes remain: no automatic provider refresh at launch, Home starts at the top, and D-pad navigation uses immediate scrolling.
+- After profile selection, Swoop TV immediately opens a polished **Updating your TV library** screen with a real percentage progress bar, current stage and provider status.
+- Every enabled provider with saved refreshable credentials is refreshed during the launch gate. Local-file providers that cannot be refreshed automatically keep their saved content.
+- Android provider downloads run through an asynchronous native network bridge. Large responses are transferred to the WebView in bounded chunks so the progress UI can continue rendering while network work runs.
+- Xtream category and catalogue downloads run concurrently. Catalogue normalization yields between large batches rather than processing the whole playlist in one uninterrupted UI-thread pass.
+- The previous successful library is loaded first as a protected fallback, but it is never shown as a partially refreshed Home screen.
+- The refreshed catalogue is persisted once after provider refresh finishes rather than rewriting the full library after every provider.
+- Swoop TV prepares Home before revealing it. **Top 100 Movies** and **Top 100 TV Shows** are refreshed and prepared first. Remaining selected Home rows are resolved from their last successful match or provider-local data before Home is exposed, so launch does not wait on dozens of separate recommendation requests.
+- Discovery-to-library matching and large-library indexing use the Android catalogue worker where available so expensive matching stays off the WebView interaction path.
+- A prepared Home-row cache is built during the gate, and critical first-screen artwork is warmed before Home is shown.
+- If an online Top 100 source is unavailable, Google TV can build a provider-library fallback rather than exposing an empty priority row.
+- Home always enters at scroll position 0 and only after preparation reaches 100%.
+- Once Home appears, there is no automatic Android row expansion, destination prewarm or missing-card metadata crawl. Additional already-prepared Home rows are mounted only when D-pad navigation reaches them, so background DOM/artwork work cannot steal the remote interaction budget.
+- If a launch refresh fails but a previous successful library exists, Swoop TV prepares and opens that saved library instead of leaving the customer stranded on an unusable screen.
+
+The intended customer experience is therefore: **choose profile → watch one clear progress screen → enter a complete, responsive Home**. There is no half-loaded Home phase.
 
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.4`
-- versionCode: `804`
+- versionName: `0.8.5`
+- versionCode: `805`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -36,6 +37,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.4 (804)**. The workflow also publishes `Swoop-TV-v0.8.4-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.5 (805)**. The workflow also publishes `Swoop-TV-v0.8.5-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

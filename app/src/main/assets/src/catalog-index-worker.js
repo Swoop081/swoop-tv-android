@@ -33,6 +33,11 @@ self.onmessage=e=>{
       if(term){for(const row of searchRows){if(kinds.has(String(row.item?.kind||''))&&row.text.includes(term)){items.push(row.item);if(items.length>=limit)break}}}
       reply('search-result',msg.requestId,{items});return;
     }
+    if(msg.type==='catalog-match'){
+      const active=activeCatalog(),payload=msg.payload||{items:[]},mediaType=msg.mediaType==='show'?'show':'movie';
+      const items=matchMDBListToCatalog(payload,active,{sourceLimit:Math.max(20,Math.min(1200,Number(msg.sourceLimit||800))),limit:Math.max(1,Math.min(200,Number(msg.limit||100))),mediaType});
+      reply('catalog-match-result',msg.requestId,{items});return;
+    }
     if(msg.type==='person-match'){
       const active=activeCatalog(),moviePayload=msg.moviePayload||{items:[]},showPayload=msg.showPayload||{items:[]};
       const movies=matchMDBListToCatalog(moviePayload,active,{sourceLimit:800,mediaType:'movie'});

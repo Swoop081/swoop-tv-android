@@ -831,7 +831,7 @@ html.android-tv .rail,html.android-tv .live-category-rail-track,html.android-tv 
 html.android-tv .modal-card,html.android-tv .source-choice-card{max-height:84vh;overflow:auto}
 
 
-/* v0.8.4 Google TV complete-frame rendering: unfinished work stays off-screen. */
+/* v0.8.5 Google TV complete-frame rendering: unfinished work stays off-screen. */
 html.android-tv .lazy-row-skeleton,
 html.android-tv .native-query-loading,
 html.android-tv .detail-loading,
@@ -854,3 +854,15 @@ html.android-tv .card.poster:not(.art-ready) .card-bg{background:linear-gradient
 html.android-tv .card.poster:not(.art-ready)::before{content:'S';position:absolute;inset:0;display:grid;place-items:center;font-weight:950;font-size:clamp(32px,3vw,54px);letter-spacing:-.08em;color:rgba(255,255,255,.07);z-index:2;pointer-events:none}
 html.android-tv .card.poster:not(.art-ready) .card-shade{background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.9))}
 html.android-tv .card.poster:not(.art-ready) .tv-card-title-fallback{opacity:1!important;font-weight:850}
+
+/* v0.8.5 — Google TV launch refresh: compact, unmistakably active startup gate. */
+html.android-tv .restoring-page{min-height:100vh;padding:22px}
+html.android-tv .restore-card{width:min(610px,82vw);padding:30px 34px;border-radius:18px}
+html.android-tv .restore-card .provider-spinner{margin:0 auto 16px;width:30px;height:30px}
+html.android-tv .restore-card h1{font-size:clamp(30px,3vw,42px);margin:8px 0 12px}
+html.android-tv .restore-card p{font-size:12px;line-height:1.45;max-width:520px}
+html.android-tv .restore-progress{margin-top:19px;max-width:520px;gap:8px}
+html.android-tv .restore-progress>div{font-size:10px;gap:12px}
+html.android-tv .restore-progress>div strong{font-size:15px}
+html.android-tv .restore-progress>i{height:8px}
+html.android-tv .restore-card>small{margin-top:10px;font-size:9px}

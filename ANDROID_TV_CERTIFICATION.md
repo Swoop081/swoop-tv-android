@@ -1,21 +1,22 @@
-# Swoop TV v0.8.4 — Google TV hardware test checklist
+# Swoop TV v0.8.5 — Google TV hardware test checklist
 
-## Responsiveness / complete-frame gate
-- [ ] Profile picker responds immediately after launch.
-- [ ] Selecting a profile never produces a visible loading page or half-built Home.
+## Launch refresh / ready-Home gate
+- [ ] Profile picker responds immediately after cold launch.
+- [ ] Selecting a profile switches to the **Updating your TV library** screen immediately; Home is never briefly exposed first.
+- [ ] The launch screen shows a visible percentage, moving progress bar, current stage and provider status throughout preparation.
+- [ ] Every enabled Xtream/M3U URL provider with saved credentials is checked during the launch gate.
+- [ ] A temporarily unavailable provider keeps the last successful saved content rather than replacing it with an empty library.
+- [ ] Large provider downloads do not make the progress animation appear frozen for the full network-request duration.
+- [ ] Top 100 Movies is prepared before lower-priority discovery/provider Home rows.
+- [ ] Top 100 TV Shows is prepared before lower-priority discovery/provider Home rows.
+- [ ] Recently Added Movies / TV Shows do not appear on Home before the Top 100 priority rows have finished preparation.
+- [ ] Critical first-screen artwork is ready before Home is revealed, or uses the finished title fallback rather than an unfinished placeholder.
+- [ ] Home is not revealed until launch preparation reaches 100%.
 - [ ] Home enters at scroll position 0.
-- [ ] D-pad remains responsive continuously while the full catalogue restores in the background.
+- [ ] D-pad responds immediately on the first frame after Home appears; there is no 30-second post-launch dead period.
+- [ ] Rapid D-pad navigation remains responsive after Home appears while optional background work continues.
 - [ ] No Home row appears as a skeleton, spinner, blank loading rail or anonymous colour tile.
-- [ ] Initial Home rows are complete when shown; additional rows only appear after they are prepared.
-- [ ] Repeated rapid D-pad navigation does not hitch while background indexing is active.
-- [ ] Opening Movies / TV Shows / Live TV does not freeze while movie source stacking is still being prepared.
-- [ ] Focusing a movie/series prewarms details without changing the visible screen.
-- [ ] Selecting a movie/series never opens a visibly half-loaded detail route.
-- [ ] Relaunching Swoop TV does not trigger a full provider refresh automatically.
-- [ ] Search remains responsive while typing against a 30,000+ item library and shows no search spinner/blank loading card.
-- [ ] Opening a cast/person result keeps the previous complete screen usable until the finished filmography route is ready.
-- [ ] TV Guide never exposes programme-data loading placeholders; guide data may populate only from completed background results.
-- [ ] Background catalogue worker transfer/indexing does not cause a late multi-second D-pad hitch after Home has already opened.
+- [ ] Relaunching the app repeats the launch refresh/preparation gate before exposing the library.
 
 ## Remote / navigation
 - [ ] Swoop TV appears in the Google TV Apps list with its TV banner.

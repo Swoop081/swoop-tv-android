@@ -165,34 +165,53 @@ export async function importXtream(config, providerId='xtream', onProgress=()=>{
     loadSection('series','get_series_categories','get_series')
   ]);
   const liveCats=liveData.categories, liveStreams=liveData.items;
-  const liveCategoryOrder=new Map((liveCats||[]).map((c,i)=>[String(c.category_id),i]));
   const vodCats=vodData.categories, vodStreams=vodData.items;
-  const vodCategoryOrder=new Map((vodCats||[]).map((c,i)=>[String(c.category_id),i]));
   const seriesCats=seriesData.categories, series=seriesData.items;
+  const liveCategoryOrder=new Map((liveCats||[]).map((c,i)=>[String(c.category_id),i]));
+  const vodCategoryOrder=new Map((vodCats||[]).map((c,i)=>[String(c.category_id),i]));
   const seriesCategoryOrder=new Map((seriesCats||[]).map((c,i)=>[String(c.category_id),i]));
-  const catName = (cats,id)=>cats.find(c=>String(c.category_id)===String(id))?.category_name || 'Uncategorised';
-  const items = [];
-  for (const s of liveStreams || []) items.push({
-    id:`${providerId}:live:${s.stream_id}`, providerId, source:'xtream', kind:'live', name:s.name || 'Untitled channel',
-    group:catName(liveCats,s.category_id), logo:normalizeAssetUrl(s.stream_icon, server), tvgId:s.epg_channel_id || '',
-    streamUrl:`${server}/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${s.stream_id}.${s.container_extension || 'ts'}`,
-    streamId:s.stream_id, epgChannelId:s.epg_channel_id || '', providerCategoryId:String(s.category_id??''), providerCategoryOrder:Number(liveCategoryOrder.get(String(s.category_id))??999999)
-  });
-  for (const s of vodStreams || []) items.push({
-    id:`${providerId}:movie:${s.stream_id}`, providerId, source:'xtream', kind:'movie', name:s.name || 'Untitled movie',
-    group:catName(vodCats,s.category_id), logo:normalizeAssetUrl(s.stream_icon, server), backdrop:normalizeAssetUrl(Array.isArray(s.backdrop_path)?s.backdrop_path[0]:s.backdrop_path, server), year:s.year || '', rating:s.rating || '', providerAddedAt:providerTimestamp(s.added || s.last_modified || s.created_at || s.timestamp),
-    plot:s.plot || s.description || '', genre:s.genre || '', duration:s.duration || '',
-    tmdbId:s.tmdb || s.tmdb_id || '', imdbId:s.imdb_id || '',
-    streamUrl:`${server}/movie/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${s.stream_id}.${s.container_extension || 'mp4'}`,
-    streamId:s.stream_id, providerCategoryId:String(s.category_id??''), providerCategoryOrder:Number(vodCategoryOrder.get(String(s.category_id))??999999)
-  });
-  for (const s of series || []) items.push({
-    id:`${providerId}:series:${s.series_id}`, providerId, source:'xtream', kind:'series', name:s.name || 'Untitled series',
-    group:catName(seriesCats,s.category_id), logo:normalizeAssetUrl(s.cover, server), backdrop:normalizeAssetUrl(Array.isArray(s.backdrop_path)?s.backdrop_path[0]:s.backdrop_path, server), year:s.releaseDate || s.year || '', rating:s.rating || '', providerAddedAt:providerTimestamp(s.added || s.last_modified || s.created_at || s.timestamp),
-    plot:s.plot || s.description || '', genre:s.genre || '', duration:s.episode_run_time || '',
-    tmdbId:s.tmdb || s.tmdb_id || '', imdbId:s.imdb_id || '', streamUrl:'', seriesId:s.series_id,
-    providerCategoryId:String(s.category_id??''), providerCategoryOrder:Number(seriesCategoryOrder.get(String(s.category_id))??999999)
-  });
+  const liveCategoryName=new Map((liveCats||[]).map(c=>[String(c.category_id),c.category_name||'Uncategorised']));
+  const vodCategoryName=new Map((vodCats||[]).map(c=>[String(c.category_id),c.category_name||'Uncategorised']));
+  const seriesCategoryName=new Map((seriesCats||[]).map(c=>[String(c.category_id),c.category_name||'Uncategorised']));
+  const total=(liveStreams?.length||0)+(vodStreams?.length||0)+(series?.length||0),items=[];
+  let prepared=0;
+  const reportPrepared=async force=>{
+    if(force||prepared%2000===0){try{onProgress({phase:'prepare',loaded:prepared,total});}catch{}await new Promise(r=>setTimeout(r,0));}
+  };
+  for (const s of liveStreams || []) {
+    const categoryId=String(s.category_id??'');
+    items.push({
+      id:`${providerId}:live:${s.stream_id}`, providerId, source:'xtream', kind:'live', name:s.name || 'Untitled channel',
+      group:liveCategoryName.get(categoryId)||'Uncategorised', logo:normalizeAssetUrl(s.stream_icon, server), tvgId:s.epg_channel_id || '',
+      streamUrl:`${server}/live/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${s.stream_id}.${s.container_extension || 'ts'}`,
+      streamId:s.stream_id, epgChannelId:s.epg_channel_id || '', providerCategoryId:categoryId, providerCategoryOrder:Number(liveCategoryOrder.get(categoryId)??999999)
+    });
+    prepared++;await reportPrepared(false);
+  }
+  for (const s of vodStreams || []) {
+    const categoryId=String(s.category_id??'');
+    items.push({
+      id:`${providerId}:movie:${s.stream_id}`, providerId, source:'xtream', kind:'movie', name:s.name || 'Untitled movie',
+      group:vodCategoryName.get(categoryId)||'Uncategorised', logo:normalizeAssetUrl(s.stream_icon, server), backdrop:normalizeAssetUrl(Array.isArray(s.backdrop_path)?s.backdrop_path[0]:s.backdrop_path, server), year:s.year || '', rating:s.rating || '', providerAddedAt:providerTimestamp(s.added || s.last_modified || s.created_at || s.timestamp),
+      plot:s.plot || s.description || '', genre:s.genre || '', duration:s.duration || '',
+      tmdbId:s.tmdb || s.tmdb_id || '', imdbId:s.imdb_id || '',
+      streamUrl:`${server}/movie/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${s.stream_id}.${s.container_extension || 'mp4'}`,
+      streamId:s.stream_id, providerCategoryId:categoryId, providerCategoryOrder:Number(vodCategoryOrder.get(categoryId)??999999)
+    });
+    prepared++;await reportPrepared(false);
+  }
+  for (const s of series || []) {
+    const categoryId=String(s.category_id??'');
+    items.push({
+      id:`${providerId}:series:${s.series_id}`, providerId, source:'xtream', kind:'series', name:s.name || 'Untitled series',
+      group:seriesCategoryName.get(categoryId)||'Uncategorised', logo:normalizeAssetUrl(s.cover, server), backdrop:normalizeAssetUrl(Array.isArray(s.backdrop_path)?s.backdrop_path[0]:s.backdrop_path, server), year:s.releaseDate || s.year || '', rating:s.rating || '', providerAddedAt:providerTimestamp(s.added || s.last_modified || s.created_at || s.timestamp),
+      plot:s.plot || s.description || '', genre:s.genre || '', duration:s.episode_run_time || '',
+      tmdbId:s.tmdb || s.tmdb_id || '', imdbId:s.imdb_id || '', streamUrl:'', seriesId:s.series_id,
+      providerCategoryId:categoryId, providerCategoryOrder:Number(seriesCategoryOrder.get(categoryId)??999999)
+    });
+    prepared++;await reportPrepared(false);
+  }
+  await reportPrepared(true);
   return {items, categories:{live:liveCats, movie:vodCats, series:seriesCats}, counts:{live:liveStreams.length,movie:vodStreams.length,series:series.length}};
 }
 

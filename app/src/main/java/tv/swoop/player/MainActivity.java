@@ -42,7 +42,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPInputStream;
@@ -57,6 +60,9 @@ public class MainActivity extends Activity {
     private ExoPlayer player;
     private ValueCallback<Uri[]> filePathCallback;
     private WebViewAssetLoader assetLoader;
+    private final ExecutorService networkExecutor = Executors.newFixedThreadPool(2);
+    private final ConcurrentHashMap<String, String> asyncFetchResults = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> asyncFetchErrors = new ConcurrentHashMap<>();
 
     private volatile boolean nativePlayerVisible = false;
     private volatile boolean ended = false;
@@ -118,7 +124,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.4 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.5 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -328,7 +334,7 @@ public class MainActivity extends Activity {
         c.setReadTimeout(60_000);
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.4 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.5 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream());
@@ -352,7 +358,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.4"; }
+        public String version() { return "0.8.5"; }
 
         @JavascriptInterface
         public String play(String payloadJson) {
@@ -425,6 +431,54 @@ public class MainActivity extends Activity {
             try { return fetchTextBlocking(url); }
             catch (Exception e) { return "__SWOOP_NATIVE_ERROR__" + (e.getMessage() == null ? "Could not load provider data." : e.getMessage()); }
         }
+
+        @JavascriptInterface
+        public void fetchTextAsync(String requestId, String url) {
+            final String id = requestId == null ? "" : requestId.trim();
+            final String target = url == null ? "" : url.trim();
+            if (id.isEmpty() || target.isEmpty()) return;
+            asyncFetchResults.remove(id);
+            asyncFetchErrors.remove(id);
+            networkExecutor.execute(() -> {
+                JSONObject detail = new JSONObject();
+                try {
+                    String text = fetchTextBlocking(target);
+                    asyncFetchResults.put(id, text);
+                    detail.put("requestId", id);
+                    detail.put("ok", true);
+                    detail.put("length", text.length());
+                } catch (Exception e) {
+                    String message = e.getMessage() == null ? "Could not load provider data." : e.getMessage();
+                    asyncFetchErrors.put(id, message);
+                    try {
+                        detail.put("requestId", id);
+                        detail.put("ok", false);
+                        detail.put("error", message);
+                    } catch (Exception ignored) {}
+                }
+                emitNativeEvent("swoop-native-fetch", detail);
+            });
+        }
+
+        @JavascriptInterface
+        public String fetchTextChunk(String requestId, int offset, int maxChars) {
+            String id = requestId == null ? "" : requestId;
+            String error = asyncFetchErrors.get(id);
+            if (error != null) return "__SWOOP_NATIVE_ERROR__" + error;
+            String text = asyncFetchResults.get(id);
+            if (text == null) return "";
+            int start = Math.max(0, Math.min(offset, text.length()));
+            int size = Math.max(1, Math.min(maxChars, 512 * 1024));
+            int end = Math.min(text.length(), start + size);
+            return text.substring(start, end);
+        }
+
+        @JavascriptInterface
+        public void releaseFetchText(String requestId) {
+            String id = requestId == null ? "" : requestId;
+            asyncFetchResults.remove(id);
+            asyncFetchErrors.remove(id);
+        }
     }
 
     @Override
@@ -459,6 +513,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         releasePlayerOnly();
+        try { networkExecutor.shutdownNow(); } catch (Exception ignored) {}
+        asyncFetchResults.clear();
+        asyncFetchErrors.clear();
         if (webView != null) {
             webView.removeJavascriptInterface("SwoopAndroid");
             webView.destroy();
