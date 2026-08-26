@@ -908,23 +908,25 @@ html.android-tv .guide-categories{top:86px;max-height:calc(100vh - 104px)}
    rail uses the same compact width/baseline; ranked rails only add the number. */
 html.android-tv .poster-section .rail,
 html.android-tv .ranked-section .rail{
-  grid-auto-columns:minmax(154px,12vw);
-  gap:8px;
-  padding:8px 32px 14px 10px;
-  margin:-6px -32px -10px -10px;
+  grid-auto-columns:minmax(128px,9.4vw);
+  gap:17px;
+  padding:8px 34px 34px 18px;
+  margin:-6px -34px -24px -18px;
   scroll-snap-type:none;
   scroll-behavior:auto;
 }
 html.android-tv .poster-section .card.poster,
 html.android-tv .ranked-section .card.poster{aspect-ratio:2/3}
 html.android-tv .ranked-card{margin-left:0;overflow:visible;background:#111}
-html.android-tv .rank-badge{left:-7px;bottom:-3px;width:52px;height:66px}
-html.android-tv .rank-badge span{font-size:60px}
-html.android-tv .rank-badge.rank-two-digit{left:-9px;width:68px}
-html.android-tv .rank-badge.rank-two-digit span{font-size:53px}
-html.android-tv .rank-badge.rank-three-digit{left:-11px;width:84px}
-html.android-tv .rank-badge.rank-three-digit span{font-size:43px}
-html.android-tv .ranked-card .card-copy{left:12px}
+/* Rank numerals straddle the lower-left edge rather than sitting over title copy. */
+html.android-tv .rank-badge{left:-17px;bottom:-27px;width:52px;height:66px}
+html.android-tv .rank-badge span{font-size:58px}
+html.android-tv .rank-badge.rank-two-digit{left:-22px;width:68px}
+html.android-tv .rank-badge.rank-two-digit span{font-size:51px}
+html.android-tv .rank-badge.rank-three-digit{left:-26px;width:84px}
+html.android-tv .rank-badge.rank-three-digit span{font-size:41px}
+html.android-tv .ranked-card .tv-card-title-fallback{display:none!important}
+html.android-tv .ranked-card .card-copy{left:10px}
 html.android-tv .ranked-card .card-saved{left:auto;right:8px}
 
 /* v0.8.11 — Google TV premium control system.
@@ -1218,3 +1220,7 @@ html.android-tv .continue-remove-btn:focus-visible{
 html.android-tv[data-theme="chill"]{background:#030306}
 html.android-tv[data-theme="chill"] .topbar{background:linear-gradient(180deg,rgba(3,3,6,.96),rgba(3,3,6,.78),transparent)}
 html.android-tv[data-theme="chill"] .restore-card{border-color:color-mix(in srgb,var(--accent) 18%,rgba(255,255,255,.08));box-shadow:0 20px 70px rgba(0,0,0,.42),0 0 46px color-mix(in srgb,var(--accent) 8%,transparent)}
+
+
+/* v0.8.12 — transparent launch-preparation branding. */
+html.android-tv .startup-swoop-logo{background:transparent!important;object-fit:contain;mix-blend-mode:normal}

@@ -1,23 +1,17 @@
-# Swoop TV v0.8.11 — Google TV hardware test checklist
+# Swoop TV v0.8.12 — Google TV hardware test checklist
 
-## Launch refresh / ready-Home gate
-- [ ] Profile picker responds immediately after cold launch.
-- [ ] Selecting a profile switches to the **Updating your TV library** screen immediately; Home is never briefly exposed first.
-- [ ] The launch screen shows a visible percentage, moving progress bar, current stage and provider status throughout preparation.
-- [ ] Every enabled Xtream/M3U URL provider with saved credentials is checked during the launch gate.
-- [ ] A temporarily unavailable provider keeps the last successful saved content rather than replacing it with an empty library.
-- [ ] Large provider downloads do not make the progress animation appear frozen for the full network-request duration.
-- [ ] Top 100 Movies is prepared before lower-priority discovery/provider Home rows.
-- [ ] Top 100 TV Shows is prepared before lower-priority discovery/provider Home rows.
-- [ ] Recently Added Movies / TV Shows do not appear on Home before the Top 100 priority rows have finished preparation.
-- [ ] Critical first-screen artwork is ready before Home is revealed, or uses the finished title fallback rather than an unfinished placeholder.
-- [ ] Home is not revealed until launch preparation reaches 100%.
-- [ ] Home enters at scroll position 0.
-- [ ] D-pad responds immediately on the first frame after Home appears; there is no 30-second post-launch dead period.
-- [ ] Rapid D-pad navigation remains responsive after Home appears while optional background work continues.
-- [ ] No Home row appears as a skeleton, spinner, blank loading rail or anonymous colour tile.
-- [ ] Relaunching the app repeats the launch refresh/preparation gate before exposing the library.
-
+## Cache-first launch / one-time preparation
+- [ ] A normal cold launch with a valid saved library does **not** show the long provider-refresh screen.
+- [ ] Selecting a profile opens the saved Home immediately and the D-pad responds on the first frame.
+- [ ] Normal app restarts do not download the Xtream/M3U playlist again.
+- [ ] Installing a newer test APK over the existing app preserves the saved library and does not force a provider re-download.
+- [ ] Providers → Refresh and Refresh All still perform an explicit network refresh and update the saved library.
+- [ ] A first install / missing or invalid saved library uses the progress screen and performs the one-time provider download.
+- [ ] The one-time preparation screen shows a real percentage, moving progress bar and stage text.
+- [ ] The preparation-screen Swoop TV logo has no rectangular black image background.
+- [ ] The full durable catalogue restores locally after Home is interactive without jumping or redrawing the current Home frame.
+- [ ] Cached EPG data is restored on later launches; opening Guide does not discard the previous successful programme cache simply because the app process restarted.
+- [ ] A temporarily unavailable provider never wipes a previously successful library.
 
 ## Compact Home hero
 - [ ] Home hero occupies roughly the upper 40–44% of the usable TV viewport rather than most of the screen.
@@ -26,9 +20,9 @@
 - [ ] Play / More Info and hero metadata remain fully on-screen with no overscan clipping.
 
 ## TV Guide / EPG
-- [ ] Startup refresh shows a dedicated **TV Guide** stage before Home is revealed.
-- [ ] Xtream XMLTV programme data is prepared during startup rather than waiting for the Guide page to open.
-- [ ] M3U providers with an XMLTV URL are prepared during the same startup stage.
+- [ ] The initial/explicit full refresh prepares TV Guide data and saves it durably.
+- [ ] Later normal launches restore the saved EPG cache without re-running the full provider/guide download.
+- [ ] Xtream and M3U/XMLTV providers both reuse saved programme data when it is still valid.
 - [ ] Large/gzipped XMLTV feeds do not freeze the startup progress animation or remote input.
 - [ ] Entering Guide after startup shows programme titles immediately with no blank/loading rows.
 - [ ] Live player Now / Next and mini-guide can reuse the launch-prepared EPG cache.
@@ -37,8 +31,10 @@
 
 ## Header safe area / Home rail alignment
 - [ ] Swoop TV logo, Home/Live TV/Guide/Movies/TV Shows/My List navigation, provider button, settings and profile controls are fully visible with no top-edge clipping.
-- [ ] Continue Watching and every other poster Home row use the same poster width, 2:3 ratio, gap and baseline as Top 100.
-- [ ] Top 100 rank numbers overlay the poster without shifting the poster itself out of alignment with other rows.
+- [ ] Continue Watching and every other poster Home row use the same **smaller compact** poster width and 2:3 ratio as Top 100.
+- [ ] Horizontal gaps are visibly larger than v0.8.11 so posters have clear breathing room.
+- [ ] Top 100 movie/show title fallback text is not drawn underneath the rank numeral.
+- [ ] Top 100 rank numbers straddle the lower-left poster edge with a substantial portion outside the poster.
 - [ ] Top 100 Movies reports 100 available when the library contains at least 100 movies.
 - [ ] Top 100 TV Shows reports 100 available when the library contains at least 100 shows.
 - [ ] D-pad Right can traverse beyond item 20; additional cards appear seamlessly in 20-item chunks without a pause or full-page rerender.

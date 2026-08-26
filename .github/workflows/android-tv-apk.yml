@@ -56,18 +56,18 @@ jobs:
       - name: Name APK and checksum
         shell: bash
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.11-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.11-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.11-Google-TV-Test.apk > Swoop-TV-v0.8.11-Google-TV-Test.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.12-Google-TV-Test.apk
+          cp Swoop-TV-v0.8.12-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.12-Google-TV-Test.apk > Swoop-TV-v0.8.12-Google-TV-Test.apk.sha256
           sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.11-Google-TV-Test
+          name: Swoop-TV-v0.8.12-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.11-Google-TV-Test.apk
-            Swoop-TV-v0.8.11-Google-TV-Test.apk.sha256
+            Swoop-TV-v0.8.12-Google-TV-Test.apk
+            Swoop-TV-v0.8.12-Google-TV-Test.apk.sha256
             Swoop-TV-v0.8.1-Google-TV-Test.apk
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
           if-no-files-found: error
@@ -89,13 +89,13 @@ jobs:
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.11" \
-              --notes "Current hardware-test channel. v0.8.11 preserves the compact unified Home rails and scroll-first navigation, and adds the premium Google TV control system across navigation, Continue Watching and in-page actions. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v0.8.12" \
+              --notes "Current hardware-test channel. v0.8.12 uses the saved library on normal launches instead of re-downloading providers, reuses durable EPG data, uses transparent startup branding, and reduces/spaces Home posters with corrected Top 100 ranks. Test-only signing identity; not a production release." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.11-Google-TV-Test.apk \
-            Swoop-TV-v0.8.11-Google-TV-Test.apk.sha256 \
+            Swoop-TV-v0.8.12-Google-TV-Test.apk \
+            Swoop-TV-v0.8.12-Google-TV-Test.apk.sha256 \
             Swoop-TV-v0.8.1-Google-TV-Test.apk \
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
             --clobber

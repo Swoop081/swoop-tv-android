@@ -12,6 +12,7 @@ const META_KEY='bulk-metadata-v2';
 const MDB_ROWS_KEY='bulk-mdblist-rows-v2';
 const CATALOG_CHUNK_SIZE=2000;
 const HOME_SNAPSHOT_KEY='swoop-tv-home-snapshot-v1';
+const EPG_CACHE_KEY='swoop-tv-epg-cache-v1';
 
 function safeParse(value){
   try{return value?JSON.parse(value):null}catch{return null}
@@ -140,6 +141,15 @@ export async function loadBulkPreview(){
   }catch{return null}
 }
 
+
+export async function loadEpgCache(){
+  try{return await idbGet(EPG_CACHE_KEY)}catch{return null}
+}
+
+export async function saveEpgCache(payload){
+  try{await idbPut(EPG_CACHE_KEY,payload||null);return true}catch{return false}
+}
+
 export function loadState(){
   try{
     const current=safeParse(localStorage.getItem(STATE_KEY));
@@ -230,7 +240,7 @@ export function clearState(){
   (async()=>{
     try{
       const keys=await idbKeys();
-      for(const key of keys)if(String(key)==='bulk'||String(key)===BULK_MANIFEST||String(key).startsWith(CATALOG_PREFIX)||[WEB_KEY,META_KEY,MDB_ROWS_KEY].includes(String(key)))await idbDelete(key);
+      for(const key of keys)if(String(key)==='bulk'||String(key)===BULK_MANIFEST||String(key).startsWith(CATALOG_PREFIX)||[WEB_KEY,META_KEY,MDB_ROWS_KEY,EPG_CACHE_KEY].includes(String(key)))await idbDelete(key);
     }catch{}
   })();
 }

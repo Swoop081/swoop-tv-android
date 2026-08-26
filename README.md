@@ -1,8 +1,16 @@
-# Swoop TV v0.8.11 — Swoop Neon Theme + Premium TV Controls
+# Swoop TV v0.8.12 — Cached Launch + Compact Ranked Rails
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.11 visual/control additions
+## v0.8.12 launch + rail additions
+
+- Normal Google TV launches reuse the saved provider library/Home snapshot immediately; providers are not re-downloaded on every app open or APK update.
+- Provider network refresh remains available from Providers → Refresh / Refresh All and is still used when no valid saved library exists.
+- Durable EPG data is reused across launches.
+- Startup/preparation branding uses the transparent supplied Swoop TV logo.
+- All Home poster rails are smaller with increased spacing. Top 100 rank numerals straddle the lower-left edge and ranked title fallback text is suppressed.
+
+## v0.8.12 visual/control additions
 
 - Makes the supplied neon Swoop TV logo the visual source for the **default theme**: deep black, hot magenta and electric cyan.
 - Keeps the historical internal theme ID `chill` for saved-profile compatibility, but presents it as **Swoop — Neon signature** so existing default profiles migrate automatically without a reset.
@@ -12,7 +20,7 @@ Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 prod
 - Provider/library progress, Guide current-programme accents, badges and playback progress now inherit the active theme rather than old hard-coded red/purple accents.
 - Retains the v0.8.10 compact Home poster geometry and scroll-first Up navigation.
 
-## v0.8.10 launch contract
+## v0.8.10 historical launch contract (superseded by v0.8.12 cache-first launch)
 
 Swoop TV now treats launch as a gated library-preparation phase on Google TV. The app does not expose Home until the provider library and priority Home content are ready.
 
@@ -47,8 +55,8 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.11`
-- versionCode: `811`
+- versionName: `0.8.12`
+- versionCode: `812`
 - minSdk: 23
 - target/compile SDK: 36
 - Media3 / ExoPlayer: 1.11.0
@@ -59,6 +67,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.11 (811)**. The workflow also publishes `Swoop-TV-v0.8.11-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.12 (812)**. The workflow also publishes `Swoop-TV-v0.8.12-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

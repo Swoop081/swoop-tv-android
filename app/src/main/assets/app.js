@@ -10,7 +10,7 @@ import {buildMovieStackIndex, collapseMovieSources, cleanDisplayTitle, rankSourc
 import {buildLiveStackIndex, selectLiveSource} from './src/liveStack.js';
 import {PROFILE_AVATARS, avatarById, makeProfile, normalizeProfile, profileAllowsMedia, profileGenreAffinity, smartRankRows} from './src/profiles.js';
 import {SWOOP_THEMES, themeById} from './src/themes.js';
-import {loadState, loadBulkState, loadBulkPreview, loadHomeSnapshot, saveHomeSnapshot, saveState, saveBulkState, loadProviderProfile, saveProviderProfile, clearProviderProfile, loadProviderProfiles, saveProviderProfiles, clearProviderProfiles, clearState, loadAuxState, retireBrowserCatalog} from './src/storage.js';
+import {loadState, loadBulkState, loadBulkPreview, loadHomeSnapshot, saveHomeSnapshot, saveState, saveBulkState, loadProviderProfile, saveProviderProfile, clearProviderProfile, loadProviderProfiles, saveProviderProfiles, clearProviderProfiles, clearState, loadAuxState, loadEpgCache, saveEpgCache, retireBrowserCatalog} from './src/storage.js';
 
 const NATIVE_WINDOWS=isNativeWindows();
 const NATIVE_ANDROID=isNativeAndroid();
@@ -390,6 +390,25 @@ const mediaProviderCategoryCache={
 };
 let guideStart=Math.floor(Date.now()/1800000)*1800000;
 const epgCache=new Map();
+let epgDurableRestored=false,epgDurableRestorePromise=null;
+async function restoreDurableEpgCache(){
+  if(!NATIVE_ANDROID||epgDurableRestored)return true;
+  if(epgDurableRestorePromise)return epgDurableRestorePromise;
+  epgDurableRestorePromise=(async()=>{try{
+    const saved=await loadEpgCache();
+    const rows=Array.isArray(saved?.entries)?saved.entries:[];
+    for(const row of rows){if(!row||!row[0]||!row[1])continue;epgCache.set(String(row[0]),row[1]);}
+    epgDurableRestored=true;return Boolean(rows.length);
+  }catch{epgDurableRestored=true;return false}finally{epgDurableRestorePromise=null}})();
+  return epgDurableRestorePromise;
+}
+function persistDurableEpgCache(){
+  if(!NATIVE_ANDROID||!epgCache.size)return Promise.resolve(false);
+  const cutoff=Date.now()-24*60*60*1000,entries=[];
+  for(const [id,value] of epgCache){if(!value||Number(value.loadedAt||0)<cutoff)continue;entries.push([id,{loadedAt:Number(value.loadedAt||0),list:Array.isArray(value.list)?value.list:[]}]);}
+  return saveEpgCache({schema:1,savedAt:Date.now(),entries});
+}
+
 const EPG_TTL_MS=NATIVE_ANDROID?6*60*60*1000:5*60*1000;
 const guideChannelCache={key:'',items:[],total:0};
 const guideChannelRequests=new Map();
@@ -1143,7 +1162,7 @@ function card(item,poster=false,opts={}){
   const art=item.logo?`<img class="card-art" data-swoop-art="${esc(item.logo)}" alt="" loading="lazy">`:'';
   const posterOwnsTitle=Boolean(poster&&((['movie','series'].includes(item.kind)&&item.logo)||continueSeriesPoster));
   const displayTitle=continueSeriesPoster?cleanDisplayTitle({name:item._continueSeriesTitle||item.group||item.name}):cleanDisplayTitle(item);
-  const titleHtml=(posterOwnsTitle&&!NATIVE_ANDROID)?'':`<div class="card-title tv-card-title-fallback">${esc(displayTitle)}</div>`;
+  const titleHtml=(rank&&NATIVE_ANDROID)?'':(posterOwnsTitle&&!NATIVE_ANDROID)?'':`<div class="card-title tv-card-title-fallback">${esc(displayTitle)}</div>`;
   const subHtml=sub?`<div class="card-sub">${esc(sub)}</div>`:'';
   const liveBadge=item.kind==='live'?`<div class="badge"><span class="live-dot"></span>LIVE</div>`:'';
   const action=item.kind==='live'||item.kind==='episode'?'data-play':'data-detail';
@@ -1716,6 +1735,7 @@ async function xtreamGuideText(provider){
 }
 async function loadGuideEpg(){
   if(state.page!=='guide'||guideLoading)return;
+  if(NATIVE_ANDROID&&!epgDurableRestored)await restoreDurableEpgCache();
   const token=++guideLoadToken,currentKey=guideChannelKey();
   if(nativeCatalogMode){const before=guideChannelSnapshot();if(!before.ready){await ensureGuideChannels();if(state.page!=='guide'||token!==guideLoadToken||currentKey!==guideChannelKey())return;render();return;}}
   const channels=guideChannelSnapshot().items,stale=Date.now()-EPG_TTL_MS;if(!channels.length)return;
@@ -1799,7 +1819,7 @@ function scheduleHeroRotation(){
 
 function startupRefreshPage(){
   const pct=Math.max(0,Math.min(100,Number(startupRefreshState.progress||0)));
-  return `<main class="page restoring-page"><div class="restore-card startup-refresh-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo.jpg" alt="Swoop TV" /><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">UPDATING SWOOP TV</div><h1>Refreshing your TV library…</h1><p id="startupRefreshText">${esc(startupRefreshState.detail||'Swoop TV is refreshing your provider before opening the app.')}</p><div class="restore-progress"><div><span id="startupRefreshCount">${esc(startupRefreshState.provider||startupRefreshState.title||'Updating your TV library…')}</span><strong id="startupRefreshPercent">${Math.round(pct)}%</strong></div><i><b id="startupRefreshBar" style="width:${pct}%"></b></i></div><small id="startupRefreshSummary">${esc(startupRefreshState.summary||'Keep Swoop TV open while your library updates.')}</small></div></main>`;
+  return `<main class="page restoring-page"><div class="restore-card startup-refresh-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo-transparent.png" alt="Swoop TV" /><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">UPDATING SWOOP TV</div><h1>Refreshing your TV library…</h1><p id="startupRefreshText">${esc(startupRefreshState.detail||'Swoop TV is refreshing your provider before opening the app.')}</p><div class="restore-progress"><div><span id="startupRefreshCount">${esc(startupRefreshState.provider||startupRefreshState.title||'Updating your TV library…')}</span><strong id="startupRefreshPercent">${Math.round(pct)}%</strong></div><i><b id="startupRefreshBar" style="width:${pct}%"></b></i></div><small id="startupRefreshSummary">${esc(startupRefreshState.summary||'Keep Swoop TV open while your library updates.')}</small></div></main>`;
 }
 function updateStartupRefreshProgress({progress,title,detail,provider,summary}={}){
   if(progress!==undefined&&Number.isFinite(Number(progress)))startupRefreshState.progress=Math.max(0,Math.min(100,Number(progress)));
@@ -1822,7 +1842,7 @@ function providerCanRefreshOnLaunch(provider){
 }
 
 function restoringPage(){
-  return `<main class="page restoring-page"><div class="restore-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo.jpg" alt="Swoop TV" /><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">RESTORING SWOOP TV</div><h1>Loading your TV library…</h1><p id="restoreProgressText">Swoop TV is loading your channels, movies and TV shows.</p><div class="restore-progress"><div><span id="restoreProgressCount">Loading your library…</span><strong id="restoreProgressPercent">4%</strong></div><i><b id="restoreProgressBar" style="width:4%"></b></i></div><small>Your library will open as soon as it is ready.</small></div></main>`;
+  return `<main class="page restoring-page"><div class="restore-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo-transparent.png" alt="Swoop TV" /><div class="provider-spinner" aria-hidden="true"></div><div class="eyebrow">RESTORING SWOOP TV</div><h1>Loading your TV library…</h1><p id="restoreProgressText">Swoop TV is loading your channels, movies and TV shows.</p><div class="restore-progress"><div><span id="restoreProgressCount">Loading your library…</span><strong id="restoreProgressPercent">4%</strong></div><i><b id="restoreProgressBar" style="width:4%"></b></i></div><small>Your library will open as soon as it is ready.</small></div></main>`;
 }
 function updateRestoreProgress(info={}){
   const bar=document.querySelector('#restoreProgressBar'),count=document.querySelector('#restoreProgressCount'),text=document.querySelector('#restoreProgressText'),percent=document.querySelector('#restoreProgressPercent');
@@ -2832,10 +2852,11 @@ async function prepareAndroidEpgBeforeEntry(onProgress=null){
     }catch(err){failed++;try{onProgress?.({providerIndex:i+1,totalProviders:sources.length,label,phase:'error',detail:`${label} programme guide unavailable`})}catch{}}
     await new Promise(r=>setTimeout(r,0));
   }
+  await persistDurableEpgCache().catch(()=>false);
   return {providers:sources.length,matched,programmes,failed};
 }
 
-async function prepareAndroidHomeBeforeEntry(onProgress=null){
+async function prepareAndroidHomeBeforeEntry(onProgress=null,{refreshDiscovery=true}={}){
   if(!NATIVE_ANDROID||!state.catalog.length){androidPreparedHomeReady=true;return}
   clearAndroidPreparedHome();tvHomeSnapshotActive=false;resetAndroidFastCatalog();
   try{onProgress?.({phase:'catalog',progress:0,detail:'Organising your library…'});}catch{}
@@ -2846,7 +2867,11 @@ async function prepareAndroidHomeBeforeEntry(onProgress=null){
   // Only the two priority ranking feeds are network-refreshed during launch. The much larger
   // curated Home set is built from its last good match or an immediate provider-library
   // fallback, so launch never becomes 20+ sequential web requests before the customer can watch.
-  await refreshDiscoveryRows(true,false,info=>{const fraction=Number(info.completed||0)/Math.max(1,Number(info.total||1));try{onProgress?.({phase:'discovery',progress:.5+fraction*.22,detail:info.label?`Preparing ${info.label}…`:'Preparing Top 100…',label:info.label||''});}catch{}},['top20-movies','top20-shows']);
+  if(refreshDiscovery){
+    await refreshDiscoveryRows(true,false,info=>{const fraction=Number(info.completed||0)/Math.max(1,Number(info.total||1));try{onProgress?.({phase:'discovery',progress:.5+fraction*.22,detail:info.label?`Preparing ${info.label}…`:'Preparing Top 100…',label:info.label||''});}catch{}},['top20-movies','top20-shows']);
+  }else{
+    try{onProgress?.({phase:'discovery',progress:.72,detail:'Using saved Home rankings.',label:'Saved Home'});}catch{}
+  }
   const prepared=rows.filter(def=>!ANDROID_DYNAMIC_HOME_ROWS.has(def.id)),total=Math.max(1,prepared.length);let done=0;
   for(const def of prepared){
     const data=androidFastHomeMode()?androidFastRowItems(def.id):homeRowItems(def.id);
@@ -2865,16 +2890,43 @@ async function runAndroidStartupGate(){
   if(!NATIVE_ANDROID||androidStartupGateComplete)return true;
   if(androidStartupGatePromise)return androidStartupGatePromise;
   androidStartupGatePromise=(async()=>{
-    startupRefreshActive=true;startupRefreshState={progress:2,title:'Updating your TV library…',detail:'Checking your TV provider…',provider:'Starting…',summary:'Your Home screen will open when everything is ready.'};render();
-    let ok=0,failed=0,usedPrevious=false;
+    // v0.8.12 — normal TV launches are cache-first. A valid saved Home snapshot is the
+    // working library and must open immediately; provider/network refresh is explicit.
+    if(state.catalog.length){
+      startupRefreshActive=false;androidStartupGateComplete=true;state.page='home';
+      clearAndroidPreparedHome();androidPreparedHomeReady=true;clearPersistentPageViews(['home']);
+      render();forceAndroidHomeEntry();
+      restoreDurableEpgCache().catch(()=>false);
+      // Restore the full durable catalogue only after Home is already interactive. This is
+      // local-device I/O, not a provider refresh, and does not redraw the current Home frame.
+      setTimeout(()=>startAndroidBackgroundRestore(),900);
+      return true;
+    }
+
+    startupRefreshActive=true;startupRefreshState={progress:2,title:'Preparing Swoop TV…',detail:'Checking your saved library…',provider:'Getting ready…',summary:'This one-time setup will be reused on future launches.'};render();
+    let ok=0,failed=0;
     try{
-      updateStartupRefreshProgress({progress:3,provider:'Loading saved library',detail:'Preparing your existing library before the update.'});
-      if(!libraryRestored||tvHomeSnapshotActive){try{await ensureDurableLibraryRestored()}catch{}}
-      usedPrevious=Boolean(state.catalog.length);
+      // First try the durable local catalogue. App updates preserve this store, so an update
+      // must not force a provider download simply because the WebView process restarted.
+      updateStartupRefreshProgress({progress:5,provider:'Saved library',detail:'Loading your saved TV library…'});
+      try{await ensureDurableLibraryRestored()}catch{}
+      if(state.catalog.length){
+        await restoreDurableEpgCache().catch(()=>false);
+        updateStartupRefreshProgress({progress:72,provider:'Preparing Home',detail:'Preparing your saved Home screen…'});
+        await prepareAndroidHomeBeforeEntry(info=>{
+          const mapped=72+Math.max(0,Math.min(1,Number(info.progress||0)))*26;
+          updateStartupRefreshProgress({progress:mapped,provider:info.label||'Preparing Home',detail:info.detail||'Preparing Home…'});
+        },{refreshDiscovery:false});
+        updateStartupRefreshProgress({progress:100,provider:'Ready',detail:'Your saved library is ready.',summary:'Future launches will open from this saved library.'});
+        scheduleTvHomeSnapshotSave(0);
+        androidStartupGateComplete=true;startupRefreshActive=false;state.page='home';clearPersistentPageViews(['home']);render();forceAndroidHomeEntry();return true;
+      }
+
+      // No valid local library exists: this is the one-time network import/recovery path.
       const providers=enabledProviders(),refreshable=providers.filter(providerCanRefreshOnLaunch),skipped=providers.length-refreshable.length;
       if(refreshable.length){
         for(let i=0;i<refreshable.length;i++){
-          const provider=refreshable[i],base=6+(i/refreshable.length)*48,span=48/refreshable.length;
+          const provider=refreshable[i],base=8+(i/refreshable.length)*46,span=46/refreshable.length;
           updateStartupRefreshProgress({progress:base,provider:`${provider.name||'TV Provider'} · ${i+1} of ${refreshable.length}`,detail:'Downloading channels, movies and TV shows…'});
           const success=await refreshProvider(provider.id,{quiet:true,manageTask:false,deferPersist:true,onProgress:info=>{
             const fraction=Math.max(0,Math.min(1,Number(info.progress||0)/100));
@@ -2888,37 +2940,26 @@ async function runAndroidStartupGate(){
       if(state.catalog.length){
         tvHomeSnapshotActive=false;libraryRestored=true;resetMovieStackIndex();syncProviderCounts();
         updateStartupRefreshProgress({progress:55,provider:'TV Guide',detail:'Downloading programme guide data…'});
-        let softProgress=55;
-        const epgTicker=setInterval(()=>{softProgress=Math.min(69,softProgress+Math.max(.25,(69-softProgress)*.045));updateStartupRefreshProgress({progress:softProgress,provider:'TV Guide',detail:'Preparing programme guide…'})},450);
-        try{
-          epgSummary=await prepareAndroidEpgBeforeEntry(info=>{
-            const fraction=Math.max(0,Math.min(1,Number(info.providerIndex||0)/Math.max(1,Number(info.totalProviders||1))));
-            softProgress=Math.max(softProgress,55+fraction*14);
-            updateStartupRefreshProgress({progress:softProgress,provider:`TV Guide · ${info.label||''}`.replace(/ · $/,''),detail:info.detail||'Preparing programme guide…'});
-          });
-        }finally{clearInterval(epgTicker)}
+        epgSummary=await prepareAndroidEpgBeforeEntry(info=>{
+          const fraction=Math.max(0,Math.min(1,Number(info.providerIndex||0)/Math.max(1,Number(info.totalProviders||1))));
+          updateStartupRefreshProgress({progress:55+fraction*14,provider:`TV Guide · ${info.label||''}`.replace(/ · $/,''),detail:info.detail||'Preparing programme guide…'});
+        });
         updateStartupRefreshProgress({progress:70,provider:'TV Guide ready',detail:epgSummary.matched?`${epgSummary.matched.toLocaleString()} channels have programme data ready.`:(epgSummary.providers?'Programme guide checked.':'No programme guide source configured.')});
-        updateStartupRefreshProgress({progress:72,provider:`${catalogLogicalTotal().toLocaleString()} items`,detail:'Saving your refreshed library…'});
+        updateStartupRefreshProgress({progress:72,provider:`${catalogLogicalTotal().toLocaleString()} items`,detail:'Saving your TV library…'});
         await persist(true);
-        updateStartupRefreshProgress({progress:75,provider:'Preparing Home',detail:'Building your Home screen in priority order…'});
+        updateStartupRefreshProgress({progress:75,provider:'Preparing Home',detail:'Building your Home screen…'});
         await prepareAndroidHomeBeforeEntry(info=>{
           const mapped=75+Math.max(0,Math.min(1,Number(info.progress||0)))*23;
           updateStartupRefreshProgress({progress:mapped,provider:info.label||'Preparing Home',detail:info.detail||'Preparing Home…'});
         });
         updateStartupRefreshProgress({progress:99,provider:'Finalising',detail:'Saving your prepared Home screen…'});
         await persist('cache');scheduleTvHomeSnapshotSave(0);
-      }else{
-        clearAndroidPreparedHome();androidPreparedHomeReady=true;
-      }
-      const parts=[];if(ok)parts.push(`${ok} provider${ok===1?'':'s'} updated`);if(epgSummary?.matched)parts.push(`${epgSummary.matched.toLocaleString()} guide channels ready`);else if(epgSummary?.failed)parts.push('guide fallback active');if(failed)parts.push(`${failed} using previous data`);if(skipped)parts.push(`${skipped} unchanged`);
+      }else{clearAndroidPreparedHome();androidPreparedHomeReady=true;}
+      const parts=[];if(ok)parts.push(`${ok} provider${ok===1?'':'s'} downloaded`);if(epgSummary?.matched)parts.push(`${epgSummary.matched.toLocaleString()} guide channels ready`);if(failed)parts.push(`${failed} failed`);if(skipped)parts.push(`${skipped} unchanged`);
       updateStartupRefreshProgress({progress:100,provider:'Ready',detail:state.catalog.length?'Your library is ready.':'Swoop TV is ready.',summary:parts.join(' · ')||'Ready to watch.'});
       androidStartupGateComplete=true;startupRefreshActive=false;state.page='home';clearPersistentPageViews(['home']);render();forceAndroidHomeEntry();return true;
     }catch(err){
-      if(usedPrevious&&state.catalog.length){
-        try{await prepareAndroidHomeBeforeEntry()}catch{}
-        androidStartupGateComplete=true;startupRefreshActive=false;state.page='home';render();forceAndroidHomeEntry();toast('Using your last successful library');return true;
-      }
-      startupRefreshActive=false;androidStartupGateComplete=true;state.page='home';render();toast(err?.message||'Could not update your library');return false;
+      startupRefreshActive=false;androidStartupGateComplete=true;state.page='home';render();if(state.catalog.length)forceAndroidHomeEntry();toast(err?.message||'Could not prepare your library');return false;
     }finally{androidStartupGatePromise=null}
   })();
   return androidStartupGatePromise;

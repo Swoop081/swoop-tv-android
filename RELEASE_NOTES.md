@@ -1,14 +1,29 @@
-# Swoop TV Release Notes
+# Swoop TV release notes
+
+## v0.8.12 — Cached Launch + Compact Ranked Rails
+
+- Google TV normal launches are now **cache-first**: when a valid saved Swoop TV library exists, Home opens from that saved library instead of re-downloading every enabled provider.
+- A full provider download remains the one-time recovery/import path when no valid saved library exists; manual Provider **Refresh** continues to fetch fresh provider data on demand.
+- App updates preserve and reuse the durable local catalogue/Home snapshot rather than forcing a network refresh simply because the app package changed.
+- The full durable catalogue restores locally after Home is interactive, without redrawing the already-finished Home frame.
+- Adds durable Android TV EPG reuse in IndexedDB. Programme-guide data prepared during the initial/import refresh can be restored on later launches instead of being discarded on every process restart.
+- The preparation/restoration screen now uses the supplied Swoop TV logo with a **transparent background**, removing the black rectangle around the logo.
+- Google TV Home poster rails are reduced again to a more compact 10-foot size and use **larger horizontal gaps** for clearer visual separation.
+- Top 100 cards no longer render the fallback movie/show title underneath the ranking numeral.
+- Top 100 rank numerals are offset across the **lower-left poster edge**, with a substantial portion outside the card rather than covering the artwork/title area.
+- Non-ranked Home rows use the same compact poster geometry and spacing but have no rank numeral.
+- Preserves the v0.8.11 Swoop neon default theme, premium TV controls, scroll-first Up navigation, supplied ten-avatar set, full Top 100 data, startup/EPG architecture, native Media3 playback and all earlier production cleanup.
+- Android versionName is **0.8.12** and versionCode is **812**.
 
 ## v0.8.11 — Swoop Neon Theme + Premium TV Controls
 
 - Reworks the default Swoop TV theme around the supplied neon logo: deep black surfaces with **hot magenta + electric cyan** accents.
 - Keeps the legacy internal `chill` theme ID for profile/save compatibility while renaming the visible default theme to **Swoop — Neon signature**. Existing default-theme profiles automatically receive the new look.
 - Adds a unified premium Google TV control system across Home / Live TV / Guide / Movies / TV Shows / My List navigation, Providers, Settings/profile utilities, hero/detail actions, filter/category tabs and secondary actions.
-- Active/selected states now use restrained theme colour; D-pad focus uses the active theme gradient and glow so controls match whichever profile theme is selected.
-- Continue Watching **Remove** is compact and quiet at rest, with a polished destructive-red focus state rather than an oversized floating pill.
-- Theme colours now drive provider/library progress, Guide current-programme highlighting, Guide now-line, badges and watch-progress accents instead of older hard-coded red/purple colours.
-- Preserves v0.8.10 compact unified Home card sizing and scroll-first Up navigation, plus all v0.8.9 full-Top-100, v0.8.8 avatar, v0.8.7 branding and v0.8.6 EPG work.
+- Active/selected states use restrained theme colour; D-pad focus uses the active theme gradient and glow.
+- Continue Watching **Remove** is compact and quiet at rest, with a polished destructive-red focus state.
+- Theme colours drive provider/library progress, Guide current-programme highlighting, badges and watch-progress accents.
+- Preserves v0.8.10 compact unified Home card sizing and scroll-first Up navigation, plus all earlier TV work.
 - Android versionName is **0.8.11** and versionCode is **811**.
 
 ## v0.8.10 — Google TV Compact Rails + Scroll-First Navigation
