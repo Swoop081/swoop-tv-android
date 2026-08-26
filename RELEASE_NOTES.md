@@ -1,5 +1,16 @@
 # Swoop TV release notes
 
+## v0.8.14 — Google TV Remote OK / Select Hotfix
+
+- Fixes the release-blocking Google TV issue where profile cards receive D-pad focus but pressing the remote OK/Select button does not activate them.
+- Android now intercepts `DPAD_CENTER`, `ENTER`, `NUMPAD_ENTER`, and common gamepad `BUTTON_A` Select input while the WebView is active.
+- On key release, the shell explicitly asks Swoop TV to activate the currently focused DOM control; key down is consumed to prevent duplicate WebView synthesis.
+- Adds a dedicated `window.__swoopTvActivateFocused()` bridge in the web app. Profile choices call the profile switch handler directly, while ordinary buttons/links/checkboxes receive a deterministic click.
+- Native Media3 playback retains its own controller/input handling and is not affected by the WebView Select bridge.
+- Preserves all v0.8.13 profile landscape/theme/PIN fixes and all earlier cached-launch, EPG, rail, branding, avatar, navigation and performance work.
+- Android versionName is **0.8.14** and versionCode is **814**.
+
+
 ## v0.8.13 — Profile Flow + Landscape Editor
 
 - Fixes the Google TV blocker where a focused profile could not reliably be opened with the remote. Profile selection now enters cached Home immediately, or reveals the preparation screen immediately only when a local library genuinely must be restored/imported.

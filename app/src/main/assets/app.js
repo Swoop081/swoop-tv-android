@@ -2813,6 +2813,18 @@ function tvMoveFocus(key){
   return true;
 }
 
+window.__swoopTvActivateFocused=()=>{
+  const active=document.activeElement;
+  if(!active||active===document.body||active===document.documentElement)return false;
+  if(active.matches?.('[data-profile-select]')){
+    const id=active.dataset.profileSelect;
+    if(id){switchProfile(id);return true}
+  }
+  if(active.matches?.('[data-profile-pin-input]')&&active.readOnly)return true;
+  if(typeof active.click==='function'){active.click();return true}
+  return false;
+};
+
 window.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&trailerKey){trailerKey='';trailerTitle='';render();return}
   if(e.key==='Escape'&&playerItem){if(playerItem.kind==='live'&&!playerUiHidden){playerUiHidden=true;render()}else closePlayer();return}

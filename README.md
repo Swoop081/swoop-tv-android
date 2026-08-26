@@ -1,8 +1,13 @@
-# Swoop TV v0.8.13 — Profile Flow + Landscape Editor
+# Swoop TV v0.8.14 — Google TV Remote OK / Select Hotfix
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.13 profile-flow additions
+## v0.8.14 remote-input hotfix
+
+- Fixes the release-blocking Google TV issue where a profile card can receive focus but the remote OK/Select button does nothing.
+- The Android shell now handles DPAD_CENTER / Enter / Numpad Enter / gamepad A directly and explicitly activates the currently focused Swoop TV control.
+- Profile cards bypass WebView click synthesis and call the profile-switch path directly from the focused control.
+- Media3 player controls keep their native input behaviour; the Select bridge only runs while the WebView is active.
 
 - Fixes the Google TV profile-selection blocker: pressing OK on a profile now transitions immediately to cached Home, or immediately to the preparation screen only when no usable saved library exists.
 - Rebuilds Edit/Create Profile as a landscape-first 16:9 TV layout with Identity/Avatars on the left and Theme/Options/PIN on the right. Save/Delete remain visible without tall-form scrolling.
@@ -57,7 +62,7 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.13`
+- versionName: `0.8.14`
 - versionCode: `813`
 - minSdk: 23
 - target/compile SDK: 36
@@ -69,6 +74,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.13 (813)**. The workflow also publishes `Swoop-TV-v0.8.13-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.14 (814)**. The workflow also publishes `Swoop-TV-v0.8.14-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

@@ -1,4 +1,10 @@
-# Swoop TV v0.8.13 — Google TV hardware test checklist
+# Swoop TV v0.8.14 — Google TV hardware test checklist
+
+## Remote OK / Select hotfix
+
+- [ ] Focus a profile on Who’s Watching and press the physical remote OK/Select button; Home or preparation must open immediately.
+- [ ] Verify DPAD_CENTER/Enter also activates ordinary focused buttons throughout the WebView.
+- [ ] Verify native Media3 playback controls still respond normally and are not double-triggered.
 
 ## Cache-first launch / one-time preparation
 - [ ] A normal cold launch with a valid saved library does **not** show the long provider-refresh screen.

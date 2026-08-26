@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.13 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.14 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -354,7 +354,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.13 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.14 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -410,7 +410,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.13 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.14 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -474,7 +474,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.13"; }
+        public String version() { return "0.8.14"; }
 
         @JavascriptInterface
         public String play(String payloadJson) {
@@ -639,10 +639,29 @@ public class MainActivity extends Activity {
         );
     }
 
+    private boolean isTvSelectKey(int keyCode) {
+        return keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                || keyCode == KeyEvent.KEYCODE_ENTER
+                || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+                || keyCode == KeyEvent.KEYCODE_BUTTON_A;
+    }
+
+    private void activateFocusedWebControl() {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "window.__swoopTvActivateFocused ? window.__swoopTvActivateFocused() : (function(){var e=document.activeElement;if(!e||e===document.body)return false;if(typeof e.click==='function'){e.click();return true}return false})()",
+                null
+        );
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (nativePlayerVisible && event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
             onBackPressed();
+            return true;
+        }
+        if (!nativePlayerVisible && isTvSelectKey(event.getKeyCode())) {
+            if (event.getAction() == KeyEvent.ACTION_UP) activateFocusedWebControl();
             return true;
         }
         return super.dispatchKeyEvent(event);
