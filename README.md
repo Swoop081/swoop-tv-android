@@ -1,25 +1,41 @@
-# Swoop TV v0.8.3 — Google TV Startup Responsiveness
+# Swoop TV v0.8.4 — Google TV Instant UI
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
-## v0.8.3 focus
+## v0.8.4 performance contract
 
-- Stops Android TV from auto-refreshing the entire IPTV provider before the app becomes usable. Provider refresh is now user-initiated on Google TV.
-- Makes profile selection transition immediately into Home instead of leaving the profile screen apparently frozen while a large saved library restores.
-- Restores the saved library behind a lightweight, navigable Home loading state.
-- Forces a profile-entered Home session to start at the top instead of inheriting a stale browser scroll position.
-- Adds a large-library TV fast path so Home does not synchronously build full movie/live source-stack indexes before accepting remote input.
-- Limits Home rails to TV-sized initial card sets and only mounts three rows eagerly, reducing DOM/focus geometry work on each D-pad press.
-- Disables automatic Home discovery refresh during the large-library TV fast path so remote navigation cannot be blocked by full-catalog matching work immediately after launch.
-- Changes TV focus scrolling from smooth animation to immediate movement for snappier D-pad response.
-- Preserves the v0.8.2 density/safe-area pass, v0.7.45 playlist expiry/no-demo cleanup, Android Back, HTTP IPTV support and Media3 playback.
+Swoop TV on Google TV now treats interaction as higher priority than catalogue/background work:
+
+- The visible screen must remain responsive to D-pad input while background work is running.
+- Unfinished Home rows are kept off-screen rather than shown as loading skeletons or blank rails.
+- A compact cached Home snapshot is saved for repeat launches so Home can open from already prepared data while the full catalogue restores silently.
+- Older installs without a v0.8.4 snapshot can build a fast multi-chunk preview from durable storage behind the profile picker, then replace it internally with the full library without forcing a visible rerender.
+- Full-catalogue indexing is prepared in a persistent Web Worker instead of monopolising the WebView UI thread. The catalogue is handed to that worker in small idle-time chunks rather than one large structured-clone operation.
+- Movie source stacking is returned from the worker in bounded chunks, preventing one large result handoff from causing a late navigation hitch.
+- Large-library Search and People/filmography matching can use the prepared worker index, keeping expensive matching away from remote input and rendering.
+- People routes on Google TV are complete-frame transitions: the current finished screen stays visible while the person/filmography result is prepared, then Swoop TV swaps to the finished route in one step.
+- TV Guide data for likely channels is opportunistically prewarmed after Home settles. Missing EPG data never appears as a spinner/placeholder row on Google TV.
+- Google TV poster cards always retain a readable title fallback, so slow artwork decoding cannot leave anonymous colour tiles on screen.
+- Home initially paints a small set of complete rows. Remaining rows are built during idle time, artwork is prewarmed off-screen, and ready rows are appended below the current viewport.
+- Movie/series detail data is prewarmed when a card receives focus. On selection, the current complete screen stays visible until the detail payload is ready rather than opening a half-built detail page.
+- Heavy automatic discovery/metadata warmups remain off the immediate TV interaction path.
+- The v0.8.3 startup fixes remain: no automatic provider refresh at launch, Home starts at the top, and D-pad navigation uses immediate scrolling.
+
+## Android package
+
+- Application ID: `tv.swoop.player`
+- versionName: `0.8.4`
+- versionCode: `804`
+- minSdk: 23
+- target/compile SDK: 36
+- Media3 / ExoPlayer: 1.11.0
 
 ## Downloader test channel
 
-The GitHub Actions workflow still replaces the stable test asset at:
+The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That keeps **Downloader code 3682231** valid. The installed app reports **0.8.3 (803)**, and the workflow also publishes `Swoop-TV-v0.8.3-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.4 (804)**. The workflow also publishes `Swoop-TV-v0.8.4-Google-TV-Test.apk` for version tracking.
 
-The bundled signing key is test-only. Never use it for production.
+The bundled signing key is test-only and must never be used for production.

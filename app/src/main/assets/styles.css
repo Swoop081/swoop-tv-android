@@ -829,3 +829,28 @@ html.android-tv .search-person-card:focus-visible{outline:3px solid #fff!importa
 html.android-tv .guide-channel:focus-visible,html.android-tv .guide-program:focus-visible{outline:2px solid #fff!important;outline-offset:-2px!important;z-index:12}
 html.android-tv .rail,html.android-tv .live-category-rail-track,html.android-tv .media-category-rail-track,html.android-tv .search-people-rail{scroll-padding-inline:3.5vw}
 html.android-tv .modal-card,html.android-tv .source-choice-card{max-height:84vh;overflow:auto}
+
+
+/* v0.8.4 Google TV complete-frame rendering: unfinished work stays off-screen. */
+html.android-tv .lazy-row-skeleton,
+html.android-tv .native-query-loading,
+html.android-tv .detail-loading,
+html.android-tv .guide-load-progress,
+html.android-tv .guide-category-loading,
+html.android-tv .hero-title-wait,
+html.android-tv .detail-title-wait{display:none!important}
+html.android-tv .card.poster .tv-card-title-fallback{display:block;position:absolute;left:10px;right:10px;bottom:10px;z-index:8;font-size:12px;line-height:1.15;white-space:normal;max-height:2.3em;text-shadow:0 2px 8px #000}
+html.android-tv .card.poster .card-art.loaded~.card-shade~.card-copy .tv-card-title-fallback{opacity:.9}
+html.android-tv .card-art{transition:opacity .12s linear}
+html.android-tv .guide-loading{visibility:hidden!important}
+html.android-tv .card.poster.art-ready .tv-card-title-fallback{opacity:0;transition:opacity .12s linear}
+
+html.android-tv .media-rail-skeleton,
+html.android-tv .live-rail-skeleton,
+html.android-tv .person-loading,
+html.android-tv .search-people-loading{display:none!important}
+/* Artwork-independent TV fallback is a finished title tile, never a placeholder-looking rainbow block. */
+html.android-tv .card.poster:not(.art-ready) .card-bg{background:linear-gradient(155deg,var(--surface-2),#08090d 72%)!important}
+html.android-tv .card.poster:not(.art-ready)::before{content:'S';position:absolute;inset:0;display:grid;place-items:center;font-weight:950;font-size:clamp(32px,3vw,54px);letter-spacing:-.08em;color:rgba(255,255,255,.07);z-index:2;pointer-events:none}
+html.android-tv .card.poster:not(.art-ready) .card-shade{background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.9))}
+html.android-tv .card.poster:not(.art-ready) .tv-card-title-fallback{opacity:1!important;font-weight:850}

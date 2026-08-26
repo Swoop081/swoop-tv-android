@@ -11,6 +11,7 @@ const WEB_KEY='bulk-web-discovery-v2';
 const META_KEY='bulk-metadata-v2';
 const MDB_ROWS_KEY='bulk-mdblist-rows-v2';
 const CATALOG_CHUNK_SIZE=2000;
+const HOME_SNAPSHOT_KEY='swoop-tv-home-snapshot-v1';
 
 function safeParse(value){
   try{return value?JSON.parse(value):null}catch{return null}
@@ -115,6 +116,30 @@ function loadLegacyViaWorker(onProgress){
   });
 }
 
+
+export function loadHomeSnapshot(){
+  try{return safeParse(localStorage.getItem(HOME_SNAPSHOT_KEY))||null}catch{return null}
+}
+
+export function saveHomeSnapshot(snapshot){
+  try{
+    if(!snapshot||!Array.isArray(snapshot.catalog)||!snapshot.catalog.length)return false;
+    localStorage.setItem(HOME_SNAPSHOT_KEY,JSON.stringify(snapshot));
+    return true;
+  }catch{return false}
+}
+
+export async function loadBulkPreview(){
+  try{
+    const manifest=await idbGet(BULK_MANIFEST),count=Math.max(0,Number(manifest?.catalogChunks||0));
+    if(!count)return null;
+    const wanted=[0,Math.floor((count-1)/2),count-1].filter((v,i,a)=>v>=0&&v<count&&a.indexOf(v)===i),catalog=[];
+    for(const index of wanted){const chunk=await idbGet(`${CATALOG_PREFIX}${index}`);if(Array.isArray(chunk))catalog.push(...chunk);await yieldToUi()}
+    const webDiscovery=await idbGet(WEB_KEY).catch(()=>null);
+    return {catalog,webDiscovery:webDiscovery||{},savedAt:Number(manifest?.savedAt||0),preview:true};
+  }catch{return null}
+}
+
 export function loadState(){
   try{
     const current=safeParse(localStorage.getItem(STATE_KEY));
@@ -200,7 +225,7 @@ export async function saveBulkState(state,{catalog=true}={}){
 }
 
 export function clearState(){
-  try{localStorage.removeItem(STATE_KEY);localStorage.removeItem(LEGACY_KEY)}catch{}
+  try{localStorage.removeItem(STATE_KEY);localStorage.removeItem(LEGACY_KEY);localStorage.removeItem(HOME_SNAPSHOT_KEY)}catch{}
   clearProviderProfiles();
   (async()=>{
     try{

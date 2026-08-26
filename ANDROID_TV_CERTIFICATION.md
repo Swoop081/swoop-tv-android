@@ -1,6 +1,23 @@
-# Swoop TV v0.8.3 — Google TV hardware test checklist
+# Swoop TV v0.8.4 — Google TV hardware test checklist
 
-## First launch and remote
+## Responsiveness / complete-frame gate
+- [ ] Profile picker responds immediately after launch.
+- [ ] Selecting a profile never produces a visible loading page or half-built Home.
+- [ ] Home enters at scroll position 0.
+- [ ] D-pad remains responsive continuously while the full catalogue restores in the background.
+- [ ] No Home row appears as a skeleton, spinner, blank loading rail or anonymous colour tile.
+- [ ] Initial Home rows are complete when shown; additional rows only appear after they are prepared.
+- [ ] Repeated rapid D-pad navigation does not hitch while background indexing is active.
+- [ ] Opening Movies / TV Shows / Live TV does not freeze while movie source stacking is still being prepared.
+- [ ] Focusing a movie/series prewarms details without changing the visible screen.
+- [ ] Selecting a movie/series never opens a visibly half-loaded detail route.
+- [ ] Relaunching Swoop TV does not trigger a full provider refresh automatically.
+- [ ] Search remains responsive while typing against a 30,000+ item library and shows no search spinner/blank loading card.
+- [ ] Opening a cast/person result keeps the previous complete screen usable until the finished filmography route is ready.
+- [ ] TV Guide never exposes programme-data loading placeholders; guide data may populate only from completed background results.
+- [ ] Background catalogue worker transfer/indexing does not cause a late multi-second D-pad hitch after Home has already opened.
+
+## Remote / navigation
 - [ ] Swoop TV appears in the Google TV Apps list with its TV banner.
 - [ ] App opens full-screen in landscape using only the remote.
 - [ ] D-pad Left / Right follows horizontal rows naturally.
@@ -15,7 +32,6 @@
 - [ ] Library remains empty until a real Xtream or M3U provider is added.
 - [ ] Xtream provider can be added using the remote and on-screen keyboard.
 - [ ] M3U URL can be imported.
-- [ ] Local M3U file picker opens if required.
 - [ ] Plain HTTP provider endpoints work.
 - [ ] Playlist/provider expiry appears in provider details where supplied.
 - [ ] Provider survives app restart.
@@ -38,12 +54,3 @@
 - [ ] Android Home → Swoop TV resumes to a usable screen.
 - [ ] Sleep/wake returns to a usable screen.
 - [ ] A long browse session does not progressively slow down or crash.
-
-
-## Startup responsiveness
-
-- Profile picker responds immediately to D-pad/OK after launch.
-- Selecting a profile leaves the picker immediately; a large saved library may continue loading without blocking remote input.
-- Home enters at scroll position 0.
-- D-pad can move through Home navigation/cards while artwork and background metadata continue loading.
-- Relaunching Swoop TV does not trigger a full provider refresh automatically on Android TV.

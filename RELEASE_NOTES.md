@@ -1,3 +1,21 @@
+# v0.8.4 — Google TV Instant UI + Invisible Background Work
+
+- Makes responsiveness and complete-frame presentation a first-class Google TV rule: unfinished data work is not rendered as blank rails, skeletons or loading pages.
+- Adds a compact persisted TV Home snapshot so repeat launches can open from a fully prepared cached slice while the full catalogue restores silently.
+- Adds a three-chunk IndexedDB preview fallback for upgrades that do not yet have a v0.8.4 Home snapshot.
+- Restores the complete durable catalogue behind the profile picker/Home without forcing a visible loading route or a Home rerender.
+- Adds a persistent background catalogue Web Worker for large-library indexing. The catalogue is transferred to it in small idle-time chunks and the prepared movie stack is returned in bounded chunks, avoiding giant structured-clone handoffs on the WebView UI thread.
+- Large-library Search and People/filmography matching can execute against the worker index rather than synchronously scanning/matching the full catalogue on the UI thread.
+- Google TV People routes now use complete-frame navigation: the current finished page remains visible while remote person data and local filmography matches are prepared; only a finished result route is swapped on-screen.
+- Google TV People Search no longer exposes a visible search spinner while remote person results are being prepared.
+- Opportunistically prewarms a bounded set of Xtream EPG results and likely Home/detail artwork/data after Home is interactive, using low-concurrency/idle-time work.
+- TV Guide rows no longer show programme-guide loading placeholders on Google TV; cached/prewarmed programme data is patched in without blocking remote input.
+- Google TV Home renders only ready rows; web/discovery rows with no cached matches and lazy skeleton placeholders are omitted rather than exposed unfinished.
+- Poster cards always retain a readable title fallback on Google TV, so slow artwork decoding cannot leave blank colour tiles.
+- Series/movie detail selection prewarms on focus and, on Google TV, keeps the previous complete screen visible until detail/provider data is ready; the user never lands on a half-built detail route.
+- Automatic heavy discovery, metadata and browse warmup work remains suppressed on the TV interaction path; the UI thread is reserved for remote input and rendering.
+- Preserves the stable Downloader release URL/code 3682231 and test signing identity.
+
 # Swoop TV Android TV Release Notes
 
 ## v0.8.3 — Google TV Startup Responsiveness
