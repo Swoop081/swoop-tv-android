@@ -1,5 +1,19 @@
 # Swoop TV release notes
 
+## v0.8.13 — Profile Flow + Landscape Editor
+
+- Fixes the Google TV blocker where a focused profile could not reliably be opened with the remote. Profile selection now enters cached Home immediately, or reveals the preparation screen immediately only when a local library genuinely must be restored/imported.
+- Removes the pre-entry blocking persistence wait from the Android profile-selection path and adds an explicit remote Enter fallback for profile cards.
+- Redesigns Create/Edit Profile as a landscape-first TV screen with a wide two-panel layout instead of a tall mobile form. Identity and the 10 avatars live on the left; themes, profile options and PIN live on the right; Save/Delete stay visible.
+- Restores the requested theme order: **Swoop, Chill, Prime Time, Rewind**.
+- Restores **Chill** as the black/red cinematic Netflix-style theme. The neon logo-driven default is now permanently identified as **Swoop**.
+- Migrates v0.8.11–v0.8.12 profiles that stored the neon Swoop theme under the old `chill` ID to the new `swoop` ID without resetting profile data.
+- Selected avatars now use a clear framed selection state with a check badge.
+- Google TV PIN entry is now click-to-activate: D-pad navigation can pass the PIN area without opening the numeric keyboard; pressing OK on Set PIN / Change PIN explicitly enables the field.
+- Preserves every cumulative v0.8.12 cache-first launch, provider, EPG, branding, compact-rail, Top 100, navigation and premium-control change.
+- Android versionName is **0.8.13** and versionCode is **813**.
+
+
 ## v0.8.12 — Cached Launch + Compact Ranked Rails
 
 - Google TV normal launches are now **cache-first**: when a valid saved Swoop TV library exists, Home opens from that saved library instead of re-downloading every enabled provider.

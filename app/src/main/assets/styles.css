@@ -1216,11 +1216,81 @@ html.android-tv .continue-remove-btn:focus-visible{
   text-shadow:none;
 }
 /* Canonical Swoop theme gets a restrained neon surface accent rather than a flat black slab. */
-:root[data-theme="chill"] html.android-tv,
-html.android-tv[data-theme="chill"]{background:#030306}
-html.android-tv[data-theme="chill"] .topbar{background:linear-gradient(180deg,rgba(3,3,6,.96),rgba(3,3,6,.78),transparent)}
-html.android-tv[data-theme="chill"] .restore-card{border-color:color-mix(in srgb,var(--accent) 18%,rgba(255,255,255,.08));box-shadow:0 20px 70px rgba(0,0,0,.42),0 0 46px color-mix(in srgb,var(--accent) 8%,transparent)}
+:root[data-theme="swoop"] html.android-tv,
+html.android-tv[data-theme="swoop"]{background:#030306}
+html.android-tv[data-theme="swoop"] .topbar{background:linear-gradient(180deg,rgba(3,3,6,.96),rgba(3,3,6,.78),transparent)}
+html.android-tv[data-theme="swoop"] .restore-card{border-color:color-mix(in srgb,var(--accent) 18%,rgba(255,255,255,.08));box-shadow:0 20px 70px rgba(0,0,0,.42),0 0 46px color-mix(in srgb,var(--accent) 8%,transparent)}
 
 
 /* v0.8.12 — transparent launch-preparation branding. */
 html.android-tv .startup-swoop-logo{background:transparent!important;object-fit:contain;mix-blend-mode:normal}
+
+
+/* v0.8.13 — landscape-first profile editor for Android / Google TV. */
+html.android-tv .profile-edit-backdrop{padding:24px 38px}
+html.android-tv .profile-edit-modal.profile-edit-landscape{
+  width:min(1120px,94vw);
+  max-height:min(690px,90vh);
+  overflow:hidden;
+  border-radius:18px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--surface-2) 92%,#050506),color-mix(in srgb,var(--surface) 97%,#030304));
+  border-color:color-mix(in srgb,var(--accent) 24%,rgba(255,255,255,.12));
+  box-shadow:0 34px 100px rgba(0,0,0,.72),0 0 50px color-mix(in srgb,var(--accent) 8%,transparent)
+}
+html.android-tv .profile-edit-head{padding:16px 20px 13px;align-items:flex-start}
+html.android-tv .profile-edit-head h2{font-size:25px;margin:2px 0 3px}
+html.android-tv .profile-edit-head p{margin:0;color:var(--muted);font-size:10px}
+html.android-tv .profile-edit-body{padding:14px 18px 16px;overflow:hidden}
+html.android-tv .profile-editor-form{display:grid;gap:12px}
+html.android-tv .profile-editor-layout{display:grid;grid-template-columns:minmax(370px,.82fr) minmax(0,1.42fr);gap:14px;align-items:stretch}
+html.android-tv .profile-editor-panel{min-width:0;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(4,5,8,.54);box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+html.android-tv .profile-editor-section-title{display:flex;align-items:baseline;gap:9px;margin-bottom:10px}
+html.android-tv .profile-editor-section-title .eyebrow{font-size:7px;margin:0}
+html.android-tv .profile-editor-section-title>strong{font-size:15px}
+html.android-tv .profile-name-field{margin-bottom:10px}
+html.android-tv .profile-name-field input{height:36px}
+html.android-tv .profile-avatar-picker{margin:0;gap:7px}
+html.android-tv .profile-avatar-picker>label{font-size:9px;color:#cfd1d8}
+html.android-tv .profile-avatar-picker>div{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+html.android-tv .profile-avatar-option{position:relative;display:grid;justify-items:center;gap:4px;padding:4px;border:2px solid transparent;border-radius:13px;background:rgba(255,255,255,.02);transition:border-color .1s ease,box-shadow .1s ease,background .1s ease,transform .1s ease}
+html.android-tv .profile-avatar-option>span{width:58px;height:58px;border-radius:10px;overflow:hidden;background:#111;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+html.android-tv .profile-avatar-option>span img{width:100%;height:100%;object-fit:cover;display:block}
+html.android-tv .profile-avatar-option>small{font-size:7px;color:#9da0aa;font-weight:800;line-height:1}
+html.android-tv .profile-avatar-option.active{border-color:#fff;background:var(--tv-brand-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 64%,transparent),0 10px 22px rgba(0,0,0,.34)}
+html.android-tv .profile-avatar-option.active:after{content:'✓';position:absolute;right:-5px;top:-5px;width:19px;height:19px;border-radius:999px;display:grid;place-items:center;background:var(--tv-brand-gradient);border:2px solid #fff;color:#fff;font-size:10px;font-weight:950;box-shadow:0 4px 12px rgba(0,0,0,.45)}
+html.android-tv .profile-avatar-option:focus-visible{transform:none!important;border-color:#fff!important;box-shadow:var(--tv-brand-glow)!important;background:var(--tv-brand-soft)!important}
+html.android-tv .profile-avatar-option:focus-visible>small,html.android-tv .profile-avatar-option.active>small{color:#fff}
+
+html.android-tv .profile-theme-picker-tv{margin:0 0 11px}
+html.android-tv .profile-theme-picker-tv .theme-picker-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+html.android-tv .profile-theme-picker-tv .theme-choice{min-width:0;grid-template-columns:1fr;grid-template-rows:40px auto;gap:6px;padding:6px;border-radius:10px;align-items:stretch}
+html.android-tv .profile-theme-picker-tv .theme-swatch{height:40px;border-radius:7px;padding:6px}
+html.android-tv .profile-theme-picker-tv .theme-swatch i{width:18px;height:18px;left:6px;top:6px}
+html.android-tv .profile-theme-picker-tv .theme-swatch b{font-size:8px}
+html.android-tv .profile-theme-picker-tv .theme-choice>span:last-child{gap:1px;min-width:0}
+html.android-tv .profile-theme-picker-tv .theme-choice strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.android-tv .profile-theme-picker-tv .theme-choice small{font-size:7px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.android-tv .profile-theme-picker-tv .theme-choice.active{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 34%,transparent),0 8px 18px rgba(0,0,0,.28)}
+
+html.android-tv .profile-option-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
+html.android-tv .profile-option-card{min-height:54px;padding:9px 10px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);align-items:center}
+html.android-tv .profile-option-card input{width:17px;height:17px;accent-color:var(--accent)}
+html.android-tv .profile-option-card span{display:grid;gap:2px}
+html.android-tv .profile-option-card strong{font-size:10px}
+html.android-tv .profile-option-card small{font-size:7px;line-height:1.28;color:#9296a1}
+html.android-tv .profile-pin-field{margin:0}
+html.android-tv .profile-pin-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+html.android-tv .profile-pin-entry input[readonly]{opacity:.82;cursor:default}
+html.android-tv .profile-pin-activate{min-width:92px}
+html.android-tv .profile-remove-pin{margin:6px 0 0;font-size:8px}
+html.android-tv .profile-form-actions-tv{margin:0;padding-top:11px;border-top:1px solid rgba(255,255,255,.08);justify-content:flex-end;gap:8px}
+html.android-tv .profile-form-actions-tv .btn{min-width:126px}
+
+@media (max-height:650px){
+  html.android-tv .profile-edit-modal.profile-edit-landscape{max-height:94vh}
+  html.android-tv .profile-edit-head{padding-top:11px;padding-bottom:9px}
+  html.android-tv .profile-edit-body{padding-top:10px;padding-bottom:11px}
+  html.android-tv .profile-editor-panel{padding:10px}
+  html.android-tv .profile-avatar-option>span{width:50px;height:50px}
+  html.android-tv .profile-option-card{min-height:48px;padding:7px 9px}
+}

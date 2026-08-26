@@ -1,4 +1,4 @@
-# Swoop TV v0.8.12 — Google TV hardware test checklist
+# Swoop TV v0.8.13 — Google TV hardware test checklist
 
 ## Cache-first launch / one-time preparation
 - [ ] A normal cold launch with a valid saved library does **not** show the long provider-refresh screen.
