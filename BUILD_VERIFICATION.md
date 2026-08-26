@@ -1,12 +1,12 @@
-# Swoop TV v0.8.23 Build Verification
+# Swoop TV v0.8.24 Build Verification
 
 ## Automated checks completed in the packaging environment
 
 - All JavaScript modules under `app/src/main/assets/` pass `node --check`.
 - `tests/card-runtime-smoke.mjs` passes.
-- `tests/tv-ui-runtime-smoke.mjs` passes and covers the v0.8.23 navigation, 100-item rail, long-press, Live preview, Guide, actor-route and update/changelog contracts.
+- `tests/tv-ui-runtime-smoke.mjs` passes and covers the v0.8.24 modal focus/scroll ownership plus v0.8.23 navigation, 100-item rail, long-press, Live preview, Guide, actor-route and update/changelog contracts.
 - Source/CSS delimiter counts are balanced as an additional packaging sanity check.
-- Android version markers are aligned to `versionName 0.8.23` / `versionCode 823`.
+- Android version markers are aligned to `versionName 0.8.24` / `versionCode 824`.
 
 ## APK compilation
 

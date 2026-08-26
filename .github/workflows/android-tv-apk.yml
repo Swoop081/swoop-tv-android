@@ -61,21 +61,21 @@ jobs:
       - name: Name APK and checksum
         shell: bash
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.23-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.23-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.23-Google-TV-Test.apk > Swoop-TV-v0.8.23-Google-TV-Test.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.24-Google-TV-Test.apk
+          cp Swoop-TV-v0.8.24-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.24-Google-TV-Test.apk > Swoop-TV-v0.8.24-Google-TV-Test.apk.sha256
           sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
           cat > swoop-tv-latest.json <<EOF
-          {"version":"0.8.23","versionCode":823,"updateUrl":"https://github.com/${GITHUB_REPOSITORY}/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk","changes":["Responsive TV scaling for smaller Google TV viewports.","Stable queued D-pad navigation with row/column memory.","Movies, TV Shows and Live TV rails load 100 items at a time and prefetch ahead.","Long-press OK opens Continue Watching options.","Cleaner poster and Live TV channel artwork.","Contained Live TV branding with settled-focus muted preview support.","Wider category-first TV Guide with a two-hour EPG window.","Actor pages open immediately and hydrate catalogue results asynchronously.","GitHub update checks and a one-time What’s New screen after login."]}
+          {"version":"0.8.24","versionCode":824,"updateUrl":"https://github.com/${GITHUB_REPOSITORY}/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk","changes":["Fixes the What’s New modal so Google TV focus stays inside it.","Prevents Home/content from scrolling behind open TV modals.","Focuses Got it immediately while retaining Back/Close dismissal and all v0.8.23 features."]}
           EOF
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.23-Google-TV-Test
+          name: Swoop-TV-v0.8.24-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.23-Google-TV-Test.apk
-            Swoop-TV-v0.8.23-Google-TV-Test.apk.sha256
+            Swoop-TV-v0.8.24-Google-TV-Test.apk
+            Swoop-TV-v0.8.24-Google-TV-Test.apk.sha256
             Swoop-TV-v0.8.1-Google-TV-Test.apk
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
             swoop-tv-latest.json
@@ -98,13 +98,13 @@ jobs:
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.23" \
-              --notes "Current hardware-test channel. v0.8.23 is the consolidated Google TV UX/performance pass: responsive TV density, stable queued D-pad navigation, 100-item lazy rails, long-press Continue Watching options, compact persistent hero/navigation, cleaner Live TV with contained brand/preview support, wider two-hour TV Guide, instant actor shells, and GitHub What’s New/update checks. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v0.8.24" \
+              --notes "Current hardware-test channel. v0.8.24 fixes the Google TV What’s New modal focus trap and background scrolling regression while retaining the full v0.8.23 consolidated UX/performance pass. Test-only signing identity; not a production release." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.23-Google-TV-Test.apk \
-            Swoop-TV-v0.8.23-Google-TV-Test.apk.sha256 \
+            Swoop-TV-v0.8.24-Google-TV-Test.apk \
+            Swoop-TV-v0.8.24-Google-TV-Test.apk.sha256 \
             Swoop-TV-v0.8.1-Google-TV-Test.apk \
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
             swoop-tv-latest.json \

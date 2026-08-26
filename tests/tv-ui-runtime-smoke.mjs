@@ -32,7 +32,7 @@ if (!appSource.includes("if(String(id).startsWith('top20-'))return'hot';")) thro
 if (!appSource.includes('const HOME_RANKED_ROW_LIMIT=100;')) throw new Error('Top 100 100-title cap missing');
 if (!appSource.includes('const TOP100_RANKING_SCHEMA=2;')) throw new Error('Top 100 ranking cache schema missing');
 
-// v0.8.23 deterministic remote/focus system.
+// v0.8.23+ deterministic remote/focus system.
 if (!appSource.includes('function tvQueueVerticalMove(key)')) throw new Error('Queued vertical D-pad navigation missing');
 if (!appSource.includes('const tvRowColumnMemory=new Map()')) throw new Error('Per-row horizontal focus memory missing');
 if (!appSource.includes('function tvGenericRailDirectionalTarget(current,key)')) throw new Error('Deterministic generic rail navigation missing');
@@ -80,6 +80,11 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.23';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.24';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
+if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
+if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
+if (!cssSource.includes('html.android-tv.tv-modal-open')) throw new Error('TV modal background scroll lock CSS missing');
+if (!appSource.includes('modalRoot.contains(found)')) throw new Error('TV focus restore can still escape behind an open modal');
 
 console.log('Google TV UI runtime smoke passed');

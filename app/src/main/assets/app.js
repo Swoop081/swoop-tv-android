@@ -23,7 +23,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.23';
+const ANDROID_CURRENT_VERSION='0.8.24';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -35,15 +35,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Responsive TV scaling for smaller/720p Google TV viewports.',
-  'Stable queued D-pad navigation with row/column memory for fast Up/Down input.',
-  'Movies, TV Shows and Live TV rails load 100 items at a time and prefetch before the end.',
-  'Continue Watching uses long-press OK for More Options instead of tiny Remove buttons.',
-  'Cleaner poster/channel artwork with duplicate overlay text removed on Google TV.',
-  'Live TV brand art fits fully and can show a muted settled-focus channel preview.',
-  'TV Guide moves its title to the right, widens categories and shows a clearer two-hour EPG window.',
-  'Actor/person pages open immediately and hydrate cached catalogue matches in the background.',
-  'GitHub build-manifest update checks and a one-time What’s New screen after login.'
+  'Fixes the v0.8.23 What’s New screen so Google TV focus lands on the modal instead of the page behind it.',
+  'Traps D-pad navigation inside open TV modals and prevents Home/content from scrolling behind them.',
+  'Focuses Got it immediately on What’s New while retaining Back/Close dismissal and all v0.8.23 features.'
 ];
 const tvCatalogWorkerPending=new Map();
 let nativeCatalogMode=false,nativeCatalogStats=null,nativeCatalogMigration=false;
@@ -2097,6 +2091,8 @@ function backgroundLiveBar(){
 }
 function render(){
   if(NATIVE_ANDROID){rememberTvFocus();if(profilePickerOpen||state.page!=='home')tvHomeExpansionToken++;}
+  if(NATIVE_ANDROID&&modal){tvVerticalQueue=0;if(tvVerticalFrame){cancelAnimationFrame(tvVerticalFrame);tvVerticalFrame=0}}
+  document.documentElement.classList.toggle('tv-modal-open',Boolean(NATIVE_ANDROID&&modal));
   applyTheme();
   const oldDetailScroll=document.querySelector('.detail-scroll')?.scrollTop;
   if(Number.isFinite(oldDetailScroll))detailScrollTop=oldDetailScroll;
@@ -2181,7 +2177,7 @@ function continueOptionsModal(){
 }
 function whatsNewModal(){
   const entries=(androidLatestManifest?.changes||[]).slice(0,12);
-  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2>Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Google TV navigation, browsing and readability pass.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done>Got it</button></div></div></div></div>`;
+  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Google TV navigation, browsing and readability pass.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
 }
 function modalHtml(){if(modal==='provider')return providerModal();if(modal==='homeRows')return homeRowsModal();if(modal==='profiles')return profilesModal();if(modal==='profileEdit')return profileEditorModal();if(modal==='pin')return pinModal();if(modal==='continueOptions')return continueOptionsModal();if(modal==='whatsNew')return whatsNewModal();return mdblistModal()}
 function setStatus(id,msg,type='info'){const el=document.querySelector(id);if(el)el.innerHTML=`<div class="status ${type}">${esc(msg)}</div>`}
@@ -2888,7 +2884,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:823,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:824,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -2942,9 +2938,11 @@ window.addEventListener('swoop-native-error',e=>{
 });
 
 let tvFocusMemory=null;
+function tvModalRoot(){return NATIVE_ANDROID&&modal?document.querySelector('.modal-backdrop'):null}
 function tvFocusableElements(){
   const selector='button:not([disabled]):not([hidden]),a[href],[tabindex]:not([tabindex="-1"]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),summary';
-  return [...document.querySelectorAll(selector)].filter(el=>{
+  const root=tvModalRoot()||document;
+  return [...root.querySelectorAll(selector)].filter(el=>{
     if(el.offsetParent===null||el.tabIndex<0||el.hidden||el.getAttribute('aria-hidden')==='true')return false;
     return el.getClientRects().length>0&&el.offsetWidth>0&&el.offsetHeight>0;
   });
@@ -2968,7 +2966,15 @@ function rememberTvFocus(){
 function restoreTvFocus(){
   if(!NATIVE_ANDROID)return;
   const focusables=tvFocusableElements();if(!focusables.length)return;
-  let target=null,m=tvFocusMemory;
+  let target=null,m=tvFocusMemory,modalRoot=tvModalRoot();
+  if(modalRoot){
+    if(m?.id){const found=document.getElementById(m.id);if(found&&modalRoot.contains(found))target=found}
+    if(!target&&m?.attr)target=focusables.find(el=>el.tagName===m.tag&&el.getAttribute(m.attr)===m.value);
+    if(!target&&m?.text)target=focusables.find(el=>el.tagName===m.tag&&(el.getAttribute('aria-label')||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,100)===m.text);
+    if(!target)target=modalRoot.querySelector('[data-whats-new-done],.btn.accent,[data-close],button:not([disabled])')||focusables[0];
+    if(target)setTimeout(()=>{try{target.focus({preventScroll:true})}catch{target.focus()}},0);
+    return;
+  }
   if(m?.id)target=document.getElementById(m.id);
   if(!target&&m?.attr){target=focusables.find(el=>el.tagName===m.tag&&el.getAttribute(m.attr)===m.value)}
   if(!target&&m?.text){target=focusables.find(el=>el.tagName===m.tag&&(el.getAttribute('aria-label')||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,100)===m.text)}

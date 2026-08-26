@@ -1,5 +1,15 @@
 # Swoop TV Release Notes
 
+## v0.8.24 — Google TV What’s New Modal Focus Hotfix
+
+- Fixes the v0.8.23 startup **What’s New** regression where the modal appeared visually, but Google TV focus was restored to Home/navigation behind it. D-pad presses therefore scrolled the hidden page while the modal looked frozen.
+- When any Google TV modal is open, the focusable-element scope is now restricted to that modal. Underlying Home/Live/Guide controls cannot receive D-pad focus until the modal closes.
+- What’s New explicitly focuses **Got it** on open. The Close button and Android Back remain valid dismissal paths.
+- Locks window/body scrolling while a TV modal owns focus and clears any queued vertical D-pad movement when the modal opens, preventing stale rapid-input commands from moving the page behind the overlay.
+- Adds runtime smoke guards for modal focus scope, scroll locking and What’s New primary-action focus.
+- Retains the complete v0.8.23 consolidated UX/performance pass unchanged.
+- Android versionName is **0.8.24** and versionCode is **824**.
+
 ## v0.8.23 — Google TV Consolidated UX + Performance Pass
 
 - Adds adaptive Google TV viewport density so smaller/720p/overscanned TV WebViews use tighter major surfaces without globally zooming the app.

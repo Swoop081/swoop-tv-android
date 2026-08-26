@@ -1,4 +1,12 @@
-# Swoop TV v0.8.23 — Google TV Consolidated UX + Performance Pass
+# Swoop TV v0.8.24 — Google TV What’s New Modal Focus Hotfix
+
+## v0.8.24 modal focus hotfix
+
+- What’s New now owns Google TV focus instead of leaving focus on Home behind the overlay.
+- D-pad input is trapped inside open TV modals and background page scrolling is locked.
+- **Got it** receives initial focus; Back/Close still dismiss normally.
+- All v0.8.23 consolidated navigation, long-rail, Live TV, Guide, actor and update-check work is retained.
+
 
 Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
 
@@ -123,7 +131,7 @@ The supplied neon **Swoop TV** logo is now the canonical visible brand asset for
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.23`
+- versionName: `0.8.24`
 - versionCode: `822`
 - minSdk: 23
 - target/compile SDK: 36
@@ -135,6 +143,6 @@ The GitHub Actions workflow continues to overwrite the stable test asset:
 
 `google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.23 (823)**. The workflow also publishes `Swoop-TV-v0.8.23-Google-TV-Test.apk` for version tracking.
+That preserves **Downloader code 3682231**. The installed app reports **0.8.24 (824)**. The workflow also publishes `Swoop-TV-v0.8.24-Google-TV-Test.apk` for version tracking.
 
 The bundled signing key is test-only and must never be used for production.

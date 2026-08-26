@@ -1966,3 +1966,11 @@ html.android-tv[data-tv-density="tight"] .guide-grid-scroll .guide-grid{min-widt
   html.android-tv .live-hub-hero.has-brand-art .live-hub-backdrop{top:60px!important;left:48%!important;bottom:7px!important}
   html.android-tv .live-hub-hero.has-brand-art .live-hub-art{transform:none!important}
 }
+
+
+/* v0.8.24 — Google TV modal focus/scroll ownership hotfix. */
+html.android-tv.tv-modal-open,
+html.android-tv.tv-modal-open body{overflow:hidden!important;overscroll-behavior:none!important}
+html.android-tv.tv-modal-open .modal-backdrop{overscroll-behavior:contain!important}
+html.android-tv.tv-modal-open .whats-new-modal{isolation:isolate}
+html.android-tv.tv-modal-open .whats-new-modal [data-whats-new-done]:focus{outline:3px solid #fff;outline-offset:3px}

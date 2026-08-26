@@ -1,4 +1,4 @@
-# Swoop TV v0.8.23 — Google TV hardware test checklist
+# Swoop TV v0.8.24 — Google TV hardware test checklist
 
 ## v0.8.23 consolidated UX/performance regression checks
 
@@ -13,7 +13,7 @@
 - [ ] Open TV Guide. Confirm Categories owns a substantially wider left column, LIVE TV / TV Guide is in the main/right header, category labels are crisp, and the EPG shows about two hours instead of squeezing three hours.
 - [ ] Browse near the end of loaded Guide channels and confirm more channels append automatically without a Load More button.
 - [ ] Select an actor/cast portrait. Confirm the person page shell opens immediately, filmography results populate asynchronously and revisiting the same person is much faster.
-- [ ] After installing v0.8.23, select a profile and confirm What’s New appears once. Dismiss it, relaunch/select the same profile and confirm it does not repeat. Reopen What’s New manually from Settings.
+- [ ] After installing v0.8.24, select a profile and confirm What’s New opens with Got it focused, the page behind does not scroll, dismissal works, and the screen does not repeat after acknowledgement. Reopen What’s New manually from Settings.
 - [ ] Publish the GitHub test release and confirm `swoop-tv-latest.json` is present beside the stable test APK and Settings can report a newer version when the manifest version is increased.
 
 ## v0.8.22 Live TV brand-fill regression checks
