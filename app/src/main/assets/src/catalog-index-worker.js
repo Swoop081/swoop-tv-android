@@ -93,5 +93,9 @@ self.onmessage=e=>{
       const movies=fastPersonMatch(moviePayload,'movie'),shows=fastPersonMatch(showPayload,'series');
       reply('person-match-result',msg.requestId,{movies,shows,indexed:true});return;
     }
+    if(msg.type==='person-match-batch'){
+      const people=Array.isArray(msg.people)?msg.people:[],results=people.map(row=>({key:String(row?.key||''),rank:Number(row?.rank||0),movies:fastPersonMatch(row?.moviePayload||{items:[]},'movie'),shows:fastPersonMatch(row?.showPayload||{items:[]},'series')}));
+      reply('person-match-batch-result',msg.requestId,{results,indexed:true});return;
+    }
   }catch(err){reply('worker-error',msg.requestId,{message:err?.message||String(err)})}
 };

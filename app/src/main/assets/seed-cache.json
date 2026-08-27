@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "sourceVersion": "0.8.32",
+  "sourceVersion": "0.8.33",
   "builtAt": "2026-08-27T04:49:24.935Z",
   "maxAgeHours": 168,
   "discovery": {},
@@ -651,18 +651,18 @@
       },
       {
         "rank": 41,
-        "name": "Amélie Hoeferle",
+        "name": "Am\u00e9lie Hoeferle",
         "person": {
           "id": "",
-          "name": "Amélie Hoeferle",
+          "name": "Am\u00e9lie Hoeferle",
           "profile": "",
           "knownForDepartment": "Person",
           "aliases": [
-            "Amélie Hoeferle"
+            "Am\u00e9lie Hoeferle"
           ]
         },
         "aliases": [
-          "Amélie Hoeferle"
+          "Am\u00e9lie Hoeferle"
         ]
       },
       {
@@ -1355,18 +1355,18 @@
       },
       {
         "rank": 85,
-        "name": "Zoe Saldaña",
+        "name": "Zoe Salda\u00f1a",
         "person": {
           "id": "",
-          "name": "Zoe Saldaña",
+          "name": "Zoe Salda\u00f1a",
           "profile": "",
           "knownForDepartment": "Person",
           "aliases": [
-            "Zoe Saldaña"
+            "Zoe Salda\u00f1a"
           ]
         },
         "aliases": [
-          "Zoe Saldaña"
+          "Zoe Salda\u00f1a"
         ]
       },
       {
@@ -1978,9 +1978,9 @@
       {
         "rank": 41,
         "id": "",
-        "name": "Amélie Hoeferle",
+        "name": "Am\u00e9lie Hoeferle",
         "aliases": [
-          "Amélie Hoeferle"
+          "Am\u00e9lie Hoeferle"
         ],
         "profile": ""
       },
@@ -2374,9 +2374,9 @@
       {
         "rank": 85,
         "id": "",
-        "name": "Zoe Saldaña",
+        "name": "Zoe Salda\u00f1a",
         "aliases": [
-          "Zoe Saldaña"
+          "Zoe Salda\u00f1a"
         ],
         "profile": ""
       },

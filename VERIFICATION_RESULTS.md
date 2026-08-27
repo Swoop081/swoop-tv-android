@@ -1,19 +1,14 @@
-# Swoop TV v0.8.32 Verification Results
+# Swoop TV v0.8.33 Verification Results
 
-- JavaScript syntax: **PASS** — `app.js` and the catalogue index worker parse successfully.
+- JavaScript syntax: **PASS** — app/runtime modules and catalogue index worker parse successfully.
 - Card runtime smoke: **PASS**.
-- Google TV UI runtime smoke: **PASS**, including new v0.8.32 regression guards.
-- STARmeter fixed-surface contract: **PASS** — all 100 ranked people are mounted with fixed-height TV row geometry.
-- STARmeter hydration contract: **PASS** — bounded 3-way concurrency, priority queueing and 18-person look-ahead are present.
-- STARmeter filmography layout contract: **PASS** — bounded larger horizontal title cards replace the tiny full-credit strip.
-- Home/Top 100 directional artwork contract: **PASS** — focus promotes a 24–32-card window instead of relying only on viewport lazy loading.
-- Hero artwork contract: **PASS** — prewarming uses `w1280` backdrops; old hero content remains until replacement visuals are ready/timeout; title text remains until a title logo is ready.
-- Android entry prewarm contract: **PASS** — Home artwork can warm while the profile UI remains displayed, with destination prewarming for Live/Guide/STARmeter.
-- Live preview contract: **PASS** — web preview chrome remains visually absent until native Media3 preview activation; native preview itself remains hidden until `Player.STATE_READY`.
-- Guide presentation contract: **PASS** — channel logos are scaled within their existing cells; Guide geometry remains unchanged.
-- Android cold-launch contract: **PASS** — theme + runtime overlay use the Swoop TV launch logo and the overlay fades after WebView page completion.
-- Warm-start seed: **PASS** — schema remains valid, sourceVersion 0.8.32, 100 STARmeter people retained.
-- Build/update metadata: **PASS** — 0.8.32 / versionCode 832.
-- Direct source parent SHA-256 recorded for the uploaded v0.8.31 baseline.
+- Google TV UI runtime smoke: **PASS**, including v0.8.33 route-top and pre-login STARmeter regression guards.
+- STARmeter batch worker functional smoke: **PASS** — seeded people are matched correctly to movie/TV catalogue entries in one `person-match-batch` request.
+- Route-top contract: **PASS** — active top-navigation focus uses a multi-frame `scrollY = 0` restoration path and first-row Up can explicitly return to the current route tab.
+- STARmeter pre-login contract: **PASS** — preparation starts from Android bootstrap while Who’s Watching is visible and profile selection awaits an in-flight preparation attempt before entering the app.
+- STARmeter full-surface contract: **PASS** — Android uses a whole-page preparation state until the complete batch is ready, preventing mixed loaded/loading rows from becoming focusable.
+- STARmeter geometry contract: **PASS** — permanent rows are increased to 430px with extra inter-row safety space.
+- Warm-start seed: **PASS** — schema remains valid, sourceVersion 0.8.33, 100 STARmeter people retained.
+- Build/update metadata: **PASS** — 0.8.33 / versionCode 833.
 
-Binary APK compile was **not available in this packaging runtime**: there is no Gradle executable/wrapper JAR and no Android SDK configured. The included GitHub Actions workflow remains the authoritative APK compile gate.
+Binary APK compilation remains the GitHub Actions gate because the source packaging runtime does not include Android SDK 36/Gradle.

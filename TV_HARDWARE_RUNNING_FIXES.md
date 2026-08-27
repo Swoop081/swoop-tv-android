@@ -2,10 +2,14 @@
 
 ## Current build under test
 
-**v0.8.32 — Google TV STARmeter Matching + Guide Banner Hotfix**
+**v0.8.33 — Google TV Route Top + Pre-Login STARmeter Stability**
 
 ## Implemented — needs physical-TV verification
 
+- [ ] **TOP-001:** after scrolling any top-level route deep down, returning focus to the active fixed top navigation tab restores the document to its true original top (`scrollY = 0`).
+- [ ] **MYSWOOP-TOP:** My SwoopTV bottom → first rail → Up restores the full My SwoopTV heading/description, not just the first Simpsons/Continue Watching cards.
+- [ ] **STAR-PRELOAD:** Who’s Watching begins preparing all 100 STARmeter people before login; STARmeter opens from completed provider-match data rather than focus-driven loading.
+- [ ] **STAR-GEOMETRY:** STARmeter person rows never paint/stack into the next person while posters are loading or focused.
 - [ ] **NAV-001:** Top 100 Movies browses continuously from #1 through #100 with no stop at #25–27.
 - [ ] **NAV-002:** Top 100 TV Shows browses continuously from #1 through #100.
 - [ ] **NAV-003:** Up/Down preserves the visual poster column between rails.

@@ -1,6 +1,6 @@
-# Swoop TV v0.8.32 — Google TV hardware test checklist
+# Swoop TV v0.8.33 — Google TV hardware test checklist
 
-## v0.8.32 diagnostic workflow
+## v0.8.33 diagnostic workflow
 
 Before reproducing a hardware issue, enable **Hardware Test Mode** by focusing the Settings cog and pressing OK five times within four seconds. Select the matching NAV/PERF/LIVE/STAR/STAB test ID, reproduce the problem, photograph/video the HUD, then use **Settings → Hardware Test Mode → Save Diagnostics**. See `TV_HARDWARE_TEST_CHECKLIST.md` for the numbered procedure.
 
@@ -25,7 +25,7 @@ Before reproducing a hardware issue, enable **Hardware Test Mode** by focusing t
 ## STARmeter / People
 
 - [ ] STARmeter tab order is Home / Live TV / Guide / STARmeter / Movies / TV Shows / My List.
-- [ ] STARmeter opens quickly with ranked people and progressively fills each person’s available movie/TV rail.
+- [ ] STARmeter provider matching is already completed from the pre-login Who’s Watching preparation pass; opening STARmeter must not progressively assemble person rails.
 - [ ] Selecting a person opens their person page immediately while any remaining catalogue hydration continues in the background.
 - [ ] Search for a person currently in STARmeter and confirm the result/person route feels near-instant compared with an uncached person.
 - [ ] STARmeter failure/retry does not trap focus or break navigation.

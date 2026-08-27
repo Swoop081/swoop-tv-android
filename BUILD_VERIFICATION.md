@@ -1,22 +1,21 @@
-# Swoop TV v0.8.32 Build Verification
+# Swoop TV v0.8.33 Build Verification
 
-- [x] `app/build.gradle` is `versionName 0.8.32` / `versionCode 832`.
-- [x] Android bridge/User-Agent and diagnostic filenames report v0.8.32.
-- [x] `ANDROID_CURRENT_VERSION` reports 0.8.32.
-- [x] Service-worker shell cache is bumped to v0832.
-- [x] Install seed schema remains valid and `sourceVersion` is 0.8.32.
-- [x] STARmeter mounts all 100 ranked people as stable fixed-height rows.
-- [x] STARmeter hydration uses bounded 3-way concurrency with focus priority and 18-person look-ahead.
-- [x] STARmeter filmography rendering is bounded and uses larger horizontal TV cards.
-- [x] Home/long rails use directional artwork prefetch around current focus.
-- [x] Hero prewarm requests `w1280` backdrops and hero swaps retain the old hero until replacement visual readiness/timeout.
-- [x] Hero title text remains available until a title-logo image reports ready.
-- [x] Android profile-to-Home entry artwork prewarm is wired before Home reveal when a durable catalogue already exists.
-- [x] Android destination prewarm covers initial Live TV categories/logos and STARmeter preparation.
-- [x] Live preview panel remains visually hidden until native preview activation.
-- [x] Guide logo artwork is enlarged without changing Guide layout geometry.
-- [x] Android native launch overlay uses branded Swoop TV artwork and fades after WebView page completion.
+- [x] `app/build.gradle` is `versionName 0.8.33` / `versionCode 833`.
+- [x] Android bridge/User-Agent, native diagnostics and diagnostic filenames report v0.8.33 / 833.
+- [x] `ANDROID_CURRENT_VERSION` reports 0.8.33.
+- [x] Service-worker shell cache is bumped to v0833.
+- [x] Install seed schema remains valid and `sourceVersion` is 0.8.33.
+- [x] Top-level Google TV focus returning to the fixed top navigation invokes canonical route-top restoration.
+- [x] First-row Up on top-level pages without a focusable hero can escape to the active route tab.
+- [x] STARmeter preparation starts from the Who’s Watching/profile picker before login.
+- [x] STARmeter uses a single indexed `person-match-batch` worker request for the complete Top 100.
+- [x] STARmeter does not render partially hydrated person rows while the Android pre-login batch is incomplete.
+- [x] STARmeter permanent row geometry reserves enough vertical room for enlarged poster rails/focus scaling without overlap.
+- [x] STARmeter prewarms Top 100 portraits plus representative filmography artwork.
+- [x] v0.8.32 directional Top 100 artwork prefetch and atomic hero replacement remain present.
+- [x] v0.8.32 Live preview readiness, Guide logo scale and branded cold-launch treatment remain present.
 - [x] JavaScript syntax checks pass.
 - [x] Card runtime smoke passes.
 - [x] Google TV UI runtime smoke passes.
-- [ ] Binary APK compile status recorded separately below after local Gradle attempt.
+- [x] STARmeter batch worker functional smoke passes.
+- [ ] Binary APK compile is delegated to the included GitHub Actions Android SDK 36 / Gradle 9.5.0 workflow.

@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.32';
+const ANDROID_CURRENT_VERSION='0.8.33';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,10 +36,10 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Makes STARmeter a fixed 100-row TV surface so fast D-pad scrolling can never outrun row mounting or collapse the viewport while provider matches hydrate.',
-  'Runs bounded concurrent STARmeter matching with directional look-ahead, stable row geometry and larger horizontal filmography rails.',
-  'Aggressively preloads artwork ahead of focus on Top 100 and long TV rails, including correctly-sized hero backdrops, while keeping text/title fallbacks visible until artwork has decoded.',
-  'Prewarms Home and Live TV before route entry, hides the Live preview surface until native video is actually ready, enlarges Guide logos inside the existing cells and adds a branded Android launch surface.'
+  'Restores every main Google TV route to its true top position when D-pad focus returns to the selected top navigation tab.',
+  'Prepares the full STARmeter Top 100 against the connected provider catalogue before profile login using one indexed batch match instead of focus-driven person jobs.',
+  'Keeps STARmeter rows in permanent non-overlapping TV geometry and renders the page only from completed provider-match results.',
+  'Prewarms STARmeter portraits and representative filmography artwork while the Who’s Watching screen is still visible.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -424,6 +424,7 @@ let personView=null,personLoading=false,personError='',personMovies=[],personSho
 let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
 const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map(),starmeterRetryCounts=new Map();
 const starmeterHydrateQueue=[];let starmeterHydrateBusy=0,starmeterGeneration=0;
+let starmeterBackgroundPreparePromise=null,starmeterBackgroundReady=false,starmeterBackgroundProgress=0,starmeterBackgroundStatus='Preparing STARmeter…',starmeterPreparedProviderSignature='';
 function withTimeout(promise,ms=6000,label='Operation timed out'){return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))])}
 function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
@@ -1353,7 +1354,7 @@ function profileAvatarHtml(profile,cls=''){
 }
 function profilePickerPage(){
   const profiles=state.profiles||[];
-  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favourite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div><div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
+  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favourite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div>${NATIVE_ANDROID?`<div class="profile-starmeter-prep ${starmeterBackgroundReady?'ready':''}" data-profile-starmeter-prep><span>${starmeterBackgroundReady?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`}</span><strong>${esc(starmeterBackgroundReady?'STARmeter Top 100 ready':starmeterBackgroundStatus)}</strong></div>`:''}<div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
 }
 function focusDefaultProfileChoice(){
   if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select]');if(!first)return false;
@@ -1409,6 +1410,7 @@ function randomSalt(){try{return [...crypto.getRandomValues(new Uint8Array(12))]
 async function switchProfile(id,{skipPin=false}={}){
   const target=state.profiles.find(p=>p.id===id);if(!target)return;
   if(target.pinHash&&!skipPin){pendingProfileId=id;profilePinError='';modal='pin';profilePickerOpen=false;render();return}
+  if(NATIVE_ANDROID&&!starmeterBackgroundReady)await prepareStarmeterBeforeLogin().catch(()=>false);
   if(playerItem)await stopPlayback(true);
   const changed=target.id!==state.activeProfileId;
   if(changed){clearPersistentPageViews();syncActiveProfileFromState();state.activeProfileId=target.id;applyProfileToState(target);detailItem=null;sourceChoiceItem=null;heroRotationIndex=0;}
@@ -1876,6 +1878,53 @@ async function ensureStarmeterLoaded(){
     starmeterLoaded=true;starmeterLoading=false;starmeterVisibleCount=starmeterPeople.length;if(state.page==='starmeter'&&!detailItem&&!personView)render();setTimeout(()=>prewarmStarmeterHotCache(100),500);return starmeterPeople;
   }catch(err){starmeterLoading=false;starmeterError=err?.message||String(err);if(state.page==='starmeter')render();return[]}
 }
+function starmeterProviderSignature(){
+  const ids=enabledProviders().map(p=>`${p.id}:${Number(p?.counts?.live||0)+Number(p?.counts?.movie||0)+Number(p?.counts?.series||0)}:${Number(p?.lastRefreshAt||p?.updatedAt||0)}`).sort();
+  return `${catalogLogicalTotal()}|${ids.join('|')}`;
+}
+function patchProfileStarmeterPrep(){
+  if(!NATIVE_ANDROID||!profilePickerOpen)return;const el=document.querySelector('[data-profile-starmeter-prep]');if(!el)return;
+  el.classList.toggle('ready',starmeterBackgroundReady);const value=el.querySelector('span'),copy=el.querySelector('strong');
+  if(value)value.textContent=starmeterBackgroundReady?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`;
+  if(copy)copy.textContent=starmeterBackgroundReady?'STARmeter Top 100 ready':starmeterBackgroundStatus;
+}
+function setStarmeterBackgroundProgress(progress,status=''){
+  starmeterBackgroundProgress=Math.max(0,Math.min(100,Number(progress||0)));if(status)starmeterBackgroundStatus=status;patchProfileStarmeterPrep();
+}
+function prewarmPreparedStarmeterArtwork(){
+  if(!NATIVE_ANDROID||!starmeterBackgroundReady)return;
+  const portraits=[];for(const entry of starmeterPeople){const person=starmeterPersonCache.get(starmeterNormalize(entry.name))?.person||starmeterPersonSeed(entry),url=artworkWarmEntry(person?.profile,'w185');if(url&&!portraits.includes(url))portraits.push(url)}
+  portraits.slice(0,100).forEach(rememberArtworkPrewarm);
+  const rounds=[];for(let slot=0;slot<3;slot++)for(const entry of starmeterPeople){const cached=starmeterPersonCache.get(starmeterNormalize(entry.name)),item=starmeterPersonTitles(cached)[slot];if(item)rounds.push(item)}
+  prewarmArtworkUrls(rounds,160);
+}
+async function prepareStarmeterBeforeLogin(){
+  if(!NATIVE_ANDROID)return false;
+  const currentSignature=starmeterProviderSignature();
+  if(starmeterBackgroundReady&&currentSignature&&currentSignature===starmeterPreparedProviderSignature)return true;
+  if(starmeterBackgroundPreparePromise)return starmeterBackgroundPreparePromise;
+  starmeterBackgroundPreparePromise=(async()=>{
+    try{
+      setStarmeterBackgroundProgress(4,'Preparing STARmeter Top 100…');
+      await ensureStarmeterLoaded();if(!starmeterPeople.length)throw new Error('STARmeter list unavailable');
+      setStarmeterBackgroundProgress(10,'Restoring your provider catalogue…');
+      if(!state.catalog.length||tvHomeSnapshotActive)await ensureDurableLibraryRestored().catch(()=>false);
+      if(!state.catalog.length){setStarmeterBackgroundProgress(100,'STARmeter will prepare after a provider is connected.');return false}
+      setStarmeterBackgroundProgress(18,'Indexing your connected movies and TV shows…');
+      const workerReady=await ensureTvCatalogWorkerReady(18000);if(!workerReady)throw new Error('Provider availability index unavailable');
+      const people=starmeterPeople.map(entry=>{const key=starmeterNormalize(entry.name),hot=starmeterHotCache.get(key),person=hot?.person||starmeterPersonSeed(entry),credits=Array.isArray(hot?.credits)?hot.credits:[];return {key,rank:Number(entry.rank||0),person,moviePayload:personCreditPayload(credits,'movie'),showPayload:personCreditPayload(credits,'series')}});
+      setStarmeterBackgroundProgress(28,'Matching all 100 people to your providers…');
+      const batch=await tvCatalogWorkerRequest('person-match-batch',{people},24000);const results=Array.isArray(batch?.results)?batch.results:[];
+      if(results.length!==people.length)throw new Error('STARmeter batch match did not complete');
+      const byKey=new Map(people.map(row=>[row.key,row]));let done=0;
+      for(const row of results){const source=byKey.get(row.key);if(!source)continue;const value={person:source.person,movies:Array.isArray(row.movies)?sortPersonLibraryItems(row.movies):[],shows:Array.isArray(row.shows)?sortPersonLibraryItems(row.shows):[],loadedAt:Date.now(),prelogin:true};starmeterPersonCache.set(row.key,value);starmeterHotCache.set(row.key,{...(starmeterHotCache.get(row.key)||{}),...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||'').toLowerCase()}`,value);done++;if(done%10===0)setStarmeterBackgroundProgress(28+(done/Math.max(1,people.length))*62,`Matched ${done} of ${people.length} STARmeter people…`)}
+      starmeterBackgroundReady=true;starmeterPreparedProviderSignature=starmeterProviderSignature();setStarmeterBackgroundProgress(100,'STARmeter Top 100 ready');prewarmPreparedStarmeterArtwork();
+      if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();return true;
+    }catch(err){starmeterBackgroundReady=false;starmeterBackgroundStatus=err?.message||'STARmeter preparation will retry in the background.';patchProfileStarmeterPrep();return false}
+    finally{starmeterBackgroundPreparePromise=null}
+  })();
+  return starmeterBackgroundPreparePromise;
+}
 function starmeterPersonSeed(entry={}){const hot=starmeterHotCache.get(starmeterNormalize(entry.name));return hot?.person||{id:entry.id||'',name:entry.name||'',profile:entry.profile||'',knownForDepartment:entry.knownForDepartment||'Person'}}
 function starmeterPopularityValue(item={}){return Number(item.popularity||item.voteCount||item.vote_count||item.rating||item.imdbRating||0)||0}
 function starmeterPersonTitles(cached){
@@ -1890,23 +1939,23 @@ function starmeterPersonSection(entry={}){
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
-  const visible=starmeterPeople.slice(0,100);
-  const body=visible.length?visible.map(starmeterPersonSection).join(''):starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
+  const visible=starmeterPeople.slice(0,100),waiting=NATIVE_ANDROID&&!starmeterBackgroundReady;
+  const body=waiting?`<div class="starmeter-page-loading starmeter-full-prepare"><span class="provider-spinner"></span><strong>${esc(starmeterBackgroundStatus||'Preparing the complete STARmeter Top 100…')}</strong><small>${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}% · Swoop TV is matching all people before the page becomes focusable.</small></div>`:visible.length?visible.map(starmeterPersonSection).join(''):starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
   return `<main class="page starmeter-page"><section class="starmeter-hero"><div><span class="eyebrow">IMDb · TRENDING PEOPLE</span><h1>STARmeter</h1><p>The current IMDb Top 100 people, connected directly to movies and TV shows available in your Swoop TV providers.</p></div><div class="starmeter-count"><strong>${starmeterPeople.length||100}</strong><span>PEOPLE</span></div></section><div class="page-content starmeter-content">${body}</div></main>`;
 }
 async function hydrateStarmeterIdentity(entry={}){
   const key=starmeterNormalize(entry.name);if(!key)return null;const hot=starmeterHotCache.get(key);if(hot?.person?.profile||hot?.person?.id)return hot.person;
   try{const found=await searchPeople({settings:state.settings,query:entry.name,limit:3}),exact=(found||[]).find(p=>starmeterNormalize(p.name)===key)||(found||[])[0];if(!exact)return starmeterPersonSeed(entry);const person={id:String(exact.id||entry.id||''),name:String(exact.name||entry.name),profile:String(exact.profile||entry.profile||''),knownForDepartment:String(exact.knownForDepartment||entry.knownForDepartment||'Person')};starmeterHotCache.set(key,{person,identityOnly:true,loadedAt:Date.now()});patchStarmeterIdentity(entry.rank,person);return person}catch{return starmeterPersonSeed(entry)}
 }
-async function hydrateStarmeterPerson(entry={}){
-  const key=starmeterNormalize(entry.name);if(!key)return null;if(starmeterPersonCache.has(key))return starmeterPersonCache.get(key);if(starmeterHydratePending.has(key))return starmeterHydratePending.get(key);
+async function hydrateStarmeterPerson(entry={},options={}){
+  const background=Boolean(options?.background),key=starmeterNormalize(entry.name);if(!key)return null;if(starmeterPersonCache.has(key))return starmeterPersonCache.get(key);if(starmeterHydratePending.has(key))return starmeterHydratePending.get(key);
   const generation=starmeterGeneration;
   const task=(async()=>{try{
-    const seed=await withTimeout(hydrateStarmeterIdentity(entry),3500,'Person identity timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
+    const seed=await withTimeout(hydrateStarmeterIdentity(entry),3500,'Person identity timed out');if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;
     const hot=starmeterHotCache.get(key),preseedCredits=Array.isArray(hot?.credits)?hot.credits:[];
-    const ready=await withTimeout(loadAndroidPersonData(seed,{credits:preseedCredits}),9000,'Provider title matching timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
+    const ready=await withTimeout(loadAndroidPersonData(seed,{credits:preseedCredits}),9000,'Provider title matching timed out');if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;
     const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterRetryCounts.delete(key);starmeterPersonCache.set(key,value);starmeterHotCache.set(key,{...hot,...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
-  }catch(err){if(generation!==starmeterGeneration||state.page!=='starmeter')return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);if(retryable){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
+  }catch(err){if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);if(retryable&&!background){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
 function queueStarmeterPerson(entry={},options={}){
   const key=starmeterNormalize(entry.name);if(!key||starmeterPersonCache.has(key)||starmeterHydratePending.has(key)||starmeterHydrateQueue.some(x=>starmeterNormalize(x.name)===key))return;
@@ -2341,7 +2390,7 @@ function render(){
   bind();bindHeroControls(document);
   if(NATIVE_ANDROID){if(profilePickerOpen)requestAnimationFrame(focusDefaultProfileChoice);else restoreTvFocus();ensureTvHardwareOverlay();}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='search')runSearch('');
-  if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>{observeStarmeterSections(document);setupStarmeterAutoLoad();starmeterPeople.slice(0,18).forEach((entry,i)=>queueStarmeterPerson(entry,{priority:i<6}))},0)}
+  if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterBackgroundReady)setTimeout(()=>prepareStarmeterBeforeLogin().catch(()=>false),0);else setTimeout(()=>{setupStarmeterAutoLoad();prewarmPreparedStarmeterArtwork()},0)}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='live')setTimeout(setupLiveCategoryAutoLoad,0)
   if(detailRoute&&detailItem?.kind==='series'&&!detailLoading)setTimeout(prewarmSelectedEpisodeMetadata,0);
   hydrateArtwork();
@@ -3141,7 +3190,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:832,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:833,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3393,10 +3442,13 @@ function tvHomeRailDirectionalTarget(current,key){
   const r=card.getBoundingClientRect(),cx=(r.left+r.right)/2;
   return nextCards.reduce((best,el)=>{const b=el.getBoundingClientRect(),d=Math.abs(((b.left+b.right)/2)-cx);return !best||d<best.d?{el,d}:best},null)?.el||nextCards[0];
 }
+function tvForceRouteTop(){
+  if(!NATIVE_ANDROID)return false;const reset=()=>{try{window.scrollTo(0,0)}catch{}document.documentElement.scrollTop=0;document.body.scrollTop=0};reset();requestAnimationFrame(()=>{reset();requestAnimationFrame(reset)});return true
+}
 function tvHomeFocus(target,block='nearest'){
   if(!target)return false;rememberTvFocus();
-  const preserveTop=NATIVE_ANDROID&&state.page==='home'&&Boolean(target.closest?.('.topbar,.hero'));
-  if(preserveTop){window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}
+  const preserveTop=NATIVE_ANDROID&&Boolean(target.closest?.('.topbar')||(state.page==='home'&&target.closest?.('.hero')));
+  if(preserveTop)tvForceRouteTop();
   try{target.focus({preventScroll:true})}catch{target.focus()}
   if(!preserveTop)target.scrollIntoView({behavior:'auto',block,inline:'nearest'});
   tvFocusMemory=tvFocusSignature(target);return true
@@ -3445,7 +3497,7 @@ function tvMoveFocus(key){
     if(key==='ArrowRight'&&tvRailSection(current)){tvAdvanceLongRailRight(current);return true}
     if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true;
     const sections=tvPageRailSections(),first=sections[0],currentSection=tvRailSection(current);
-    if(key==='ArrowUp'&&first&&currentSection===first){const heroAction=document.querySelector('.page-hero .btn,.live-hub-hero .btn');if(heroAction)return tvHomeFocus(heroAction,'nearest')}
+    if(key==='ArrowUp'&&first&&currentSection===first){const heroAction=document.querySelector('.page-hero .btn,.live-hub-hero .btn');if(heroAction)return tvHomeFocus(heroAction,'nearest');const routeTab=document.querySelector(`.desktop-nav [data-page="${CSS.escape(state.page)}"]`);if(routeTab)return tvHomeFocus(routeTab,'start')}
   }
   const scrollFirstHomeUp=NATIVE_ANDROID&&state.page==='home'&&key==='ArrowUp'&&!tvHomeIsAtTop()&&!tvIsTopNavigationElement(current);
   if(scrollFirstHomeUp)focusables=focusables.filter(el=>!tvIsTopNavigationElement(el));
@@ -3455,6 +3507,7 @@ function tvMoveFocus(key){
   }
   if(!target&&scrollFirstHomeUp)return tvScrollHomeUpOneViewport();
   if(!target)return false;
+  if(NATIVE_ANDROID&&tvIsTopNavigationElement(target))return tvHomeFocus(target,'start');
   rememberTvFocus();
   try{target.focus({preventScroll:true})}catch{target.focus()}
   target.scrollIntoView({behavior:NATIVE_ANDROID?'auto':'smooth',block:'nearest',inline:'nearest'});
@@ -3726,7 +3779,7 @@ async function runAndroidStartupGate(){
 }
 
 async function bootstrapApp(){
-  if(NATIVE_ANDROID){render();return}
+  if(NATIVE_ANDROID){render();setTimeout(()=>prepareStarmeterBeforeLogin().catch(()=>false),0);return}
   const providers=enabledProviders();
   if(!providers.length){render();return}
   const refreshable=providers.filter(providerCanRefreshOnLaunch);

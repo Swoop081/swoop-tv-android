@@ -2597,3 +2597,19 @@ html.android-tv .guide-channel img{
   transform-origin:center!important;
   object-fit:contain!important;
 }
+
+
+/* ========================================================================== */
+/* v0.8.33 — route-top restoration + pre-login STARmeter completion.          */
+/* ========================================================================== */
+html.android-tv .profile-starmeter-prep{
+  margin:16px auto 2px!important;min-height:28px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;
+  color:#9fa4ae!important;font-size:10px!important;letter-spacing:.015em!important;pointer-events:none!important;
+}
+html.android-tv .profile-starmeter-prep span{min-width:34px!important;text-align:center!important;color:#f5c518!important;font-weight:950!important}
+html.android-tv .profile-starmeter-prep.ready strong,html.android-tv .profile-starmeter-prep.ready span{color:#7fe6bd!important}
+html.android-tv .starmeter-person-section{height:430px!important;min-height:430px!important;max-height:430px!important;margin-bottom:42px!important;contain:layout style!important}
+html.android-tv .starmeter-library-column{height:394px!important;min-height:394px!important;max-height:394px!important;overflow:visible!important}
+html.android-tv .starmeter-title-rail{grid-auto-columns:minmax(0,196px)!important;min-height:318px!important;max-height:328px!important;overflow-x:auto!important;overflow-y:visible!important;padding-bottom:28px!important}
+html.android-tv .starmeter-row-loading,html.android-tv .starmeter-empty-row{height:318px!important;min-height:318px!important}
+html.android-tv .starmeter-full-prepare{min-height:480px!important;align-content:center!important;margin-top:20px!important}
