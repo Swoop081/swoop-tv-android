@@ -31,16 +31,9 @@ writeFileSync('app/src/main/assets/app.js',baseApp);
 console.log('Applying the v0.8.36 runtime patch with formatting-tolerant context matching…');
 run('patch',['--dry-run','--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
 run('patch',['--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
-// Bring the live GitHub regression suite forward without depending on historical doc/test formatting.
-let test=readFileSync('tests/tv-ui-runtime-smoke.mjs','utf8');
-test=test.replaceAll('0.8.35','0.8.36');
-test=test.replace("!appSource.includes('performance.now()-starmeterLastFocusMoveAt<180')","!appSource.includes('function starmeterMutationBlocked()')");
-test=test.replace("if (!appSource.includes(\"if(NATIVE_ANDROID){render();setTimeout(()=>prepareStarmeterBeforeLogin()\")) throw new Error('STARmeter preparation does not start on the profile picker');","if (!appSource.includes(\"if(NATIVE_ANDROID){render();setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)}\")) throw new Error('STARmeter preparation does not start on the profile picker');");
-if(!test.includes("performancePackSource =")){
-  test=test.replace("const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');",`const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');\nconst performancePackSource = fs.readFileSync(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url), 'utf8');\nconst storageSource = fs.readFileSync(new URL('../app/src/main/assets/src/storage.js', import.meta.url), 'utf8');\nconst {performancePackProviderDelta} = await import(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url));`);
-}
-if(!test.includes('// v0.8.36 Performance Pack'))test+=`\n\n// v0.8.36 Performance Pack + held-D-pad regressions.\nif(!appSource.includes("from './src/performancePack.js'"))throw new Error('v0.8.36 Performance Pack runtime wiring missing');\nif(!appSource.includes('starmeterHeldDirectional')||!appSource.includes('starmeterHeldKeys'))throw new Error('v0.8.36 held-D-pad mutation freeze missing');\nif(!performancePackSource.includes('PERFORMANCE_PACK_SCHEMA')||!performancePackSource.includes('savePerformancePackStarmeter'))throw new Error('v0.8.36 persistent Performance Pack/STARmeter storage missing');\nif(!storageSource.includes('catalogChunkFingerprints'))throw new Error('v0.8.36 incremental catalogue chunk fingerprints missing');\nconst delta=performancePackProviderDelta([{id:'a',kind:'movie',name:'A'},{id:'b',kind:'movie',name:'B'}],[{id:'a',kind:'movie',name:'A'},{id:'b',kind:'movie',name:'B2'},{id:'c',kind:'movie',name:'C'}]);\nif(delta.added.length!==1||delta.changed.length!==1||delta.removed.length!==0)throw new Error('v0.8.36 provider delta classification failed');\n`;
-writeFileSync('tests/tv-ui-runtime-smoke.mjs',test);
+// Install the exact v0.8.36 regression suite that already passes against this runtime.
+const testBlob='scripts/.v0836-test.b64';
+writeFileSync('tests/tv-ui-runtime-smoke.mjs',inflateSync(Buffer.from(readFileSync(testBlob,'utf8').trim(),'base64')));
 // Keep the canonical changelog current even though old GitHub docs had harmless formatting drift.
 let notes=readFileSync('RELEASE_NOTES.md','utf8');
 if(!notes.includes('## v0.8.36 — Performance Pack + Incremental Library Cache')){
@@ -48,7 +41,7 @@ if(!notes.includes('## v0.8.36 — Performance Pack + Incremental Library Cache'
   notes=notes.startsWith('# Swoop TV Release Notes\n\n')?notes.replace('# Swoop TV Release Notes\n\n','# Swoop TV Release Notes\n\n'+section):section+notes;
   writeFileSync('RELEASE_NOTES.md',notes);
 }
-for(const p of chunks)try{unlinkSync(p)}catch{}
+for(const p of [...chunks,'scripts/.v0836-test.b64'])try{unlinkSync(p)}catch{}
 const app=readFileSync('app/src/main/assets/app.js','utf8'),gradle=readFileSync('app/build.gradle','utf8');
 if(!gradle.includes("versionName '0.8.36'")||!gradle.includes('versionCode 836'))throw new Error('Gradle did not promote to v0.8.36/836');
 if(!app.includes("const ANDROID_CURRENT_VERSION='0.8.36';")||!app.includes("from './src/performancePack.js'")||!app.includes('starmeterHeldDirectional'))throw new Error('v0.8.36 app promotion contract failed');
