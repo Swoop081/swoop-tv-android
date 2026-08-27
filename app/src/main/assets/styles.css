@@ -1974,3 +1974,221 @@ html.android-tv.tv-modal-open body{overflow:hidden!important;overscroll-behavior
 html.android-tv.tv-modal-open .modal-backdrop{overscroll-behavior:contain!important}
 html.android-tv.tv-modal-open .whats-new-modal{isolation:isolate}
 html.android-tv.tv-modal-open .whats-new-modal [data-whats-new-done]:focus{outline:3px solid #fff;outline-offset:3px}
+
+/* v0.8.25 — Google TV STARmeter + navigation/metadata polish. */
+
+/* The user-approved Home masthead now extends substantially farther down the
+   screen, while remaining a bounded frame directly below the persistent nav. */
+html.android-tv .hero{
+  height:440px!important;
+  min-height:440px!important;
+  max-height:440px!important;
+}
+html.android-tv .hero-content{
+  width:min(620px,45vw)!important;
+  padding:84px 0 28px var(--tv-safe-x)!important;
+}
+html.android-tv .hero-title-slot{min-height:46px!important;margin-bottom:9px!important}
+html.android-tv .hero-title-logo{max-width:min(360px,28vw)!important;max-height:96px!important}
+html.android-tv .hero-poster{top:22%!important;height:68%!important;max-width:22vw!important}
+html.android-tv .home-content{margin-top:0!important}
+
+/* Match the Top 100's deliberate TV-safe left edge across every poster rail. */
+html.android-tv .poster-section:not(.ranked-section) .rail,
+html.android-tv .media-category-rail-track,
+html.android-tv .person-library-section .rail,
+html.android-tv .starmeter-title-rail{
+  padding-left:clamp(24px,1.6vw,34px)!important;
+  scroll-padding-left:clamp(24px,1.6vw,34px)!important;
+  margin-left:0!important;
+}
+
+/* IMDb remains readable at couch distance but no longer dominates poster art. */
+html.android-tv .card-imdb-rating,
+html.android-tv .ranked-card .card-imdb-rating{
+  right:4px!important;
+  bottom:4px!important;
+  gap:2px!important;
+  padding:3px 4px!important;
+  border-radius:4px!important;
+  font-size:8px!important;
+  line-height:1!important;
+  box-shadow:0 3px 9px rgba(0,0,0,.36)!important;
+}
+
+/* Live TV hero is a stable three-part composition:
+   information/actions | muted preview | contained channel branding. */
+html.android-tv .live-hub-hero,
+html.android-tv .live-hub-hero.has-brand-art{
+  display:grid!important;
+  grid-template-columns:minmax(0,38%) minmax(0,34%) minmax(0,28%)!important;
+  align-items:end!important;
+  gap:14px!important;
+  height:270px!important;
+  min-height:270px!important;
+  padding:72px var(--tv-safe-x) 14px!important;
+  box-sizing:border-box!important;
+}
+html.android-tv .live-hub-copy{
+  grid-column:1!important;
+  position:relative!important;
+  inset:auto!important;
+  align-self:end!important;
+  max-width:none!important;
+  min-width:0!important;
+  z-index:4!important;
+}
+html.android-tv .live-hub-copy h1{font-size:clamp(28px,3vw,43px)!important;margin:2px 0 5px!important}
+html.android-tv .live-hub-copy p{font-size:9px!important;line-height:1.3!important;max-width:52ch!important;margin:0 0 8px!important}
+html.android-tv .live-hub-preview-panel{
+  grid-column:2!important;
+  position:relative!important;
+  align-self:stretch!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin-top:2px!important;
+  border-radius:8px!important;
+  overflow:hidden!important;
+  background:#050609!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.32)!important;
+  z-index:3!important;
+}
+html.android-tv .live-preview-anchor{
+  position:absolute!important;
+  inset:0!important;
+  border-radius:8px!important;
+  overflow:hidden!important;
+  background:linear-gradient(145deg,#10131b,#050609)!important;
+}
+html.android-tv .live-hub-brand-panel{
+  grid-column:3!important;
+  position:relative!important;
+  align-self:stretch!important;
+  display:grid!important;
+  place-items:center!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:4px 4px 34px!important;
+  overflow:hidden!important;
+  z-index:4!important;
+}
+html.android-tv .live-hub-brand-panel .live-hub-art,
+html.android-tv .live-hub-hero.has-brand-art .live-hub-brand-panel .live-hub-art{
+  position:relative!important;
+  inset:auto!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  padding:0!important;
+  transform:none!important;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.34))!important;
+}
+html.android-tv .live-brand-fallback{font-size:34px;font-weight:1000;letter-spacing:.08em;color:rgba(255,255,255,.18)}
+html.android-tv .live-hub-brand-panel .live-hub-stat{
+  position:absolute!important;
+  right:5px!important;
+  bottom:3px!important;
+  display:flex!important;
+  align-items:baseline!important;
+  gap:5px!important;
+  text-align:right!important;
+}
+html.android-tv .live-hub-brand-panel .live-hub-stat strong{font-size:16px!important}
+html.android-tv .live-hub-brand-panel .live-hub-stat span{font-size:7px!important}
+html.android-tv .live-hub-brand-panel .live-hub-stat small{display:none!important}
+html.android-tv .live-hub-shade{
+  background:linear-gradient(90deg,rgba(4,5,7,.96) 0%,rgba(4,5,7,.72) 32%,rgba(4,5,7,.12) 54%,rgba(4,5,7,.20) 100%)!important;
+  pointer-events:none!important;
+}
+html.android-tv .live-hub-backdrop{display:none!important}
+
+/* Browse Live TV is intentionally the same physical card scale as Recent. */
+html.android-tv .live-category-rail-track,
+html.android-tv .live-clean-section .live-category-rail-track{
+  grid-auto-columns:minmax(0,168px)!important;
+  gap:12px!important;
+}
+html.android-tv .live-rail-logo{border-radius:10px!important}
+html.android-tv .live-rail-logo img{padding:10%!important}
+html.android-tv .live-rail-card strong{font-size:11px!important}
+html.android-tv .live-auto-load-sentinel{height:1px;width:100%;pointer-events:none}
+
+/* Approved TV Guide geometry stays fixed; only use more of the existing logo
+   cell by reducing image padding and enlarging the contained mark. */
+html.android-tv .guide-channel img,
+html.android-tv .guide-logo-fallback{
+  width:40px!important;
+  height:40px!important;
+  padding:1px!important;
+  object-fit:contain!important;
+  transform:scale(1.16)!important;
+  transform-origin:center!important;
+  background:transparent!important;
+}
+html.android-tv .guide-channel{overflow:visible!important}
+
+/* STARmeter: portrait/rank column followed by the person's provider-matched rail. */
+html.android-tv .starmeter-page{padding-top:70px!important;min-height:100vh;background:#050505}
+html.android-tv .starmeter-hero{
+  min-height:150px;
+  padding:30px var(--tv-safe-x) 22px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:30px;
+  background:radial-gradient(circle at 80% 30%,rgba(245,197,24,.14),transparent 33%),linear-gradient(180deg,#131318,#070709);
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+html.android-tv .starmeter-hero h1{font-size:48px;line-height:.9;letter-spacing:-.055em;margin:4px 0 8px}
+html.android-tv .starmeter-hero p{max-width:760px;margin:0;color:#9fa2aa;font-size:11px;line-height:1.45}
+html.android-tv .starmeter-count{display:grid;justify-items:end}.starmeter-count strong{font-size:38px;line-height:1}.starmeter-count span{font-size:8px;color:#f5c518;font-weight:950;letter-spacing:.13em}
+html.android-tv .starmeter-content{padding-top:22px!important}
+html.android-tv .starmeter-person-section{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr);
+  gap:18px;
+  align-items:start;
+  margin-bottom:28px;
+  padding-left:clamp(24px,1.6vw,34px);
+}
+html.android-tv .starmeter-person-column{padding-top:4px}
+html.android-tv .starmeter-person-card{
+  width:140px;
+  border:0;
+  background:transparent;
+  color:#fff;
+  text-align:left;
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr);
+  grid-template-rows:40px auto;
+  gap:7px 9px;
+  cursor:pointer;
+  padding:0;
+}
+html.android-tv .starmeter-person-card img,
+html.android-tv .starmeter-person-fallback{grid-row:1/3;width:40px;height:58px;object-fit:cover;border-radius:7px;background:#17191f;display:grid;place-items:center;font-size:18px;font-weight:950}
+html.android-tv .starmeter-person-card b{align-self:end;color:#f5c518;font-size:12px}.starmeter-person-card strong{font-size:10px;line-height:1.15;align-self:start}
+html.android-tv .starmeter-library-column{min-width:0}.starmeter-library-column .section-head{margin-bottom:5px}.starmeter-library-column .section-head h2{font-size:14px;margin:1px 0}.starmeter-library-column .eyebrow{font-size:6px}
+html.android-tv .starmeter-title-rail{grid-auto-columns:minmax(0,128px)!important;gap:12px!important;padding-bottom:18px!important;overflow-x:auto}
+html.android-tv .starmeter-row-loading{height:185px;display:flex;align-items:center;gap:9px;color:#777d88;font-size:9px}.starmeter-row-loading i{width:96px;height:145px;border-radius:6px;background:linear-gradient(110deg,#101216,#1a1d24,#101216);background-size:200% 100%;animation:swoop-skeleton 1.2s linear infinite}.starmeter-row-loading span{margin-left:8px}
+html.android-tv .starmeter-empty-row{height:100px;display:flex;align-items:center;color:#777d88;font-size:10px}.starmeter-page-loading,.starmeter-error{margin:60px var(--tv-safe-x);display:grid;gap:10px;max-width:620px}.starmeter-page-loading{grid-template-columns:auto 1fr;align-items:center}.starmeter-page-loading small{grid-column:2;color:#7e828b}
+
+/* Episode metadata: air date/runtime live beside the title without crowding it. */
+html.android-tv .episode-copy>div{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
+html.android-tv .episode-copy>div strong{margin-right:auto!important}
+html.android-tv .episode-copy>div span{font-size:9px!important;color:#a9adb7!important;white-space:nowrap!important}
+html.android-tv .episode-copy p{line-height:1.35!important}
+
+html.android-tv[data-tv-density="compact"] .hero{height:400px!important;min-height:400px!important;max-height:400px!important}
+html.android-tv[data-tv-density="compact"] .live-hub-hero{height:250px!important;min-height:250px!important}
+html.android-tv[data-tv-density="tight"] .hero{height:350px!important;min-height:350px!important;max-height:350px!important}
+html.android-tv[data-tv-density="tight"] .live-hub-hero{height:230px!important;min-height:230px!important;grid-template-columns:minmax(0,40%) minmax(0,34%) minmax(0,26%)!important}
+html.android-tv[data-tv-density="tight"] .live-category-rail-track{grid-auto-columns:minmax(0,150px)!important}
+@media (max-height:650px){
+  html.android-tv .hero{height:330px!important;min-height:330px!important;max-height:330px!important}
+  html.android-tv .live-hub-hero{height:220px!important;min-height:220px!important}
+}

@@ -1,13 +1,28 @@
-# Swoop TV v0.8.24 Build Verification
+# Swoop TV v0.8.25 Build Verification
 
-## Automated checks completed in the packaging environment
+## Static/runtime gates
 
-- All JavaScript modules under `app/src/main/assets/` pass `node --check`.
-- `tests/card-runtime-smoke.mjs` passes.
-- `tests/tv-ui-runtime-smoke.mjs` passes and covers the v0.8.24 modal focus/scroll ownership plus v0.8.23 navigation, 100-item rail, long-press, Live preview, Guide, actor-route and update/changelog contracts.
-- Source/CSS delimiter counts are balanced as an additional packaging sanity check.
-- Android version markers are aligned to `versionName 0.8.24` / `versionCode 824`.
+- [ ] Every JavaScript file under `app/src/main/assets` passes `node --check`.
+- [ ] `tests/card-runtime-smoke.mjs` passes.
+- [ ] `tests/tv-ui-runtime-smoke.mjs` passes.
+- [ ] `app/src/main/assets/starmeter.json` parses and contains exactly 100 unique ranks 1–100.
+- [ ] Root `swoop-tv-starmeter.json` matches the bundled manifest.
+- [ ] Android markers are aligned to `versionName 0.8.25` / `versionCode 825`.
+- [ ] MainActivity User-Agent/version bridge reports `0.8.25`.
+- [ ] GitHub Actions publishes the versioned APK, stable Downloader APK, latest-version manifest and STARmeter manifest.
+- [ ] Source ZIP integrity test passes and SHA-256 is recorded.
 
-## APK compilation
+## v0.8.25 regression contracts
 
-This packaging environment does not contain Gradle 9.5.0 or Android SDK 36, so an APK binary is not compiled locally here. The included GitHub Actions workflow installs the required Android SDK/JDK/Gradle toolchain, runs both smoke tests, builds the test APK, publishes the stable Downloader APK and uploads `swoop-tv-latest.json`.
+- [ ] Right from Top 100 Movies item 24 reaches item 25 in the same row; it cannot jump to Top 100 TV Shows.
+- [ ] Home Top 100 can continue through rank 100 when 100 genuine matches exist.
+- [ ] Movies/TV Shows category rails can continue beyond 25 and beyond 100 through subsequent 100-item data batches.
+- [ ] Moving Down from a middle-screen poster chooses the visually nearest card in the row below.
+- [ ] STARmeter appears after Guide and before Movies and progressively hydrates provider-available title rails.
+- [ ] People Search consults the STARmeter hot cache first.
+- [ ] Home hero uses the approved enlarged bounded TV height and all poster rails use consistent safe-left inset.
+- [ ] Live TV hero renders info left / preview centre / contained logo right; Browse Live TV cards use the larger TV sizing.
+- [ ] Episode cards never show fake `0:00` and do not show generic “Play this episode from your connected provider” copy.
+- [ ] Guide logo scaling does not alter Guide column/row geometry.
+- [ ] IMDb rating badges use the reduced corner treatment.
+- [ ] v0.8.24 What’s New still traps focus and background scroll correctly.

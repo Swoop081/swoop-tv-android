@@ -159,3 +159,14 @@ export async function searchPeople({settings={}, query='', limit=12}) {
   const data=await res.json();
   return Array.isArray(data?.people)?data.people:[];
 }
+
+
+export async function fetchEpisodeMetadata({settings={},item={},season='',episode=''}) {
+  const service=metadataServiceUrl(settings);
+  if(!service||!item||!season||!episode)return null;
+  const res=await fetch(service,{
+    method:'POST',headers:{'content-type':'application/json'},cache:'no-store',
+    body:JSON.stringify({mode:'episode-metadata',mediaType:'tv',tmdbId:item.tmdbId||'',imdbId:item.imdbId||'',title:cleanMetadataTitle(item.name||''),year:item.year||identityYear(item.name||''),season:Number(season)||season,episode:Number(episode)||episode})
+  });
+  if(!res.ok)return null;const data=await res.json();return data?.episode||data?.metadata||null;
+}

@@ -5,6 +5,16 @@ const cssSource = fs.readFileSync(new URL('../app/src/main/assets/styles.css', i
 const nativeSource = fs.readFileSync(new URL('../app/src/main/assets/src/native.js', import.meta.url), 'utf8');
 const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');
 
+const starmeterManifest = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/starmeter.json', import.meta.url), 'utf8'));
+const starmeterPeople = Array.isArray(starmeterManifest?.people) ? starmeterManifest.people : [];
+if (starmeterPeople.length !== 100) throw new Error(`STARmeter manifest must contain 100 people, got ${starmeterPeople.length}`);
+const starmeterRanks = starmeterPeople.map(x=>Number(x.rank));
+if (starmeterRanks.some((rank,index)=>rank!==index+1)) throw new Error('STARmeter ranks must be contiguous 1–100');
+const starmeterNames = starmeterPeople.map(x=>String(x.name||'').trim().toLowerCase());
+if (starmeterNames.some(x=>!x) || new Set(starmeterNames).size !== 100) throw new Error('STARmeter people must contain 100 unique non-empty names');
+const releaseStarmeter = JSON.parse(fs.readFileSync(new URL('../swoop-tv-starmeter.json', import.meta.url), 'utf8'));
+if (JSON.stringify(releaseStarmeter.people) !== JSON.stringify(starmeterManifest.people)) throw new Error('Bundled and release STARmeter manifests diverge');
+
 const start = appSource.indexOf('function homeVisibleTitleKey(');
 const end = appSource.indexOf('\nfunction androidFastRowItems(', start);
 if (start < 0 || end < 0) throw new Error('Unable to locate Home title de-duplication helpers');
@@ -41,17 +51,31 @@ if (!cssSource.includes('scroll-behavior:auto!important')) throw new Error('TV r
 
 // v0.8.23 continuous 100-at-a-time catalogue rails.
 if (!appSource.includes('const LONG_RAIL_BATCH_SIZE=100')) throw new Error('100-item long-rail batches missing');
-if (!appSource.includes('LONG_RAIL_PREFETCH_THRESHOLD=24')) throw new Error('Ahead-of-end long-rail prefetch missing');
+if (!appSource.includes('LONG_RAIL_PREFETCH_THRESHOLD=30')) throw new Error('Ahead-of-end long-rail prefetch missing');
 if (!appSource.includes('data-long-rail="media"') || !appSource.includes('data-long-rail="live"')) throw new Error('Long-rail pagination markers missing');
 if (!appSource.includes('function prefetchMediaRail(') || !appSource.includes('function prefetchLiveRail(')) throw new Error('Long-rail prefetch functions missing');
 
 // Home masthead and persistent TV navigation.
-if (!cssSource.includes('height:260px!important')) throw new Error('v0.8.23 bounded Home hero missing');
+if (!cssSource.includes('height:440px!important')) throw new Error('v0.8.23 bounded Home hero missing');
 if (!cssSource.includes('position:fixed!important') || !cssSource.includes('z-index:160!important')) throw new Error('Persistent Google TV top navigation missing');
 if (!appSource.includes("key==='ArrowUp'&&firstSection&&currentSection===firstSection&&heroAction")) throw new Error('First Home row → hero Up routing missing');
 if (!appSource.includes("key==='ArrowDown'&&tvIsTopNavigationElement(current)&&heroAction")) throw new Error('Top navigation → hero Down routing missing');
 if (!appSource.includes('function updateAndroidTvViewportProfile()')) throw new Error('Adaptive TV viewport density missing');
 if (!cssSource.includes('data-tv-density="compact"') || !cssSource.includes('data-tv-density="tight"')) throw new Error('Adaptive TV density CSS missing');
+
+
+// v0.8.25 long-rail/vertical-position regressions.
+if (!appSource.includes("if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true")) throw new Error('Horizontal rail ownership guard missing; focus can escape to another row at a render boundary');
+if (!appSource.includes("const r=card.getBoundingClientRect(),cx=(r.left+r.right)/2")) throw new Error('Visual-column Up/Down targeting missing');
+if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=48') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=48')) throw new Error('Larger lazy-render safety window missing');
+if (!appSource.includes("['home','Home'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies']")) throw new Error('STARmeter primary navigation placement missing');
+if (!appSource.includes('function starmeterPage()') || !appSource.includes('function prewarmStarmeterHotCache')) throw new Error('STARmeter page/hot-cache implementation missing');
+if (!appSource.includes("fetch('./starmeter.json'")) throw new Error('Bundled STARmeter fallback manifest missing');
+if (!appSource.includes("[data-starmeter-retry]") || !appSource.includes('starmeterObserver?.disconnect?.()')) throw new Error('STARmeter retry/observer cleanup missing');
+if (!appSource.includes('function prewarmSelectedEpisodeMetadata()') || !appSource.includes('fetchEpisodeMetadata')) throw new Error('Episode metadata background enrichment missing');
+if (!cssSource.includes('grid-template-columns:minmax(0,38%) minmax(0,34%) minmax(0,28%)')) throw new Error('Live TV left/preview/brand three-column hero missing');
+if (!cssSource.includes('grid-auto-columns:minmax(0,168px)!important')) throw new Error('Larger Browse Live TV tiles missing');
+if (!cssSource.includes('font-size:8px!important')) throw new Error('Smaller TV IMDb badge missing');
 
 // Continue Watching long-press options.
 if (!appSource.includes('window.__swoopTvFocusedSupportsLongPress')) throw new Error('Continue Watching long-press capability hook missing');
@@ -80,7 +104,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.24';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.25';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');

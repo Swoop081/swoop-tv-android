@@ -1,0 +1,407 @@
+{
+  "source": "IMDb STARmeter / Trending People",
+  "sourceUrl": "https://www.imdb.com/chart/starmeter/",
+  "capturedAt": "2026-08-27T00:00:00Z",
+  "people": [
+    {
+      "rank": 1,
+      "name": "Hayden Panettiere"
+    },
+    {
+      "rank": 2,
+      "name": "Agnez Mo"
+    },
+    {
+      "rank": 3,
+      "name": "Inde Navarrette"
+    },
+    {
+      "rank": 4,
+      "name": "Kathleen Robertson"
+    },
+    {
+      "rank": 5,
+      "name": "Ella Rubin"
+    },
+    {
+      "rank": 6,
+      "name": "Tom Holland"
+    },
+    {
+      "rank": 7,
+      "name": "Anne Hathaway"
+    },
+    {
+      "rank": 8,
+      "name": "Kelly Macdonald"
+    },
+    {
+      "rank": 9,
+      "name": "Alan Ritchson"
+    },
+    {
+      "rank": 10,
+      "name": "Kevin Weisman"
+    },
+    {
+      "rank": 11,
+      "name": "Kyle Chandler"
+    },
+    {
+      "rank": 12,
+      "name": "Christopher Nolan"
+    },
+    {
+      "rank": 13,
+      "name": "Lesley Vogel"
+    },
+    {
+      "rank": 14,
+      "name": "Jason Statham"
+    },
+    {
+      "rank": 15,
+      "name": "Aaron Pierre"
+    },
+    {
+      "rank": 16,
+      "name": "Jansen Panettiere"
+    },
+    {
+      "rank": 17,
+      "name": "Garret Dillahunt"
+    },
+    {
+      "rank": 18,
+      "name": "Samara Weaving"
+    },
+    {
+      "rank": 19,
+      "name": "Maya Boyd"
+    },
+    {
+      "rank": 20,
+      "name": "Hannah Waddingham"
+    },
+    {
+      "rank": 21,
+      "name": "Sadie Sink"
+    },
+    {
+      "rank": 22,
+      "name": "Poorna Jagannathan"
+    },
+    {
+      "rank": 23,
+      "name": "Steve Way"
+    },
+    {
+      "rank": 24,
+      "name": "Faye Marsay"
+    },
+    {
+      "rank": 25,
+      "name": "Zendaya"
+    },
+    {
+      "rank": 26,
+      "name": "Brian Hickerson"
+    },
+    {
+      "rank": 27,
+      "name": "Christopher Rodriguez Marquette"
+    },
+    {
+      "rank": 28,
+      "name": "Jon Bernthal"
+    },
+    {
+      "rank": 29,
+      "name": "Rachel Blanchard"
+    },
+    {
+      "rank": 30,
+      "name": "Ryan Gosling"
+    },
+    {
+      "rank": 31,
+      "name": "Rachael Harris"
+    },
+    {
+      "rank": 32,
+      "name": "Tanya Reynolds"
+    },
+    {
+      "rank": 33,
+      "name": "Sunny Sandler"
+    },
+    {
+      "rank": 34,
+      "name": "Robert Pattinson"
+    },
+    {
+      "rank": 35,
+      "name": "Matt Damon"
+    },
+    {
+      "rank": 36,
+      "name": "Emmy Rossum"
+    },
+    {
+      "rank": 37,
+      "name": "Anya Taylor-Joy"
+    },
+    {
+      "rank": 38,
+      "name": "Christopher Abbott"
+    },
+    {
+      "rank": 39,
+      "name": "Lola Petticrew"
+    },
+    {
+      "rank": 40,
+      "name": "Florence Pugh"
+    },
+    {
+      "rank": 41,
+      "name": "Amélie Hoeferle"
+    },
+    {
+      "rank": 42,
+      "name": "Melanie Lynskey"
+    },
+    {
+      "rank": 43,
+      "name": "Michelle Trachtenberg"
+    },
+    {
+      "rank": 44,
+      "name": "Marc Blucas"
+    },
+    {
+      "rank": 45,
+      "name": "Taylor Sheridan"
+    },
+    {
+      "rank": 46,
+      "name": "Brad Pitt"
+    },
+    {
+      "rank": 47,
+      "name": "Jason Ritter"
+    },
+    {
+      "rank": 48,
+      "name": "Anggun"
+    },
+    {
+      "rank": 49,
+      "name": "Nicholas Galitzine"
+    },
+    {
+      "rank": 50,
+      "name": "Teagan Croft"
+    },
+    {
+      "rank": 51,
+      "name": "Olivia Wilde"
+    },
+    {
+      "rank": 52,
+      "name": "Margaret Qualley"
+    },
+    {
+      "rank": 53,
+      "name": "Jake Gyllenhaal"
+    },
+    {
+      "rank": 54,
+      "name": "Juno Temple"
+    },
+    {
+      "rank": 55,
+      "name": "Philippa Northeast"
+    },
+    {
+      "rank": 56,
+      "name": "Kevin Corrigan"
+    },
+    {
+      "rank": 57,
+      "name": "Andrew Garfield"
+    },
+    {
+      "rank": 58,
+      "name": "Tom Cruise"
+    },
+    {
+      "rank": 59,
+      "name": "Matthew McConaughey"
+    },
+    {
+      "rank": 60,
+      "name": "Leonardo DiCaprio"
+    },
+    {
+      "rank": 61,
+      "name": "Kaylee Hottle"
+    },
+    {
+      "rank": 62,
+      "name": "Wagner Moura"
+    },
+    {
+      "rank": 63,
+      "name": "Matthew Rhys"
+    },
+    {
+      "rank": 64,
+      "name": "Sofia Hasmik"
+    },
+    {
+      "rank": 65,
+      "name": "Robert De Niro"
+    },
+    {
+      "rank": 66,
+      "name": "Rebecca Ferguson"
+    },
+    {
+      "rank": 67,
+      "name": "Sydney Sweeney"
+    },
+    {
+      "rank": 68,
+      "name": "Denzel Washington"
+    },
+    {
+      "rank": 69,
+      "name": "Jill Wagner"
+    },
+    {
+      "rank": 70,
+      "name": "Edward Norton"
+    },
+    {
+      "rank": 71,
+      "name": "Nicolas Cage"
+    },
+    {
+      "rank": 72,
+      "name": "Bo Bragason"
+    },
+    {
+      "rank": 73,
+      "name": "Robert Downey Jr."
+    },
+    {
+      "rank": 74,
+      "name": "Amy Adams"
+    },
+    {
+      "rank": 75,
+      "name": "Johnny Depp"
+    },
+    {
+      "rank": 76,
+      "name": "Greta Lee"
+    },
+    {
+      "rank": 77,
+      "name": "Timothy Olyphant"
+    },
+    {
+      "rank": 78,
+      "name": "Milo Ventimiglia"
+    },
+    {
+      "rank": 79,
+      "name": "Kit Connor"
+    },
+    {
+      "rank": 80,
+      "name": "Olivia Cooke"
+    },
+    {
+      "rank": 81,
+      "name": "Jacob Whiteduck-Lavoie"
+    },
+    {
+      "rank": 82,
+      "name": "Mark Wahlberg"
+    },
+    {
+      "rank": 83,
+      "name": "Charlie Hunnam"
+    },
+    {
+      "rank": 84,
+      "name": "Kristen Wiig"
+    },
+    {
+      "rank": 85,
+      "name": "Zoe Saldaña"
+    },
+    {
+      "rank": 86,
+      "name": "Annabelle Wallis"
+    },
+    {
+      "rank": 87,
+      "name": "Emily Blunt"
+    },
+    {
+      "rank": 88,
+      "name": "Tom Hanks"
+    },
+    {
+      "rank": 89,
+      "name": "Benny Safdie"
+    },
+    {
+      "rank": 90,
+      "name": "Zoey Deutch"
+    },
+    {
+      "rank": 91,
+      "name": "Keanu Reeves"
+    },
+    {
+      "rank": 92,
+      "name": "Morena Baccarin"
+    },
+    {
+      "rank": 93,
+      "name": "Henry Cavill"
+    },
+    {
+      "rank": 94,
+      "name": "Sandra Bullock"
+    },
+    {
+      "rank": 95,
+      "name": "Scarlett Johansson"
+    },
+    {
+      "rank": 96,
+      "name": "Nicole Kidman"
+    },
+    {
+      "rank": 97,
+      "name": "Gillian Anderson"
+    },
+    {
+      "rank": 98,
+      "name": "Nathan Fillion"
+    },
+    {
+      "rank": 99,
+      "name": "Tom Hardy"
+    },
+    {
+      "rank": 100,
+      "name": "Scarlett Estevez"
+    }
+  ]
+}

@@ -1,148 +1,55 @@
-# Swoop TV v0.8.24 — Google TV What’s New Modal Focus Hotfix
+# Swoop TV v0.8.25 — Google TV STARmeter + Navigation + Metadata Polish
 
-## v0.8.24 modal focus hotfix
+Swoop TV is a content-neutral IPTV player. This source package is the current Google TV / Android TV hardware-test branch.
 
-- What’s New now owns Google TV focus instead of leaving focus on Home behind the overlay.
-- D-pad input is trapped inside open TV modals and background page scrolling is locked.
-- **Got it** receives initial focus; Back/Close still dismiss normally.
-- All v0.8.23 consolidated navigation, long-rail, Live TV, Guide, actor and update-check work is retained.
+## v0.8.25 highlights
 
-
-Android TV / Google TV hardware-test branch built from the Swoop TV v0.7.45 product baseline.
-
-## v0.8.23 consolidated Google TV pass
-
-- Adaptive TV density for different Google TV viewport sizes rather than tuning the UI to one television.
-- Persistent top navigation and a bounded compact Home hero.
-- Deterministic queued D-pad navigation with per-row horizontal memory for rapid remote input.
-- Continuous Movies/TV Shows/Live TV catalogue rails loaded 100 items at a time with ahead-of-focus prefetching.
-- Long-press OK context menu for Continue Watching; clean poster art without duplicate title overlays.
-- Logo-first Live TV channel rails, fully contained hero logos and delayed muted Media3 channel preview support.
-- Wider TV Guide category sidebar with a clearer two-hour EPG window.
-- Immediate actor/person route opening with asynchronous cached filmography hydration.
-- Non-blocking GitHub version-manifest checks plus a one-time What’s New screen and Settings route.
-- Retains the current hot/trending-now Top 100 model and all cumulative Google TV playback/cache/runtime fixes.
-
-
-## v0.8.22 Live TV hero brand-fill hotfix
-
-- Gives the current Live TV channel logo the full unused right half of the compact Google TV masthead instead of leaving it as a small floating badge in a large black panel.
-- Oversizes transparent provider logos within that dedicated panel while preserving aspect ratio, which compensates for whitespace baked into many channel-logo files without distorting them.
-- Makes the right-side shade almost transparent over the logo and keeps the dark readability gradient concentrated behind the left-side channel copy/actions.
-- Places the live-stream count in a small translucent lower-right overlay so it no longer reserves a separate empty right-side region.
-- Retains the v0.8.21 Home-row restore + compact Home hero, v0.8.20 hot/trending Top 100 and performance improvements, and all earlier Google TV work.
-
-## v0.8.21 Home rows restore + compact hero hotfix
-
-- Fixes the blank-Home regression seen on large Google TV libraries when Continue Watching and both pinned Top 100 feeds were temporarily empty during refresh. Pending Top 100 rows stay pinned, but they no longer consume the three populated-row render budget, so useful library rows remain visible immediately.
-- Keeps the last good Top 100 ranking if a background trending refresh temporarily returns no matches or fails, rather than erasing a working row.
-- Excludes pending/skeleton Top 100 rows from D-pad row geometry so navigation targets only real card rails.
-- Shrinks the Home hero again to 230–260 px (220 px on shorter TV viewports) while retaining a fixed-navigation safe zone and fitting the title/logo, metadata and actions inside that height.
-- Retains the v0.8.20 hot/trending-now Top 100 model, 90-minute refresh cadence, reduced 3 × 12 populated-row/card budget and deterministic low-overhead Home D-pad path.
-- Keeps all v0.8.19 ranking-number, duplicate-title, poster-haze and Live TV logo fixes plus the v0.8.18 runtime/launch fixes.
-
-## v0.8.18 blocker fix
-
-The recurring **Who’s watching?** dead-end was traced to a Home-render runtime exception, not a missing remote click. Profile Select reached the app correctly, but the first poster render referenced the Top 100 `rank` variable before initialization and aborted the route change. v0.8.18 fixes that ordering bug and keeps the Android Select bridge as a compatibility fallback.
-
-
-## v0.8.17 launch/input blocker fixes
-
-- Makes Google TV OK/Select deterministic on the **first key-down** for DPAD Center, Enter, Numpad Enter and common controller A input. The Android shell directly activates the currently focused Swoop TV control, including Who’s Watching profile cards, instead of relying on WebView click synthesis.
-- A valid saved library now **always opens immediately**. Provider/app freshness checks run only after Home is interactive, so no saved-library launch is held behind a provider-refresh gate.
-- Every launch performs a lightweight Xtream account check when credentials are available, keeping account/expiry state current without downloading the full catalogue.
-- Providers older than 24 hours are refreshed **in the background after Home is responsive**. The previous working library stays on-screen and remains usable until the refreshed catalogue is complete.
-- Every launch also checks the stable GitHub Google TV test release for a newer Swoop TV APK. When a newer version exists, Settings surfaces the version and **Downloader code 3682231**.
-- Background freshness work never forces a route render while the customer is navigating; refreshed data is picked up on the next natural screen/row render.
-- Carries forward the full v0.8.16 provider-completion hotfix, v0.8.15 landscape-first UI and every earlier cumulative Google TV fix.
-
-## v0.8.16 provider-completion blocker fix
-
-- Fixes the Google TV provider-import screen remaining stuck at **100% / Your library is ready** after a successful import.
-- Successful imports now use one deterministic completion function that closes provider setup, clears startup/profile gates, opens Home at the top and restores TV focus.
-- Android uses a double `requestAnimationFrame` completion handoff rather than relying on the old delayed modal-close timer.
-- Adds an explicit **Open Swoop TV** action at 100% as a permanent escape hatch if any device suppresses the automatic transition.
-- Provider progress correctly changes from busy to complete at 100%.
-- Carries forward the v0.8.15 landscape-first Google TV layout pass and every earlier cumulative fix.
-
-## v0.8.15 landscape-first Google TV UI
-
-- Reworks major routes and dialogs for wide 16:9 television layouts rather than tall mobile/web forms.
-- Applies landscape-first density and two-column/wide-panel patterns across Providers, Settings, Search, Live TV, Guide, Movies, TV Shows, My List, title details, person/cast routes, profile management, source selection and utility dialogs.
-- Keeps important actions visible with less vertical scrolling and preserves the v0.8.14 deterministic remote OK/Select handling.
-
-## v0.8.14 remote-input hotfix
-
-- Fixes the release-blocking Google TV issue where a profile card can receive focus but the remote OK/Select button does nothing.
-- The Android shell now handles DPAD_CENTER / Enter / Numpad Enter / gamepad A directly and explicitly activates the currently focused Swoop TV control.
-- Profile cards bypass WebView click synthesis and call the profile-switch path directly from the focused control.
-- Media3 player controls keep their native input behaviour; the Select bridge only runs while the WebView is active.
-
-- Fixes the Google TV profile-selection blocker: pressing OK on a profile now transitions immediately to cached Home, or immediately to the preparation screen only when no usable saved library exists.
-- Rebuilds Edit/Create Profile as a landscape-first 16:9 TV layout with Identity/Avatars on the left and Theme/Options/PIN on the right. Save/Delete remain visible without tall-form scrolling.
-- Theme order is now **Swoop → Chill → Prime Time → Rewind**. Chill is restored as the black/red cinematic Netflix-style theme; the neon logo theme now uses the permanent `swoop` ID.
-- Existing v0.8.11–v0.8.12 profiles that stored the neon Swoop theme under the legacy `chill` ID migrate automatically to `swoop`.
-- Selected avatars use a strong framed state with a check badge.
-- Google TV profile PIN input is no longer activated by simply navigating past it. The user must press OK on **Set PIN / Change PIN** before the numeric field becomes active.
-- Preserves the v0.8.12 cache-first provider launch, durable EPG, transparent startup logo and compact Home rails.
-
-## v0.8.12 visual/control additions
-
-- Makes the supplied neon Swoop TV logo the visual source for the **default theme**: deep black, hot magenta and electric cyan.
-- Keeps the historical internal theme ID `chill` for saved-profile compatibility, but presents it as **Swoop — Neon signature** so existing default profiles migrate automatically without a reset.
-- Applies the active profile theme to the Google TV control system: Home / Live TV / Guide / Movies / TV Shows / My List tabs, header utilities, action buttons, filter/category tabs, Guide controls and secondary text actions.
-- Focused controls use the current theme gradient and glow rather than a generic white block; selected tabs use restrained theme colour at rest.
-- Continue Watching **Remove** retains a semantic destructive red treatment but now uses the same premium glass geometry and focus language.
-- Provider/library progress, Guide current-programme accents, badges and playback progress now inherit the active theme rather than old hard-coded red/purple accents.
-- Retains the v0.8.10 compact Home poster geometry and scroll-first Up navigation.
-
-## v0.8.10 historical launch contract (superseded by v0.8.12 cache-first launch)
-
-Swoop TV now treats launch as a gated library-preparation phase on Google TV. The app does not expose Home until the provider library and priority Home content are ready.
-
-- After profile selection, Swoop TV immediately opens a polished **Updating your TV library** screen with a real percentage progress bar, current stage and provider status.
-- Every enabled provider with saved refreshable credentials is refreshed during the launch gate. Local-file providers that cannot be refreshed automatically keep their saved content.
-- Android provider downloads run through an asynchronous native network bridge. Large responses are transferred to the WebView in bounded chunks so the progress UI can continue rendering while network work runs.
-- Xtream category and catalogue downloads run concurrently. Catalogue normalization yields between large batches rather than processing the whole playlist in one uninterrupted UI-thread pass.
-- The previous successful library is loaded first as a protected fallback, but it is never shown as a partially refreshed Home screen.
-- The refreshed catalogue is persisted once after provider refresh finishes rather than rewriting the full library after every provider.
-- Swoop TV prepares Home before revealing it. **Top 100 Movies** and **Top 100 TV Shows** are refreshed and prepared first. Remaining selected Home rows are resolved from their last successful match or provider-local data before Home is exposed, so launch does not wait on dozens of separate recommendation requests.
-- Discovery-to-library matching and large-library indexing use the Android catalogue worker where available so expensive matching stays off the WebView interaction path.
-- A prepared Home-row cache is built during the gate, and critical first-screen artwork is warmed before Home is shown.
-- If an online Top 100 source is unavailable, Google TV can build a provider-library fallback rather than exposing an empty priority row.
-- Home always enters at scroll position 0 and only after preparation reaches 100%.
-- Once Home appears, there is no automatic Android row expansion, destination prewarm or missing-card metadata crawl. Additional already-prepared Home rows are mounted only when D-pad navigation reaches them, so background DOM/artwork work cannot steal the remote interaction budget.
-- If a launch refresh fails but a previous successful library exists, Swoop TV prepares and opens that saved library instead of leaving the customer stranded on an unusable screen.
-
-The intended customer experience is therefore: **choose profile → watch one clear progress screen → enter a complete, responsive Home**. There is no half-loaded Home phase.
-
-### v0.8.10 TV-specific additions
-
-- Corrects the v0.8.9 sizing inversion: the compact Top 100 poster geometry is the reference size, and **all other Home poster rails are reduced to that same compact size**.
-- Top 100 retains its rank-number overlay; non-ranked rails use the identical card shell without a number.
-- Keeps complete 100-title Top 100 data while mounting cards incrementally for responsiveness.
-- Adds **scroll-first Up navigation** on Home. While the page is below the top, the top navigation is removed from D-pad targeting, so Up continues through higher rows and scrolls the page upward.
-- Home / Live TV / Guide / Movies / TV Shows / My List can only receive focus once Home is actually back at the top.
-- Retains the Google TV safe-area header inset, gated launch refresh, native XMLTV preparation, supplied branding and ten supplied animal profile avatars.
-
-
-The supplied neon **Swoop TV** logo is now the canonical visible brand asset for this TV test branch. It is used on the Android launcher icon/banner, the launch-refresh/library-preparation screen, and the top-left application brand control.
+- Adds **STARmeter** between Guide and Movies. The bundled manifest contains the current 100-name IMDb STARmeter / Trending People ordering captured for this build; each person progressively resolves into movies and TV shows that are actually available in the connected Swoop TV library.
+- Uses STARmeter people as a hot/prewarmed People Search cache so currently popular people can open substantially faster.
+- Reworks Google TV rail navigation so Right/Left remains owned by the current rail and cannot spatially escape into another row at a lazy-render boundary.
+- Large Home, Movies, TV Shows and Live TV rails load catalogue data in **100-item batches**, render lightweight chunks, prefetch the next batch before the boundary, and prewarm upcoming artwork.
+- Up/Down now chooses the nearest card by on-screen X position, so moving down from the middle of one row lands on the card visually underneath rather than the end of the next row.
+- Enlarges the Home hero while keeping it bounded beneath the persistent navigation and applies the approved rail safe-left inset consistently.
+- Rebalances Live TV hero composition: channel information/actions on the left, delayed muted preview in the centre, contained channel branding on the right; Browse Live TV tiles are enlarged.
+- Episode rows now prefer real original air date, synopsis and runtime. Invalid `0:00` runtimes and generic connected-provider placeholder copy are removed; enrichment is asynchronous and cached.
+- Enlarges Guide channel/show logos inside their existing cells without changing Guide geometry.
+- Makes IMDb poster-rating badges smaller and tighter to the corner.
+- Retains v0.8.24 modal focus trapping, v0.8.23 adaptive scaling/update/changelog work, and all cumulative native Media3 playback/cache/provider fixes.
 
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.24`
-- versionCode: `822`
-- minSdk: 23
-- target/compile SDK: 36
-- Media3 / ExoPlayer: 1.11.0
+- versionName: `0.8.25`
+- versionCode: `825`
+- minSdk: `23`
+- targetSdk / compileSdk: `36`
+- Java: `17`
+- AndroidX Media3 / ExoPlayer: `1.11.0`
+- AndroidX WebKit: `1.15.0`
 
-## Downloader test channel
+## APK build path
 
-The GitHub Actions workflow continues to overwrite the stable test asset:
+The authoritative APK build path is `.github/workflows/android-tv-apk.yml`.
 
-`google-tv-test-v0.8.1 / Swoop-TV-v0.8.1-Google-TV-Test.apk`
+The workflow publishes:
 
-That preserves **Downloader code 3682231**. The installed app reports **0.8.24 (824)**. The workflow also publishes `Swoop-TV-v0.8.24-Google-TV-Test.apk` for version tracking.
+- `Swoop-TV-v0.8.25-Google-TV-Test.apk`
+- stable compatibility asset `Swoop-TV-v0.8.1-Google-TV-Test.apk`
+- `swoop-tv-latest.json`
+- `swoop-tv-starmeter.json`
 
-The bundled signing key is test-only and must never be used for production.
+The stable APK asset preserves the existing **Downloader code 3682231** test path.
+
+## Runtime verification
+
+Before packaging v0.8.25, run:
+
+```bash
+find app/src/main/assets -name '*.js' -print0 | xargs -0 -n1 node --check
+node tests/card-runtime-smoke.mjs
+node tests/tv-ui-runtime-smoke.mjs
+python -m json.tool app/src/main/assets/starmeter.json >/dev/null
+python -m json.tool swoop-tv-starmeter.json >/dev/null
+```
+
+See `ANDROID_TV_CERTIFICATION.md` for the physical-TV checklist and `TV_HARDWARE_RUNNING_FIXES.md` for the running hardware-verification ledger.

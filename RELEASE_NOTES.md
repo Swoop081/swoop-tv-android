@@ -1,4 +1,20 @@
-# Swoop TV Release Notes
+# Swoop TV — Release Notes
+
+## v0.8.25 — Google TV STARmeter + Navigation + Metadata Polish
+
+- Added a new **STARmeter** primary tab after Guide and before Movies, with a bundled current 100-name IMDb STARmeter / Trending People manifest for this build. Ranked people progressively hydrate portraits/identity and provider-available movie/TV rails.
+- STARmeter people feed a hot People Search cache so popular-person searches can resolve from prewarmed identity/catalogue data before falling back to the broader search path.
+- Fixed the long-running Google TV rail boundary bug: Left/Right is now owned by the active rail and cannot escape vertically when the next lazy-render chunk is not yet mounted.
+- Increased large-rail data batches to **100 items**, with ahead-of-boundary catalogue and poster prefetching while keeping lightweight DOM render chunks.
+- Fixed vertical row navigation so Up/Down preserves the visual X position and lands on the nearest poster directly above/below instead of jumping to a row end.
+- Increased the Home hero height to the newly approved TV framing while retaining the persistent fixed navigation and contained artwork.
+- Applied the approved safe-left rail inset to Continue Watching and other poster rails.
+- Reworked Live TV masthead composition into left information/actions, centre delayed muted preview, and right contained channel branding. Browse Live TV tiles are enlarged to a TV-readable size.
+- Episode rows now show provider/TMDb original air date, real synopsis and actual runtime when available. Invalid `0:00` runtimes and generic provider placeholder text are omitted. Metadata enrichment runs asynchronously and is cached.
+- Guide channel/show logos are larger inside the existing cells with no Guide geometry change.
+- IMDb poster-rating badges are smaller and moved tighter into the poster corner.
+- Retains the v0.8.24 What’s New modal focus/scroll-lock hotfix and the full v0.8.23 consolidated UX/performance pass.
+- Android versionName is **0.8.25** and versionCode is **825**.
 
 ## v0.8.24 — Google TV What’s New Modal Focus Hotfix
 
