@@ -1,4 +1,8 @@
-# Swoop TV v0.8.26 — Google TV hardware test checklist
+# Swoop TV v0.8.27 — Google TV hardware test checklist
+
+## v0.8.27 diagnostic workflow
+
+Before reproducing a hardware issue, enable **Hardware Test Mode** by focusing the Settings cog and pressing OK five times within four seconds. Select the matching NAV/PERF/LIVE/STAR/STAB test ID, reproduce the problem, photograph/video the HUD, then use **Settings → Hardware Test Mode → Save Diagnostics**. See `TV_HARDWARE_TEST_CHECKLIST.md` for the numbered procedure.
 
 ## Highest-priority navigation checks
 
@@ -54,14 +58,14 @@
 
 ## Update / modal regression
 
-- [ ] After installing v0.8.26, What’s New opens once after profile selection with **Got it** focused.
+- [ ] After installing v0.8.27, What’s New opens once after profile selection with **Got it** focused.
 - [ ] D-pad cannot move/scroll Home behind the modal.
 - [ ] Got it, X and Android Back dismiss correctly.
 - [ ] Settings can reopen What’s New.
 - [ ] Update check remains non-blocking and can surface a later version when one exists.
 
 
-## v0.8.26 performance/stability stress checks
+## v0.8.27 performance/stability stress checks
 
 - [ ] Switch repeatedly between Home, Live TV, STARmeter, Movies and TV Shows for at least 10 minutes. There must be no progressive slowdown, multi-second black frame, renderer reset or unexpected return to Who’s watching.
 - [ ] On STARmeter, only a small visible people window hydrates at once. Scrolling should not trigger a whole-page rebuild, layout jump or focus loss as filmographies arrive.

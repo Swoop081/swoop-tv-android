@@ -1,47 +1,25 @@
 # Swoop TV Android — Running Fixes & Hardware Verification
 
-## Current baseline
-**v0.8.26 — Google TV Performance + Stability + Hardware Polish**
-
-## Implemented — needs TV verification
-- [ ] Top 100 Movies can move continuously beyond the previous item 26 stop and through every available ranked result.
-- [ ] Top 100 TV Shows can move continuously beyond the previous item 25 stop and through every available ranked result.
-- [ ] Movies/TV Shows large rails fetch the next 100-item batch without a dead key press or vertical escape.
-- [ ] Down from a poster lands on the poster visually underneath in the next row rather than the row end.
-- [ ] Home hero artwork is fully visible without cutting off faces/heads; carousel is a small 10-dot indicator only.
-- [ ] Movies and TV Shows hero sizing/framing matches the approved Home hero.
-- [ ] Search is reachable from the persistent top header and receives focus immediately when opened.
-- [ ] Live TV preview is narrower/lower; channel logo is smaller/centred; Browse Live TV tiles match Recent Channels size.
-- [ ] Focusing Live TV channel tiles updates hero logo immediately and muted preview after focus settles.
-- [ ] STARmeter uses large circular person portraits, prominent ranks and large title rails with only a small visible hydration window.
-- [ ] Rapid navigation through STARmeter/Live TV no longer produces prolonged layout churn, placeholder storms or multi-second freezes.
-- [ ] Repeated tab switching/large list browsing does not trigger a black screen/WebView renderer reset back to profiles.
-
-## Carry-forward verification
-All unresolved v0.8.25/v0.8.24 hardware items remain subject to physical-TV verification unless superseded above.
-
-# Swoop TV Android — Running Fixes & Hardware Verification
-
 ## Current build under test
 
-**v0.8.25 — Google TV STARmeter + Navigation + Metadata Polish**
+**v0.8.27 — Google TV Hardware Test Workflow**
 
 ## Open
 
-No known post-v0.8.25 issue is marked open until physical-TV verification begins.
+- [ ] Physical-TV verification of the v0.8.27 diagnostic workflow.
+- [ ] Re-test the Top 100 Movies/TV 25–26 boundary using NAV-001/NAV-002 with exported diagnostics if it still fails.
+- [ ] Re-test rapid D-pad performance and long-session renderer stability using PERF-001/STAB-001.
 
 ## Implemented — needs TV verification
 
-- [ ] Long rails no longer escape vertically at ~24/25; 100-item batching/prefetch works across Home, Movies, TV Shows and Live TV.
-- [ ] Up/Down preserves on-screen horizontal position between rows.
-- [ ] Rapid D-pad vertical input is stable.
-- [ ] Home hero uses the larger approved frame and consistent rail safe inset.
-- [ ] STARmeter Top 100 people page, provider-title rails and People Search hot-cache path work on hardware.
-- [ ] Live TV hero is left info / centre preview / right brand; Browse Live TV tiles are larger.
-- [ ] Episode air date/synopsis/runtime enrichment is fast and correct; fake `0:00` is gone.
-- [ ] Guide logos are larger without layout movement.
-- [ ] IMDb badge is smaller/tighter to the corner.
-- [ ] All v0.8.24 What’s New modal focus behaviour remains correct.
+- [ ] Five-press Settings shortcut toggles hidden Hardware Test Mode.
+- [ ] Non-focusable HW TEST overlay reports page, focus row/index, DOM/card/image counts, pending jobs, key count and renderer-reset count without altering navigation.
+- [ ] Numbered NAV/PERF/LIVE/STAR/STAB test sessions are selectable from Settings.
+- [ ] Save Diagnostics writes a timestamped JSON session file on Android TV.
+- [ ] D-pad/focus/route/activation/long-task/error events are captured in a bounded rolling log only while test mode is active.
+- [ ] Native diagnostics include Java heap, preview/player state, WebView dimensions, renderer-loss metadata and native key counts.
+- [ ] GitHub Actions derives version/APK naming/update manifest/release summary automatically from build.gradle + RELEASE_NOTES.md.
+- [ ] Every v0.8.26 performance/navigation/visual fix remains intact.
 
 ## Verified / closed before v0.8.25
 

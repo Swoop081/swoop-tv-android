@@ -1,25 +1,23 @@
-# Swoop TV v0.8.26 — Google TV Performance + Stability + Hardware Polish
+# Swoop TV v0.8.27 — Google TV Hardware Test Workflow
 
 Swoop TV is a content-neutral IPTV player. This source package is the current Google TV / Android TV hardware-test branch.
 
-## v0.8.26 highlights
+## v0.8.27 highlights
 
-- Fixes asynchronous long-rail boundaries so Right keeps moving through Top 100 and large Movies/TV Shows rows while the next 100-item batch loads.
-- Advances the Top 100 ranking schema and improves IPTV title-match recall while keeping the rankings driven by current external trending signals.
-- Virtualises STARmeter and Live TV background work to keep D-pad input responsive and reduce WebView memory pressure.
-- Redesigns STARmeter with large circular cast-style portraits, prominent ranks and larger provider-available title rails.
-- Stops Android from retaining heavy Live TV / STARmeter / Movies / TV Shows DOM trees after leaving those tabs.
-- Makes Home featured artwork fully fit its frame and replaces the oversized carousel control with a tiny non-focusable 10-dot indicator.
-- Gives Movies and TV Shows the same approved TV hero height/framing as Home.
-- Refines Live TV preview/logo proportions and restores all Browse Live TV category tiles to the Recent Channels physical size.
-- Makes Search / Providers / Settings / Profile deterministic in the persistent header and focuses Search input immediately when opened.
-- Retains the episode metadata, Guide logo, Continue Watching long-press and modal-focus work from v0.8.25/v0.8.24.
+- Adds a hidden **Hardware Test Mode**. Press OK on the Settings cog five times within four seconds to toggle it.
+- Shows a non-focusable live diagnostics HUD with current page, rail/index focus, scroll, DOM/card/image counts, pending background work, key input and renderer-reset metrics.
+- Adds numbered NAV / PERF / LIVE / STAR / STAB regression sessions so photos, videos and exported logs refer to the same reproducible test.
+- Adds **Save Diagnostics** while test mode is active. Android writes a timestamped JSON file with UI state, rolling D-pad/focus events, long tasks, JavaScript/native memory, playback/preview state and renderer-loss information.
+- Preserves the diagnostic session through a WebView renderer restart so black-screen/reset failures do not erase all useful evidence.
+- Automates version/APK naming, update-manifest generation and GitHub release summary creation from `app/build.gradle` and the canonical `RELEASE_NOTES.md`.
+- Ships `TV_HARDWARE_TEST_CHECKLIST.md` with CI artifacts for a consistent physical-TV test loop.
+- Retains the complete v0.8.26 performance/stability/navigation/visual pass.
 
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.26`
-- versionCode: `826`
+- versionName: `0.8.27`
+- versionCode: `827`
 - minSdk: `23`
 - targetSdk / compileSdk: `36`
 - Java: `17`
@@ -32,7 +30,7 @@ The authoritative APK build path is `.github/workflows/android-tv-apk.yml`.
 
 The workflow publishes:
 
-- `Swoop-TV-v0.8.26-Google-TV-Test.apk`
+- `Swoop-TV-v0.8.27-Google-TV-Test.apk`
 - stable compatibility asset `Swoop-TV-v0.8.1-Google-TV-Test.apk`
 - `swoop-tv-latest.json`
 - `swoop-tv-starmeter.json`
@@ -41,7 +39,7 @@ The stable APK asset preserves the existing **Downloader code 3682231** test pat
 
 ## Runtime verification
 
-Before packaging v0.8.26, run:
+Before packaging v0.8.27, run:
 
 ```bash
 find app/src/main/assets -name '*.js' -print0 | xargs -0 -n1 node --check

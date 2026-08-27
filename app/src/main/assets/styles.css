@@ -2311,3 +2311,21 @@ html.android-tv .rail,
 html.android-tv .media-category-rail-track,
 html.android-tv .live-category-rail-track,
 html.android-tv .starmeter-title-rail{scroll-behavior:auto!important}
+
+/* v0.8.27 — hidden Google TV hardware test mode. Non-focusable overlay stays lightweight
+   and never participates in D-pad geometry. */
+html.android-tv .tv-hardware-overlay{
+  position:fixed;left:18px;bottom:18px;z-index:2147483000;pointer-events:none;
+  width:min(560px,48vw);padding:10px 12px;border-radius:10px;
+  background:rgba(5,7,12,.88);border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:none;color:#fff;
+  font:700 12px/1.35 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  letter-spacing:.01em
+}
+html.android-tv .tv-hardware-overlay b{display:block;color:#80f0ff;font-size:13px;margin-bottom:3px}
+html.android-tv .tv-hardware-overlay span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.84)}
+html.android-tv .hardware-test-card{border-color:rgba(92,224,255,.34);background:linear-gradient(145deg,rgba(15,35,46,.72),rgba(13,15,22,.9))}
+html.android-tv .hardware-test-current{display:flex;gap:12px;align-items:center;margin:10px 0 12px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.1)}
+html.android-tv .hardware-test-current strong{font-size:17px;color:#80f0ff}.hardware-test-current span{font-size:13px;color:var(--muted)}
+html.android-tv .hardware-test-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+html.android-tv .hardware-export-path{display:block;margin-top:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}

@@ -1,5 +1,18 @@
 # Swoop TV Release Notes
 
+## v0.8.27 — Google TV Hardware Test Workflow
+
+- Adds a hidden **Hardware Test Mode** for physical Google TV debugging. Press OK on the Settings cog five times within four seconds to toggle it without adding permanent UI clutter for normal users.
+- Adds a non-focusable on-screen diagnostics HUD showing current page, focused rail/index, scroll position, DOM/card/image counts, pending media/live/STARmeter work, queued vertical input, JavaScript heap usage, native key count and WebView renderer-reset count.
+- Adds a rolling 600-event hardware log covering D-pad/key input, focus transitions, route changes, activations, long JavaScript tasks, runtime errors/rejections and diagnostic exports.
+- Adds numbered guided hardware test IDs: NAV-001/002/003, PERF-001, LIVE-001, STAR-001 and STAB-001, so a photo/video and diagnostic file can identify the exact regression being reproduced.
+- Adds **Save Diagnostics** in Settings while Hardware Test Mode is enabled. The Android bridge writes a timestamped JSON session file containing UI state, native playback/preview state, Java heap metrics, renderer-loss state, native key counters and the rolling event log.
+- Expands native renderer diagnostics so unexpected WebView resets include crash/priority/time/count metadata and adds native remote-key telemetry for correlating remote input with JavaScript focus movement.
+- Adds automated release metadata generation from `app/build.gradle` + the canonical `RELEASE_NOTES.md`, reducing manual version/changelog drift in GitHub Actions.
+- Adds a numbered physical-TV regression checklist and makes the hardware-test documents part of the CI artifact so each APK has a matching test plan.
+- Retains the complete v0.8.26 performance/stability/hardware-polish pass unchanged.
+- Android versionName is **0.8.27** and versionCode is **827**.
+
 ## v0.8.26 — Google TV Performance + Stability + Hardware Polish
 
 - Fixes long horizontal rails stalling at a render/data boundary. Right now owns the current rail while the next 100-item batch is fetched, then advances focus into the newly mounted card instead of silently stopping or escaping vertically.

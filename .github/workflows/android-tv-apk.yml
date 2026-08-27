@@ -13,7 +13,11 @@ on:
     paths:
       - 'app/**'
       - 'tests/**'
+      - 'scripts/**'
       - 'swoop-tv-starmeter.json'
+      - 'RELEASE_NOTES.md'
+      - 'TV_HARDWARE_TEST_CHECKLIST.md'
+      - 'TV_HARDWARE_RUNNING_FIXES.md'
       - 'test-signing/**'
       - 'build.gradle'
       - 'settings.gradle'
@@ -52,36 +56,49 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Validate Swoop TV runtime-critical card rendering
+      - name: Generate version and release metadata
+        id: meta
+        run: node scripts/generate-build-metadata.mjs
+
+      - name: Validate Swoop TV runtime and hardware-test contracts
+        shell: bash
         run: |
+          find app/src/main/assets -name '*.js' -print0 | xargs -0 -n1 node --check
           node tests/card-runtime-smoke.mjs
           node tests/tv-ui-runtime-smoke.mjs
+          python -m json.tool app/src/main/assets/starmeter.json >/dev/null
+          python -m json.tool swoop-tv-starmeter.json >/dev/null
+          python -m json.tool swoop-tv-latest.json >/dev/null
 
       - name: Build Google TV test APK
         run: gradle --no-daemon :app:assembleDebug
 
-      - name: Name APK and checksum
+      - name: Name APK and checksums
         shell: bash
+        env:
+          VERSIONED_APK: ${{ steps.meta.outputs.versioned_apk }}
+          STABLE_APK: ${{ steps.meta.outputs.stable_apk }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.26-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.26-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.26-Google-TV-Test.apk > Swoop-TV-v0.8.26-Google-TV-Test.apk.sha256
-          sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
-          cat > swoop-tv-latest.json <<EOF
-          {"version":"0.8.26","versionCode":826,"updateUrl":"https://github.com/${GITHUB_REPOSITORY}/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk","changes":["Fixes asynchronous long-rail boundaries and improves Top 100 match recall.","Virtualises STARmeter/Live TV work and evicts heavy Android page DOM to reduce freezes and renderer pressure.","Redesigns STARmeter with large circular people portraits, prominent ranks and larger title rails.","Cleans the Home hero carousel/artwork and aligns Movies/TV Shows hero sizing with Home.","Refines Live TV preview/logo proportions, restores large channel tiles and fixes persistent-header Search routing."]}
-          EOF
+          cp app/build/outputs/apk/debug/app-debug.apk "$VERSIONED_APK"
+          cp "$VERSIONED_APK" "$STABLE_APK"
+          sha256sum "$VERSIONED_APK" > "$VERSIONED_APK.sha256"
+          sha256sum "$STABLE_APK" > "$STABLE_APK.sha256"
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.26-Google-TV-Test
+          name: Swoop-TV-v${{ steps.meta.outputs.version }}-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.26-Google-TV-Test.apk
-            Swoop-TV-v0.8.26-Google-TV-Test.apk.sha256
-            Swoop-TV-v0.8.1-Google-TV-Test.apk
-            Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
+            ${{ steps.meta.outputs.versioned_apk }}
+            ${{ steps.meta.outputs.versioned_apk }}.sha256
+            ${{ steps.meta.outputs.stable_apk }}
+            ${{ steps.meta.outputs.stable_apk }}.sha256
             swoop-tv-latest.json
             swoop-tv-starmeter.json
+            build-metadata.json
+            release-summary.md
+            TV_HARDWARE_TEST_CHECKLIST.md
+            TV_HARDWARE_RUNNING_FIXES.md
           if-no-files-found: error
           retention-days: 30
 
@@ -90,28 +107,34 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          VERSIONED_APK: ${{ steps.meta.outputs.versioned_apk }}
+          STABLE_APK: ${{ steps.meta.outputs.stable_apk }}
         run: |
           TAG="google-tv-test-v0.8.1"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test" \
-              --notes "Current hardware-test channel. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v${VERSION}" \
+              --notes-file release-summary.md \
               --prerelease
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.26" \
-              --notes "Current hardware-test channel. v0.8.26 is the performance/stability hardware pass: asynchronous long-rail continuation, Top 100 match refresh, STARmeter/Live TV virtualisation, heavy-page DOM eviction, Home/Movies/TV hero cleanup, Live TV sizing and deterministic Search/header focus while retaining all v0.8.25 features. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v${VERSION}" \
+              --notes-file release-summary.md \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.26-Google-TV-Test.apk \
-            Swoop-TV-v0.8.26-Google-TV-Test.apk.sha256 \
-            Swoop-TV-v0.8.1-Google-TV-Test.apk \
-            Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
+            "$VERSIONED_APK" \
+            "$VERSIONED_APK.sha256" \
+            "$STABLE_APK" \
+            "$STABLE_APK.sha256" \
             swoop-tv-latest.json \
             swoop-tv-starmeter.json \
+            TV_HARDWARE_TEST_CHECKLIST.md \
             --clobber
           echo "Downloader code 3682231 remains on the stable URL below:" >> "$GITHUB_STEP_SUMMARY"
-          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/Swoop-TV-v0.8.1-Google-TV-Test.apk" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${STABLE_APK}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Hardware test checklist and generated release metadata are attached to this workflow artifact." >> "$GITHUB_STEP_SUMMARY"

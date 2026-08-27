@@ -149,6 +149,20 @@ export async function nativeDiagnostics() {
   return nativeRequest('/native/diagnostics', {}, {timeoutMs:10000});
 }
 
+export async function nativeSaveDiagnostics(payload={}) {
+  if(!isNativeAndroid())return {ok:false,error:'Diagnostic export is only available on Android TV.'};
+  const bridge=androidBridge();
+  if(typeof bridge.saveDiagnostics!=='function')return {ok:false,error:'This build does not support diagnostic export.'};
+  return parseAndroidResult(bridge.saveDiagnostics(JSON.stringify(payload||{})),{ok:false});
+}
+
+export async function nativeClearDiagnostics() {
+  if(!isNativeAndroid())return {ok:false};
+  const bridge=androidBridge();
+  if(typeof bridge.clearDiagnostics!=='function')return {ok:false};
+  return parseAndroidResult(bridge.clearDiagnostics(),{ok:false});
+}
+
 
 export async function nativeControl(command, value=null) {
   if(isNativeAndroid())return parseAndroidResult(androidBridge().control(JSON.stringify({command,value})),{ok:false});

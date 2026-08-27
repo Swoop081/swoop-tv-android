@@ -1,4 +1,4 @@
-# Swoop TV v0.8.26 Build Verification
+# Swoop TV v0.8.27 Build Verification
 
 ## Static/runtime gates
 
@@ -7,12 +7,25 @@
 - [ ] `tests/tv-ui-runtime-smoke.mjs` passes.
 - [ ] `app/src/main/assets/starmeter.json` parses and contains exactly 100 unique ranks 1–100.
 - [ ] Root `swoop-tv-starmeter.json` matches the bundled manifest.
-- [ ] Android markers are aligned to `versionName 0.8.26` / `versionCode 826`.
-- [ ] MainActivity User-Agent/version bridge reports `0.8.26`.
+- [ ] Android markers are aligned to `versionName 0.8.27` / `versionCode 827`.
+- [ ] MainActivity User-Agent/version bridge reports `0.8.27`.
 - [ ] GitHub Actions publishes the versioned APK, stable Downloader APK, latest-version manifest and STARmeter manifest.
 - [ ] Source ZIP integrity test passes and SHA-256 is recorded.
 
-## v0.8.26 regression contracts
+
+## v0.8.27 hardware-workflow contracts
+
+- [ ] Pressing OK on the Settings cog five times within four seconds toggles Hardware Test Mode.
+- [ ] The HW TEST HUD is non-focusable and does not alter D-pad geometry.
+- [ ] NAV-001/002/003, PERF-001, LIVE-001, STAR-001 and STAB-001 are selectable from the Hardware Test Settings card.
+- [ ] Save Diagnostics creates a timestamped v0.8.27 JSON file through the Android bridge.
+- [ ] Diagnostic payload includes current focus/rail index, pending work, DOM counts, recent events, native heap/player state, native key count and renderer-loss data.
+- [ ] Long-task logging is bounded and dormant unless Hardware Test Mode is enabled.
+- [ ] Renderer-loss state persists across Activity recreation.
+- [ ] `scripts/generate-build-metadata.mjs` validates app/build version alignment and creates `swoop-tv-latest.json`, `build-metadata.json` and `release-summary.md`.
+- [ ] GitHub workflow APK names and release title are derived from generated metadata rather than manually hard-coded version strings.
+
+## v0.8.27 regression contracts
 
 - [ ] Right from Top 100 Movies item 24 reaches item 25 in the same row; it cannot jump to Top 100 TV Shows.
 - [ ] Home Top 100 can continue through rank 100 when 100 genuine matches exist.

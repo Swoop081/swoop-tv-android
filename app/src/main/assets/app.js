@@ -1,7 +1,7 @@
 import {parseM3U} from './src/m3u.js';
 import {parseXMLTV} from './src/xmltv.js';
 import {testXtream, importXtream, fetchXtreamAssetBlob, fetchXtreamSeriesInfo, fetchXtreamVodInfo, fetchXtreamShortEpg, fetchXtreamSimpleEpg, fetchXtreamLiveCategories, fetchXtreamVodCategories, fetchXtreamSeriesCategories, fetchXtreamXmltvText, buildXtreamXmltvUrl, buildXtreamSeriesStreamUrl} from './src/xtream.js';
-import {isNativeWindows, isNativeAndroid, nativePlay, nativeStop, nativeFetchText, nativeFetchXmltvIndex, nativeDiagnostics, nativeControl, nativeSwitchLive, nativePreviewLive, nativeStopPreview} from './src/native.js';
+import {isNativeWindows, isNativeAndroid, nativePlay, nativeStop, nativeFetchText, nativeFetchXmltvIndex, nativeDiagnostics, nativeSaveDiagnostics, nativeClearDiagnostics, nativeControl, nativeSwitchLive, nativePreviewLive, nativeStopPreview} from './src/native.js';
 import {nativeCatalogStatus,nativeCatalogReplaceProvider,nativeCatalogRemoveProvider,nativeCatalogQuery,nativeCatalogSearch,nativeCatalogCategories,nativeCatalogGet,nativeCatalogSources,nativeCatalogMatchPayload} from './src/nativeCatalog.js';
 import {getMDBListItems, getMDBListOfficialItems, getMDBListStreamingChart, matchMDBListToCatalog, normalizeMediaTitle} from './src/mdblist.js';
 import {fetchTitleMetadata, fetchTitleImdbRating, fetchPersonCredits, fetchEpisodeMetadata, searchPeople, metadataServiceUrl} from './src/tmdb.js';
@@ -23,7 +23,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.26';
+const ANDROID_CURRENT_VERSION='0.8.27';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -35,13 +35,13 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Rebuilds long-rail boundary navigation so Top 100 and large Movies/TV rails cannot hard-stop while the next batch is loading.',
-  'Virtualises STARmeter and Live TV category work so metadata matching, artwork and row mounting no longer fight D-pad input.',
-  'Redesigns STARmeter with large circular cast-style portraits, prominent ranks and larger provider-available movie/TV rails.',
-  'Cleans the Home featured hero: fully contained artwork and a tiny non-focusable 10-dot rotation indicator.',
-  'Brings Movies and TV Shows onto the approved Home-sized TV hero treatment and fixes Search/Providers header focus routing.',
-  'Refines Live TV preview/logo sizing and restores Browse Live TV tiles to the approved Recent Channels scale.',
-  'Adds TV runtime guards for asynchronous rail focus, virtual section loading and render-process recovery diagnostics.'
+  'Adds a hidden Hardware Test Mode: press OK on Settings five times within four seconds to toggle it.',
+  'Shows a lightweight diagnostics HUD with focus row/index, scroll, DOM/card counts, pending background work, key input and renderer-reset metrics.',
+  'Adds rolling D-pad/focus/route/long-task/error logging plus numbered NAV/PERF/LIVE/STAR/STAB hardware test IDs.',
+  'Adds Save Diagnostics from Settings while Hardware Test Mode is active, producing a timestamped JSON session file on the TV.',
+  'Expands native WebView renderer, Java heap and remote-key diagnostics for faster hardware issue diagnosis.',
+  'Automates GitHub build metadata/changelog generation from the Android version and canonical release notes.',
+  'Retains the complete v0.8.26 performance, stability, navigation and hardware-polish pass.'
 ];
 const tvCatalogWorkerPending=new Map();
 let nativeCatalogMode=false,nativeCatalogStats=null,nativeCatalogMigration=false;
@@ -441,6 +441,58 @@ let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
 const mediaRailCache=new Map(),mediaRailRequests=new Map(),mediaRailRenderLimits=new Map(),mediaRailBrowserFullCache=new Map();
+
+// Google TV hardware diagnostics are deliberately dormant in normal use. Enable the hidden
+// test mode by pressing OK on the Settings cog five times within four seconds.
+const TV_DIAGNOSTIC_MAX_EVENTS=600;
+const TV_HARDWARE_TESTS=[
+  {id:'NAV-001',label:'Top 100 Movies · Right 1 → 100'},
+  {id:'NAV-002',label:'Top 100 TV Shows · Right 1 → 100'},
+  {id:'NAV-003',label:'Down preserves visual column'},
+  {id:'PERF-001',label:'Rapid Up / Down remote stress'},
+  {id:'LIVE-001',label:'Live TV category scroll + preview'},
+  {id:'STAR-001',label:'STARmeter progressive hydration'},
+  {id:'STAB-001',label:'Five-minute mixed-screen stability'}
+];
+let tvHardwareTestMode=false,tvHardwareSettingsTapCount=0,tvHardwareSettingsTapAt=0,tvHardwareOverlayTimer=0,tvHardwareNativePollAt=0,tvHardwareNativeSnapshot={},tvHardwareCurrentTest='',tvLastDiagnosticsPath='',tvDiagnosticPersistTimer=0;
+const tvDiagnosticEvents=[];
+try{tvHardwareTestMode=localStorage.getItem('swoop-tv-hardware-test-mode')==='1';tvHardwareCurrentTest=localStorage.getItem('swoop-tv-hardware-test-id')||'';const recovered=JSON.parse(localStorage.getItem('swoop-tv-hardware-test-events')||'[]');if(tvHardwareTestMode&&Array.isArray(recovered))tvDiagnosticEvents.push(...recovered.slice(-120))}catch{}
+function tvDiagnosticElement(el){
+  if(!el||!el.isConnected)return null;
+  const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card,button'),index=card&&cards.length?cards.indexOf(card):-1,track=el.closest?.('[data-long-rail]');
+  return {tag:el.tagName||'',id:el.id||'',label:String(el.getAttribute?.('aria-label')||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,80),row:section?tvRailSectionKey(section):'',index:index>=0?index+1:0,rowItems:cards.length,longRail:track?.dataset?.longRail||'',loaded:Number(track?.dataset?.longRailLoaded||0),total:Number(track?.dataset?.longRailTotal||0)};
+}
+function tvDiagRecord(type,data={}){
+  if(!NATIVE_ANDROID||(!tvHardwareTestMode&&!['error','rejection','renderer'].includes(type)))return;
+  const event={t:Date.now(),ms:Math.round(performance.now()),type,page:state?.page||'',test:tvHardwareCurrentTest||'',...data};
+  tvDiagnosticEvents.push(event);if(tvDiagnosticEvents.length>TV_DIAGNOSTIC_MAX_EVENTS)tvDiagnosticEvents.splice(0,tvDiagnosticEvents.length-TV_DIAGNOSTIC_MAX_EVENTS);
+  if(tvHardwareTestMode&&!tvDiagnosticPersistTimer){tvDiagnosticPersistTimer=setTimeout(()=>{tvDiagnosticPersistTimer=0;try{localStorage.setItem('swoop-tv-hardware-test-events',JSON.stringify(tvDiagnosticEvents.slice(-120)))}catch{}},1000)}
+}
+function tvDiagnosticPending(){return {mediaRequests:mediaRailRequests.size,liveRequests:liveRailRequests.size,starmeterPending:starmeterHydratePending.size,verticalQueue:tvVerticalQueue,catalogWorkerPending:tvCatalogWorkerPending.size,guideRequests:guideChannelRequests?.size||0};}
+function tvDiagnosticSnapshotSync(){
+  const active=(document.activeElement&&document.activeElement!==document.body)?document.activeElement:tvLastFocusedElement,focus=tvDiagnosticElement(active),mem=performance?.memory||null;
+  return {version:ANDROID_CURRENT_VERSION,at:new Date().toISOString(),page:state?.page||'',test:tvHardwareCurrentTest||'',focus,scrollY:Math.round(window.scrollY||document.documentElement.scrollTop||0),viewport:{width:innerWidth,height:innerHeight,density:document.documentElement.dataset.tvDensity||''},dom:{nodes:document.getElementsByTagName('*').length,buttons:document.querySelectorAll('button').length,cards:document.querySelectorAll('.card,.live-rail-card').length,images:document.images.length},pending:tvDiagnosticPending(),modal:modal||'',detail:Boolean(detailItem),person:Boolean(personView),livePreview:{active:livePreviewActive,itemId:livePreviewItemId},jsHeap:mem?{used:mem.usedJSHeapSize,total:mem.totalJSHeapSize,limit:mem.jsHeapSizeLimit}:null,native:tvHardwareNativeSnapshot,events:[...tvDiagnosticEvents]};
+}
+async function tvRefreshNativeDiagnostics(){if(!NATIVE_ANDROID||Date.now()-tvHardwareNativePollAt<2800)return;tvHardwareNativePollAt=Date.now();try{tvHardwareNativeSnapshot=await nativeDiagnostics()||{}}catch{}}
+function updateTvHardwareOverlay(){
+  if(!tvHardwareTestMode){document.querySelector('#tvHardwareOverlay')?.remove();return}
+  let el=document.querySelector('#tvHardwareOverlay');if(!el){el=document.createElement('div');el.id='tvHardwareOverlay';el.className='tv-hardware-overlay';el.setAttribute('aria-hidden','true');document.body.appendChild(el)}
+  tvRefreshNativeDiagnostics();const snap=tvDiagnosticSnapshotSync(),f=snap.focus||{},p=snap.pending||{},n=snap.native||{},row=f.row?`${f.row} ${f.index||'-'}/${f.rowItems||'-'}`:'none',heap=snap.jsHeap?`${Math.round(snap.jsHeap.used/1048576)}MB`:'n/a';
+  el.innerHTML=`<b>HW TEST · v${esc(ANDROID_CURRENT_VERSION)}${snap.test?` · ${esc(snap.test)}`:''}</b><span>${esc(snap.page)} · focus ${esc(row)}</span><span>scroll ${snap.scrollY} · DOM ${snap.dom.nodes} · cards ${snap.dom.cards} · img ${snap.dom.images}</span><span>pending M${p.mediaRequests}/L${p.liveRequests}/S${p.starmeterPending} · ↑↓ ${p.verticalQueue} · JS ${heap}</span><span>renderer resets ${Number(n.rendererGoneCount||0)} · keys ${Number(n.nativeKeyEventCount||0)}</span>`;
+}
+function ensureTvHardwareOverlay(){if(!NATIVE_ANDROID)return;if(tvHardwareTestMode){updateTvHardwareOverlay();if(!tvHardwareOverlayTimer)tvHardwareOverlayTimer=setInterval(updateTvHardwareOverlay,1200)}else{document.querySelector('#tvHardwareOverlay')?.remove();if(tvHardwareOverlayTimer){clearInterval(tvHardwareOverlayTimer);tvHardwareOverlayTimer=0}}}
+function setTvHardwareTestMode(enabled){const was=tvHardwareTestMode;tvHardwareTestMode=Boolean(enabled);if(tvHardwareTestMode&&!was){tvDiagnosticEvents.length=0;try{localStorage.removeItem('swoop-tv-hardware-test-events')}catch{}}try{localStorage.setItem('swoop-tv-hardware-test-mode',tvHardwareTestMode?'1':'0')}catch{}tvDiagRecord('hardware-mode',{enabled:tvHardwareTestMode});ensureTvHardwareOverlay();if(state.page==='settings')setTimeout(render,0)}
+function noteTvHardwareSettingsTap(){if(!NATIVE_ANDROID)return false;const now=performance.now();if(now-tvHardwareSettingsTapAt>4000)tvHardwareSettingsTapCount=0;tvHardwareSettingsTapAt=now;tvHardwareSettingsTapCount++;if(tvHardwareSettingsTapCount<5)return false;tvHardwareSettingsTapCount=0;setTvHardwareTestMode(!tvHardwareTestMode);toast(tvHardwareTestMode?'Hardware Test Mode enabled':'Hardware Test Mode disabled');return true}
+function setTvHardwareTest(id=''){tvHardwareCurrentTest=String(id||'');try{localStorage.setItem('swoop-tv-hardware-test-id',tvHardwareCurrentTest);localStorage.removeItem('swoop-tv-hardware-test-events')}catch{}tvDiagnosticEvents.length=0;nativeClearDiagnostics().catch(()=>null);tvHardwareNativeSnapshot={};tvHardwareNativePollAt=0;tvDiagRecord('test-start',{id:tvHardwareCurrentTest});ensureTvHardwareOverlay();toast(tvHardwareCurrentTest?`${tvHardwareCurrentTest} diagnostics started`:'Free-run diagnostics started')}
+async function exportTvHardwareDiagnostics(){
+  if(!NATIVE_ANDROID)return;try{tvHardwareNativeSnapshot=await nativeDiagnostics()||tvHardwareNativeSnapshot}catch{}
+  const payload=tvDiagnosticSnapshotSync();payload.hardwareTests=TV_HARDWARE_TESTS;payload.lastRuntimeError=(()=>{try{return JSON.parse(sessionStorage.getItem('swoop-tv-last-runtime-error')||'null')}catch{return null}})();
+  const result=await nativeSaveDiagnostics(payload);if(result?.ok){tvLastDiagnosticsPath=String(result.path||'');toast(`Diagnostics saved · ${tvLastDiagnosticsPath.split('/').pop()}`);tvDiagRecord('export',{path:tvLastDiagnosticsPath,bytes:Number(result.bytes||0)});if(state.page==='settings')render()}else toast(result?.error||'Could not save diagnostics');
+}
+function clearTvHardwareDiagnostics(){tvDiagnosticEvents.length=0;try{localStorage.removeItem('swoop-tv-hardware-test-events')}catch{}nativeClearDiagnostics().catch(()=>null);tvHardwareNativeSnapshot={};tvHardwareNativePollAt=0;tvDiagRecord('log-cleared');toast('Hardware diagnostic log cleared')}
+if(NATIVE_ANDROID&&typeof PerformanceObserver!=='undefined'){
+  try{const obs=new PerformanceObserver(list=>{for(const e of list.getEntries())if(e.duration>=50)tvDiagRecord('longtask',{duration:Math.round(e.duration),start:Math.round(e.startTime)})});obs.observe({entryTypes:['longtask']})}catch{}
+}
 const mediaProviderCategoryCache={
   movie:{key:'',items:[],loadedAt:0,loading:null,loadingKey:''},
   series:{key:'',items:[],loadedAt:0,loading:null,loadingKey:''}
@@ -542,6 +594,7 @@ function restorePersistentPageView(page){
   return true;
 }
 function navigatePage(nextPage){
+  if(NATIVE_ANDROID)tvDiagRecord('route',{from:state.page,to:String(nextPage||'home')});
   if(NATIVE_ANDROID)personOpenToken++;
   if(String(nextPage||'home')!=='starmeter'){starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
   if(NATIVE_ANDROID&&String(nextPage||'home')!=='live')stopLiveHeroPreview();
@@ -1848,6 +1901,7 @@ function settingsPage(){
   <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My List, recommendations, favourite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favourites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
   <section class="setting-card"><div class="setting-icon">NEW</div><div class="setting-main"><h3>What's New</h3><p>See what changed in Swoop TV v${esc(ANDROID_CURRENT_VERSION)} and reopen the latest release notes at any time.</p><div class="cta-row"><button class="btn secondary" data-show-whats-new>Open What's New</button></div></div></section>
   <section class="setting-card performance-setting-card"><div class="setting-icon">⚡</div><div class="setting-main"><h3>Performance</h3><p>${performanceLabel()}. Choose the balance you prefer between speed and richer visuals.</p><div class="cta-row"><button class="btn ${state.settings.performanceMode!=='cinematic'?'accent':'secondary'}" data-performance-mode="auto">Auto / Recommended</button><button class="btn ${state.settings.performanceMode==='cinematic'?'accent':'secondary'}" data-performance-mode="cinematic">Full Cinematic</button></div></div></section>
+  ${NATIVE_ANDROID&&tvHardwareTestMode?`<section class="setting-card hardware-test-card"><div class="setting-icon">HW</div><div class="setting-main"><h3>Hardware Test Mode</h3><p>Live focus, rail, DOM, pending-work, key and renderer diagnostics are active. Choose a numbered test before reproducing an issue, then export the session.</p><div class="hardware-test-current"><strong>${esc(tvHardwareCurrentTest||'FREE RUN')}</strong><span>${esc(TV_HARDWARE_TESTS.find(x=>x.id===tvHardwareCurrentTest)?.label||'General hardware diagnostics')}</span></div><div class="hardware-test-list">${TV_HARDWARE_TESTS.map(test=>`<button class="btn ${tvHardwareCurrentTest===test.id?'accent':'secondary'} compact-btn" data-hardware-test="${esc(test.id)}">${esc(test.id)}</button>`).join('')}</div><div class="cta-row"><button class="btn accent" data-hardware-export>Save Diagnostics</button><button class="btn secondary" data-hardware-clear>Clear Log</button><button class="btn secondary" data-hardware-exit>Exit Test Mode</button></div>${tvLastDiagnosticsPath?`<small class="hardware-export-path">Last saved: ${esc(tvLastDiagnosticsPath)}</small>`:''}</div></section>`:''}
   <section class="setting-card"><div class="setting-icon">＋</div><div class="setting-main"><h3>My List & Viewing</h3><p>${state.myList.length.toLocaleString()} saved · ${state.continueWatching.length.toLocaleString()} in progress · ${state.watchHistory.length.toLocaleString()} in viewing history.</p><div class="cta-row"><button class="btn secondary" data-page="mylist">Open My List</button>${state.continueWatching.length?'<button class="btn secondary" data-action="clear-history">Clear Continue Watching</button>':''}${state.watchHistory.length?'<button class="btn secondary" data-action="clear-viewing">Reset Recommendations</button>':''}</div></div></section>
   <section class="setting-card"><div class="setting-icon">▶</div><div class="setting-main"><h3>Playback & Live TV</h3><p>${Object.keys(state.settings.movieSourcePreferences||{}).length.toLocaleString()} remembered source choices · ${state.liveFavourites.length.toLocaleString()} favourite live channels.</p><div class="cta-row"><button class="btn secondary" data-page="live">Open Live TV</button>${Object.keys(state.settings.movieSourcePreferences||{}).length?'<button class="btn secondary" data-action="clear-source-preferences">Reset Source Choices</button>':''}${state.liveFavourites.length?'<button class="btn secondary" data-action="clear-live-favourites">Clear Live Favourites</button>':''}</div></div></section>
   <section class="setting-card"><div class="setting-icon">ROW</div><div class="setting-main"><h3>Home & Discovery</h3><p>${state.settings.homeRows.length} Home rows selected. Choose the sections you want to see on Home.</p><div class="cta-row"><button class="btn accent" data-modal="homeRows">Customize Home</button><button class="btn secondary" data-modal="mdblist">Add Custom MDBList Row</button></div>${state.mdblistRows.length?state.mdblistRows.map((r,i)=>`<div class="kv"><span>${esc(r.name)}</span><span>${r.items.length} matched · ${esc(relativeRefreshTime(r.updatedAt))} · <button class="nav-btn" data-remove-row="${i}">Remove</button></span></div>`).join(''):''}</div></section>
@@ -2181,7 +2235,7 @@ function backgroundLiveBar(){
   return `<div class="background-live-bar"><div class="background-live-pulse"></div>${item.logo?`<img data-swoop-art="${esc(item.logo)}" alt="">`:''}<div class="background-live-copy"><span>LIVE NOW ${q?`· ${esc(q)}`:''}</span><strong>${esc(item.name)}</strong><small>${p?esc(p.title):esc(item.group||'Live TV')}</small></div><button class="btn secondary compact-btn" data-live-controls>Open Controls</button><button class="btn danger compact-btn" data-live-stop>Stop</button></div>`;
 }
 function render(){
-  if(NATIVE_ANDROID){rememberTvFocus();if(profilePickerOpen||state.page!=='home')tvHomeExpansionToken++;}
+  if(NATIVE_ANDROID){tvDiagRecord('render',{page:state.page,modal:modal||''});rememberTvFocus();if(profilePickerOpen||state.page!=='home')tvHomeExpansionToken++;}
   if(NATIVE_ANDROID&&modal){tvVerticalQueue=0;if(tvVerticalFrame){cancelAnimationFrame(tvVerticalFrame);tvVerticalFrame=0}}
   document.documentElement.classList.toggle('tv-modal-open',Boolean(NATIVE_ANDROID&&modal));
   applyTheme();
@@ -2213,7 +2267,7 @@ function render(){
   if(detailRoute){const scroller=document.querySelector('.detail-scroll');if(scroller)scroller.scrollTop=detailScrollTop;}
   if(personRoute){const scroller=document.querySelector('.person-scroll');if(scroller)scroller.scrollTop=personScrollTop;}
   bind();bindHeroControls(document);
-  if(NATIVE_ANDROID)restoreTvFocus();
+  if(NATIVE_ANDROID){restoreTvFocus();ensureTvHardwareOverlay();}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='search')runSearch('');
   if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>{observeStarmeterSections(document);setupStarmeterAutoLoad()},0)}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='live')setTimeout(setupLiveCategoryAutoLoad,0)
@@ -2956,8 +3010,12 @@ function bind(){
   document.querySelector('#profilePinForm')?.addEventListener('submit',async e=>{e.preventDefault();const target=state.profiles.find(p=>p.id===pendingProfileId),pin=String(new FormData(e.currentTarget).get('pin')||'');if(!target)return;const digest=await pinDigest(pin,target.pinSalt);if(digest!==target.pinHash){profilePinError='Incorrect PIN. Try again.';render();return}const id=target.id;pendingProfileId='';profilePinError='';await switchProfile(id,{skipPin:true})});
   document.querySelector('#profileForm')?.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget),id=String(fd.get('id')||''),existing=state.profiles.find(p=>p.id===id)||null,name=String(fd.get('name')||'Profile').trim(),avatar=String(fd.get('avatar')||'lion'),kids=Boolean(fd.get('kids')),smartHome=Boolean(fd.get('smartHome')),themeId=themeById(String(fd.get('themeId')||existing?.profileSettings?.themeId||'swoop')).id,pin=String(fd.get('pin')||'').trim(),removePin=Boolean(fd.get('removePin'));if(!name){toast('Enter a profile name');return}if(pin&&!/^\d{4,8}$/.test(pin)){toast('Profile PIN must be 4–8 digits');return}if(existing?.id===state.activeProfileId)syncActiveProfileFromState();let next=existing?normalizeProfile(state.profiles.find(p=>p.id===id)||existing):makeProfile({name,avatar,kids,profileSettings:{themeId:'swoop',backgroundColor:'#030306',backgroundOverride:false,movieSourcePreferences:{},homeRows:[...DEFAULT_HOME_ROWS],smartHomeOrder:true}});next={...next,name:name.slice(0,24),avatar:avatarById(avatar).id,kids,profileSettings:{...(next.profileSettings||{}),smartHomeOrder:smartHome,themeId}};if(kids){const rawById=x=>state.catalog.find(item=>item.id===x)||next.continueWatching.find(e=>e.id===x)?.item||next.watchHistory.find(e=>e.id===x)?.item||null;next.myList=next.myList.filter(id=>{const item=rawById(id);return !item||profileAllowsMedia(next,item,state.metadataCache?.[item.id]||{})});next.continueWatching=next.continueWatching.filter(e=>!e?.item||profileAllowsMedia(next,e.item,state.metadataCache?.[e.id]||{}));next.watchHistory=next.watchHistory.filter(e=>!e?.item||profileAllowsMedia(next,e.item,state.metadataCache?.[e.id]||{}));}if(removePin){next.pinHash='';next.pinSalt=''}else if(pin){next.pinSalt=randomSalt();next.pinHash=await pinDigest(pin,next.pinSalt)}if(existing){const i=state.profiles.findIndex(p=>p.id===existing.id);state.profiles[i]=next;if(existing.id===state.activeProfileId){applyProfileToState(next)}}else{state.profiles.push(next);state.activeProfileId=next.id;applyProfileToState(next)}profileEditId='';modal=null;profilePickerOpen=false;await persist();render();toast(existing?'Profile updated':`Welcome, ${next.name}`)});
   document.querySelectorAll('[data-profile-delete]').forEach(el=>el.onclick=async()=>{const id=el.dataset.profileDelete;if(state.profiles.length<=1){toast('Swoop TV needs at least one profile');return}const wasActive=id===state.activeProfileId;state.profiles=state.profiles.filter(p=>p.id!==id);if(wasActive){state.activeProfileId=state.profiles[0].id;applyProfileToState(state.profiles[0])}profileEditId='';modal='profiles';await persist();render();toast('Profile deleted')});
-  document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const target=el.dataset.page;navigatePage(target);if(NATIVE_ANDROID&&target==='search')requestAnimationFrame(()=>document.querySelector('#searchInput')?.focus?.({preventScroll:true}))});
+  document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const target=el.dataset.page;if(NATIVE_ANDROID&&target==='settings')noteTvHardwareSettingsTap();navigatePage(target);if(NATIVE_ANDROID&&target==='search')requestAnimationFrame(()=>document.querySelector('#searchInput')?.focus?.({preventScroll:true}))});
   document.querySelectorAll('[data-modal]').forEach(el=>el.onclick=()=>{modal=el.dataset.modal;render()});
+  document.querySelectorAll('[data-hardware-test]').forEach(el=>el.onclick=()=>{setTvHardwareTest(el.dataset.hardwareTest||'');render()});
+  document.querySelector('[data-hardware-export]')?.addEventListener('click',()=>exportTvHardwareDiagnostics());
+  document.querySelector('[data-hardware-clear]')?.addEventListener('click',clearTvHardwareDiagnostics);
+  document.querySelector('[data-hardware-exit]')?.addEventListener('click',()=>setTvHardwareTestMode(false));
   document.querySelectorAll('[data-close]').forEach(el=>el.onclick=()=>{modal=null;render()});
   document.querySelectorAll('[data-close-modal]').forEach(el=>el.onclick=e=>{if(e.target===el){modal=null;render()}});
   bindDynamicCards(document);bindPersonLinks(document);bindDetailTitleLogoFailure(document);
@@ -3001,7 +3059,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:826,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:827,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3306,7 +3364,7 @@ document.addEventListener('focusin',e=>{
   const el=e.target;
   if(el&&el instanceof HTMLElement){
     document.querySelector('[data-swoop-tv-focused="1"]')?.removeAttribute('data-swoop-tv-focused');
-    el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;
+    el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;tvDiagRecord('focus',{focus:tvDiagnosticElement(el)});
     const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);longRailPrefetchForFocus(card)}
     if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,700)}}
     if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0);if(rank&&rank>=starmeterVisibleCount-1){appendStarmeterSections(STARMETER_APPEND_BATCH);setupStarmeterAutoLoad()}}
@@ -3337,7 +3395,7 @@ window.__swoopTvActivateFocused=(source='')=>{
   if(!active||!active.isConnected)active=document.querySelector('[data-swoop-tv-focused="1"]');
   if(!active||!active.isConnected)return false;
   active=active.closest?.('button,a,input,select,textarea,[role="button"],[tabindex]')||active;
-  tvLastFocusedElement=active;tvLastActivationAt=now;
+  tvLastFocusedElement=active;tvLastActivationAt=now;tvDiagRecord('activate',{source,focus:tvDiagnosticElement(active)});
   if(active.matches?.('[data-profile-select]')){
     const id=active.dataset.profileSelect;
     if(id){Promise.resolve(switchProfile(id)).catch(()=>{});return true}
@@ -3350,11 +3408,12 @@ window.__swoopTvActivateFocused=(source='')=>{
 };
 
 if(NATIVE_ANDROID){
-  window.addEventListener('error',e=>{try{sessionStorage.setItem('swoop-tv-last-runtime-error',JSON.stringify({at:Date.now(),page:state.page,message:String(e?.message||'error')}));sessionStorage.setItem('swoop-tv-last-route',state.page||'home')}catch{}},true);
-  window.addEventListener('unhandledrejection',e=>{try{sessionStorage.setItem('swoop-tv-last-runtime-error',JSON.stringify({at:Date.now(),page:state.page,message:String(e?.reason?.message||e?.reason||'rejection')}));sessionStorage.setItem('swoop-tv-last-route',state.page||'home')}catch{}},true);
+  window.addEventListener('error',e=>{const info={at:Date.now(),page:state.page,message:String(e?.message||'error'),source:String(e?.filename||''),line:Number(e?.lineno||0)};tvDiagRecord('error',info);try{sessionStorage.setItem('swoop-tv-last-runtime-error',JSON.stringify(info));sessionStorage.setItem('swoop-tv-last-route',state.page||'home')}catch{}},true);
+  window.addEventListener('unhandledrejection',e=>{const info={at:Date.now(),page:state.page,message:String(e?.reason?.message||e?.reason||'rejection')};tvDiagRecord('rejection',info);try{sessionStorage.setItem('swoop-tv-last-runtime-error',JSON.stringify(info));sessionStorage.setItem('swoop-tv-last-route',state.page||'home')}catch{}},true);
 }
 
 window.addEventListener('keydown',e=>{
+  if(NATIVE_ANDROID)tvDiagRecord('key',{key:e.key,repeat:Boolean(e.repeat),focus:tvDiagnosticElement(document.activeElement)});
   if(NATIVE_ANDROID&&e.key==='Enter'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){
     if(window.__swoopTvActivateFocused?.('keydown')){e.preventDefault();e.stopPropagation();return}
   }

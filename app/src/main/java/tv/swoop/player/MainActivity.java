@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.Environment;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,6 +44,8 @@ import org.xmlpull.v1.XmlPullParser;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PushbackInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -86,6 +90,13 @@ public class MainActivity extends Activity {
     private volatile String playbackError = "";
     private String currentTitle = "Swoop TV";
     private String currentKind = "video";
+    private long rendererGoneCount = 0L;
+    private long lastRendererGoneAt = 0L;
+    private boolean lastRendererCrashed = false;
+    private int lastRendererPriority = 0;
+    private long nativeKeyEventCount = 0L;
+    private int lastNativeKeyCode = -1;
+    private long lastNativeKeyAt = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,9 +104,31 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         applyImmersive();
+        loadDiagnosticState();
         buildUi();
         configureWebView();
         webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+    }
+
+    private void loadDiagnosticState() {
+        try {
+            android.content.SharedPreferences prefs = getSharedPreferences("swoop-tv-diagnostics", MODE_PRIVATE);
+            rendererGoneCount = prefs.getLong("rendererGoneCount", 0L);
+            lastRendererGoneAt = prefs.getLong("lastRendererGoneAt", 0L);
+            lastRendererCrashed = prefs.getBoolean("lastRendererCrashed", false);
+            lastRendererPriority = prefs.getInt("lastRendererPriority", 0);
+        } catch (Exception ignored) {}
+    }
+
+    private void persistRendererDiagnosticState() {
+        try {
+            getSharedPreferences("swoop-tv-diagnostics", MODE_PRIVATE).edit()
+                    .putLong("rendererGoneCount", rendererGoneCount)
+                    .putLong("lastRendererGoneAt", lastRendererGoneAt)
+                    .putBoolean("lastRendererCrashed", lastRendererCrashed)
+                    .putInt("lastRendererPriority", lastRendererPriority)
+                    .apply();
+        } catch (Exception ignored) {}
     }
 
     private void buildUi() {
@@ -148,7 +181,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.26 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.27 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -172,6 +205,11 @@ public class MainActivity extends Activity {
 
             @Override
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                rendererGoneCount++;
+                lastRendererGoneAt = System.currentTimeMillis();
+                lastRendererCrashed = detail.didCrash();
+                lastRendererPriority = detail.rendererPriorityAtExit();
+                persistRendererDiagnosticState();
                 Log.e("SwoopTV", "WebView renderer exited; crashed=" + detail.didCrash() + " priority=" + detail.rendererPriorityAtExit());
                 stopPreviewPlayer();
                 runOnUiThread(() -> recreate());
@@ -339,12 +377,53 @@ public class MainActivity extends Activity {
         try {
             boolean usable = player != null && playbackError.isEmpty();
             int state = player != null ? player.getPlaybackState() : Player.STATE_IDLE;
+            Runtime runtime = Runtime.getRuntime();
+            long usedBytes = runtime.totalMemory() - runtime.freeMemory();
+            out.put("version", "0.8.27");
+            out.put("versionCode", 827);
+            out.put("uptimeMs", SystemClock.elapsedRealtime());
             out.put("playing", nativePlayerVisible && usable && state != Player.STATE_IDLE);
             out.put("paused", player != null && !player.getPlayWhenReady());
             out.put("ended", ended);
             out.put("error", playbackError);
+            out.put("previewPlaying", previewPlayer != null && previewPlayer.isPlaying());
+            out.put("webViewWidth", webView == null ? 0 : webView.getWidth());
+            out.put("webViewHeight", webView == null ? 0 : webView.getHeight());
+            out.put("rootWidth", root == null ? 0 : root.getWidth());
+            out.put("rootHeight", root == null ? 0 : root.getHeight());
+            out.put("javaHeapUsedBytes", usedBytes);
+            out.put("javaHeapMaxBytes", runtime.maxMemory());
+            out.put("rendererGoneCount", rendererGoneCount);
+            out.put("lastRendererGoneAt", lastRendererGoneAt);
+            out.put("lastRendererCrashed", lastRendererCrashed);
+            out.put("lastRendererPriority", lastRendererPriority);
+            out.put("nativeKeyEventCount", nativeKeyEventCount);
+            out.put("lastNativeKeyCode", lastNativeKeyCode);
+            out.put("lastNativeKeyAt", lastNativeKeyAt);
             out.put("playback", playbackSnapshot(ended));
         } catch (Exception ignored) {}
+        return out;
+    }
+
+    private JSONObject saveDiagnosticsFile(String payloadJson) {
+        JSONObject out = new JSONObject();
+        try {
+            File dir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+            if (dir == null) dir = getFilesDir();
+            if (!dir.exists() && !dir.mkdirs()) throw new Exception("Could not create diagnostics folder.");
+            String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
+            File file = new File(dir, "Swoop-TV-v0.8.27-Diagnostics-" + stamp + ".json");
+            byte[] bytes = String.valueOf(payloadJson == null ? "{}" : payloadJson).getBytes(StandardCharsets.UTF_8);
+            try (FileOutputStream stream = new FileOutputStream(file, false)) {
+                stream.write(bytes);
+                stream.flush();
+            }
+            out.put("ok", true);
+            out.put("path", file.getAbsolutePath());
+            out.put("bytes", bytes.length);
+        } catch (Exception e) {
+            try { out.put("ok", false); out.put("error", e.getMessage() == null ? "Could not save diagnostics." : e.getMessage()); } catch (Exception ignored) {}
+        }
         return out;
     }
 
@@ -414,7 +493,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.26 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.27 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -470,7 +549,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.26 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.27 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -534,7 +613,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.26"; }
+        public String version() { return "0.8.27"; }
 
         @JavascriptInterface
         public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }
@@ -590,6 +669,26 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String diagnostics() {
             return onMain(() -> diagnosticsJson().toString(), "{\"playing\":false}");
+        }
+
+        @JavascriptInterface
+        public String saveDiagnostics(String payloadJson) {
+            return saveDiagnosticsFile(payloadJson).toString();
+        }
+
+        @JavascriptInterface
+        public String clearDiagnostics() {
+            return onMain(() -> {
+                rendererGoneCount = 0L;
+                lastRendererGoneAt = 0L;
+                lastRendererCrashed = false;
+                lastRendererPriority = 0;
+                nativeKeyEventCount = 0L;
+                lastNativeKeyCode = -1;
+                lastNativeKeyAt = 0L;
+                persistRendererDiagnosticState();
+                return new JSONObject().put("ok", true).toString();
+            }, "{\"ok\":false}");
         }
 
         @JavascriptInterface
@@ -788,6 +887,11 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            nativeKeyEventCount++;
+            lastNativeKeyCode = event.getKeyCode();
+            lastNativeKeyAt = System.currentTimeMillis();
+        }
         if (nativePlayerVisible && event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
             onBackPressed();
             return true;

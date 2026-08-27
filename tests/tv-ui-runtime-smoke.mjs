@@ -105,7 +105,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.26';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.27';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -127,4 +127,19 @@ if (!cssSource.includes('.media-category-page .page-hero') || !cssSource.include
 if (!cssSource.includes('grid-template-columns:230px minmax(0,1fr)!important')) throw new Error('Large people-first STARmeter layout missing');
 if (!cssSource.includes('border-radius:999px!important;object-fit:cover!important')) throw new Error('Circular STARmeter portraits missing');
 if (!cssSource.includes('width:75%!important;height:75%!important')) throw new Error('Reduced centered Live TV brand treatment missing');
+
+
+// v0.8.27 hardware-test workflow diagnostics.
+if (!appSource.includes('const TV_HARDWARE_TESTS=[') || !appSource.includes("id:'NAV-001'") || !appSource.includes("id:'STAB-001'")) throw new Error('Numbered hardware regression test catalog missing');
+if (!appSource.includes('function tvDiagRecord(') || !appSource.includes('function tvDiagnosticSnapshotSync(')) throw new Error('Hardware diagnostic event/snapshot system missing');
+if (!appSource.includes('function noteTvHardwareSettingsTap()') || !appSource.includes('tvHardwareSettingsTapCount<5')) throw new Error('Hidden five-press Settings activation missing');
+if (!appSource.includes('data-hardware-export') || !appSource.includes('exportTvHardwareDiagnostics')) throw new Error('On-device diagnostic export controls missing');
+if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagRecord('focus'")) throw new Error('D-pad/focus event logging missing');
+if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
+if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
+if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.27-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
+if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
+
 console.log('Google TV UI runtime smoke passed');
