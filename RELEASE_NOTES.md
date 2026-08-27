@@ -1,5 +1,18 @@
 # Swoop TV Release Notes
 
+## v0.8.28 — Google TV Whole-App Warm-Start Seed Cache
+
+- Adds a packaged **whole-app warm-start seed cache** inside the APK so a fresh install can begin from useful provider-neutral data instead of waiting for every discovery/metadata request to start cold.
+- GitHub Actions refreshes `seed-cache.json` immediately before each APK build and bundles that exact snapshot into Android assets; the same `swoop-tv-seed-cache.json` is attached to the test release for inspection.
+- Seeds current discovery inputs for **Top 100 Movies / Top 100 TV Shows** and other discovery matching. Swoop TV can match the bundled ranking data against the local provider catalogue immediately, while newer discovery data refreshes quietly after the UI is usable.
+- Seeds the full **STARmeter Top 100** plus resolved person identities/portraits and a bounded set of filmography credits when available. STARmeter and People Search consult this install cache before remote person lookups.
+- Adds a seed-first path for popular **title metadata** including IDs, poster/backdrop/logo URLs, synopsis, runtime, ratings, cast and related fields. Metadata is mapped to provider titles by trusted IDs or strict title/year identity rather than provider-specific IDs.
+- Adds the same seed-first contract for **episode metadata** when episode records are present; missing/stale fields still hydrate asynchronously and never block the series page.
+- Keeps the APK seed deliberately provider-neutral and privacy-safe: **no IPTV credentials, provider-specific catalogue, My List, Continue Watching, watch history, profiles or live EPG data** are baked into the install.
+- Adds seed-cache schema/integrity regression checks and updates the service-worker shell so the warm-start loader and seed asset are versioned with the app.
+- Retains the complete v0.8.27 Hardware Test Workflow and v0.8.26 performance/stability/navigation work.
+- Android versionName is **0.8.28** and versionCode is **828**.
+
 ## v0.8.27 — Google TV Hardware Test Workflow
 
 - Adds a hidden **Hardware Test Mode** for physical Google TV debugging. Press OK on the Settings cog five times within four seconds to toggle it without adding permanent UI clutter for normal users.

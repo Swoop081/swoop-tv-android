@@ -2,16 +2,21 @@
 
 ## Current build under test
 
-**v0.8.27 — Google TV Hardware Test Workflow**
+**v0.8.28 — Google TV Whole-App Warm-Start Seed Cache**
 
 ## Open
 
-- [ ] Physical-TV verification of the v0.8.27 diagnostic workflow.
+- [ ] Physical-TV verification of the v0.8.28 warm-start seed + retained diagnostic workflow.
 - [ ] Re-test the Top 100 Movies/TV 25–26 boundary using NAV-001/NAV-002 with exported diagnostics if it still fails.
 - [ ] Re-test rapid D-pad performance and long-session renderer stability using PERF-001/STAB-001.
 
 ## Implemented — needs TV verification
 
+- [ ] v0.8.28 install carries a provider-neutral seed snapshot and uses it before blocking discovery/person/metadata network paths.
+- [ ] Top 100 can match bundled discovery inputs against the local provider catalogue immediately after restore/import.
+- [ ] STARmeter and People Search use bundled Top 100 identity/filmography data where available.
+- [ ] Popular title/episode metadata uses seed-first matching while stale/missing data still refreshes asynchronously.
+- [ ] No credentials, provider catalogue, profile/history/My List or live EPG data is present in the install seed.
 - [ ] Five-press Settings shortcut toggles hidden Hardware Test Mode.
 - [ ] Non-focusable HW TEST overlay reports page, focus row/index, DOM/card/image counts, pending jobs, key count and renderer-reset count without altering navigation.
 - [ ] Numbered NAV/PERF/LIVE/STAR/STAB test sessions are selectable from Settings.

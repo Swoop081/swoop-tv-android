@@ -1,16 +1,16 @@
 {
-  "version": "0.8.27",
-  "versionCode": 827,
-  "versionedApk": "Swoop-TV-v0.8.27-Google-TV-Test.apk",
+  "version": "0.8.28",
+  "versionCode": 828,
+  "versionedApk": "Swoop-TV-v0.8.28-Google-TV-Test.apk",
   "stableApk": "Swoop-TV-v0.8.1-Google-TV-Test.apk",
   "changes": [
-    "Adds a hidden Hardware Test Mode for physical Google TV debugging. Press OK on the Settings cog five times within four seconds to toggle it without adding permanent UI clutter for normal users.",
-    "Adds a non-focusable on-screen diagnostics HUD showing current page, focused rail/index, scroll position, DOM/card/image counts, pending media/live/STARmeter work, queued vertical input, JavaScript heap usage, native key count and WebView renderer-reset count.",
-    "Adds a rolling 600-event hardware log covering D-pad/key input, focus transitions, route changes, activations, long JavaScript tasks, runtime errors/rejections and diagnostic exports.",
-    "Adds numbered guided hardware test IDs: NAV-001/002/003, PERF-001, LIVE-001, STAR-001 and STAB-001, so a photo/video and diagnostic file can identify the exact regression being reproduced.",
-    "Adds Save Diagnostics in Settings while Hardware Test Mode is enabled. The Android bridge writes a timestamped JSON session file containing UI state, native playback/preview state, Java heap metrics, renderer-loss state, native key counters and the rolling event log.",
-    "Expands native renderer diagnostics so unexpected WebView resets include crash/priority/time/count metadata and adds native remote-key telemetry for correlating remote input with JavaScript focus movement.",
-    "Adds automated release metadata generation from app/build.gradle + the canonical RELEASE_NOTES.md, reducing manual version/changelog drift in GitHub Actions.",
-    "Adds a numbered physical-TV regression checklist and makes the hardware-test documents part of the CI artifact so each APK has a matching test plan."
+    "Adds a packaged whole-app warm-start seed cache inside the APK so a fresh install can begin from useful provider-neutral data instead of waiting for every discovery/metadata request to start cold.",
+    "GitHub Actions refreshes seed-cache.json immediately before each APK build and bundles that exact snapshot into Android assets; the same swoop-tv-seed-cache.json is attached to the test release for inspection.",
+    "Seeds current discovery inputs for Top 100 Movies / Top 100 TV Shows and other discovery matching. Swoop TV can match the bundled ranking data against the local provider catalogue immediately, while newer discovery data refreshes quietly after the UI is usable.",
+    "Seeds the full STARmeter Top 100 plus resolved person identities/portraits and a bounded set of filmography credits when available. STARmeter and People Search consult this install cache before remote person lookups.",
+    "Adds a seed-first path for popular title metadata including IDs, poster/backdrop/logo URLs, synopsis, runtime, ratings, cast and related fields. Metadata is mapped to provider titles by trusted IDs or strict title/year identity rather than provider-specific IDs.",
+    "Adds the same seed-first contract for episode metadata when episode records are present; missing/stale fields still hydrate asynchronously and never block the series page.",
+    "Keeps the APK seed deliberately provider-neutral and privacy-safe: no IPTV credentials, provider-specific catalogue, My List, Continue Watching, watch history, profiles or live EPG data are baked into the install.",
+    "Adds seed-cache schema/integrity regression checks and updates the service-worker shell so the warm-start loader and seed asset are versioned with the app."
   ]
 }

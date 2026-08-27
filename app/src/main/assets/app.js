@@ -6,6 +6,7 @@ import {nativeCatalogStatus,nativeCatalogReplaceProvider,nativeCatalogRemoveProv
 import {getMDBListItems, getMDBListOfficialItems, getMDBListStreamingChart, matchMDBListToCatalog, normalizeMediaTitle} from './src/mdblist.js';
 import {fetchTitleMetadata, fetchTitleImdbRating, fetchPersonCredits, fetchEpisodeMetadata, searchPeople, metadataServiceUrl} from './src/tmdb.js';
 import {fetchSwoopDiscovery, fetchSwoopCuratedList} from './src/discovery.js';
+import {loadInstallSeedCache, installSeedFresh, installSeedAgeHours, installSeedDiscovery, installSeedPerson, searchInstallSeedPeople, installSeedTitleMetadata, installSeedEpisodeMetadata} from './src/seedCache.js';
 import {buildMovieStackIndex, collapseMovieSources, cleanDisplayTitle, rankSources, sourceTraits, qualityLabel} from './src/sourceStack.js';
 import {buildLiveStackIndex, selectLiveSource} from './src/liveStack.js';
 import {PROFILE_AVATARS, avatarById, makeProfile, normalizeProfile, profileAllowsMedia, profileGenreAffinity, smartRankRows} from './src/profiles.js';
@@ -23,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.27';
+const ANDROID_CURRENT_VERSION='0.8.28';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -35,14 +36,19 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Adds a hidden Hardware Test Mode: press OK on Settings five times within four seconds to toggle it.',
-  'Shows a lightweight diagnostics HUD with focus row/index, scroll, DOM/card counts, pending background work, key input and renderer-reset metrics.',
-  'Adds rolling D-pad/focus/route/long-task/error logging plus numbered NAV/PERF/LIVE/STAR/STAB hardware test IDs.',
-  'Adds Save Diagnostics from Settings while Hardware Test Mode is active, producing a timestamped JSON session file on the TV.',
-  'Expands native WebView renderer, Java heap and remote-key diagnostics for faster hardware issue diagnosis.',
-  'Automates GitHub build metadata/changelog generation from the Android version and canonical release notes.',
-  'Retains the complete v0.8.26 performance, stability, navigation and hardware-polish pass.'
+  'Adds a packaged whole-app warm-start seed cache so discovery, STARmeter, people search and popular metadata can start from useful install-time data instead of a cold network path.',
+  'GitHub Actions refreshes the install seed immediately before the APK build, then bundles that exact snapshot inside the APK.',
+  'Top 100 and other discovery matching can use the bundled ranking inputs immediately while a newer discovery refresh happens quietly in the background.',
+  'STARmeter starts from the bundled Top 100 identities and pre-seeded filmography where available; People Search checks this install cache before remote lookup.',
+  'Popular title artwork, IDs, runtime, cast and other metadata can be satisfied from the seed pack before calling the metadata service.',
+  'Episode metadata supports the same seed-first path when episode records are available, while unresolved fields continue to hydrate asynchronously.',
+  'Seed data is provider-neutral: IPTV credentials, personal history, My List, live EPG and provider-specific availability remain private/local and are never baked into the APK.',
+  'Retains the complete v0.8.27 Hardware Test Mode and v0.8.26 performance/stability pass.'
 ];
+let installSeedCache=null;
+const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
+async function getInstallSeedCache(){return installSeedCache||(installSeedCache=await installSeedPromise)||null}
+
 const tvCatalogWorkerPending=new Map();
 let nativeCatalogMode=false,nativeCatalogStats=null,nativeCatalogMigration=false;
 const nativeItemCache=new Map();
@@ -471,14 +477,14 @@ function tvDiagRecord(type,data={}){
 function tvDiagnosticPending(){return {mediaRequests:mediaRailRequests.size,liveRequests:liveRailRequests.size,starmeterPending:starmeterHydratePending.size,verticalQueue:tvVerticalQueue,catalogWorkerPending:tvCatalogWorkerPending.size,guideRequests:guideChannelRequests?.size||0};}
 function tvDiagnosticSnapshotSync(){
   const active=(document.activeElement&&document.activeElement!==document.body)?document.activeElement:tvLastFocusedElement,focus=tvDiagnosticElement(active),mem=performance?.memory||null;
-  return {version:ANDROID_CURRENT_VERSION,at:new Date().toISOString(),page:state?.page||'',test:tvHardwareCurrentTest||'',focus,scrollY:Math.round(window.scrollY||document.documentElement.scrollTop||0),viewport:{width:innerWidth,height:innerHeight,density:document.documentElement.dataset.tvDensity||''},dom:{nodes:document.getElementsByTagName('*').length,buttons:document.querySelectorAll('button').length,cards:document.querySelectorAll('.card,.live-rail-card').length,images:document.images.length},pending:tvDiagnosticPending(),modal:modal||'',detail:Boolean(detailItem),person:Boolean(personView),livePreview:{active:livePreviewActive,itemId:livePreviewItemId},jsHeap:mem?{used:mem.usedJSHeapSize,total:mem.totalJSHeapSize,limit:mem.jsHeapSizeLimit}:null,native:tvHardwareNativeSnapshot,events:[...tvDiagnosticEvents]};
+  const seed=installSeedCache?{sourceVersion:String(installSeedCache.sourceVersion||''),builtAt:String(installSeedCache.builtAt||''),ageHours:Math.round(installSeedAgeHours(installSeedCache)*10)/10,fresh:installSeedFresh(installSeedCache),people:Number(installSeedCache?.starmeter?.people?.length||0),titles:Number(installSeedCache?.titleMetadata?.length||0),discovery:Object.keys(installSeedCache?.discovery||{})}:null;return {version:ANDROID_CURRENT_VERSION,at:new Date().toISOString(),page:state?.page||'',test:tvHardwareCurrentTest||'',focus,scrollY:Math.round(window.scrollY||document.documentElement.scrollTop||0),viewport:{width:innerWidth,height:innerHeight,density:document.documentElement.dataset.tvDensity||''},dom:{nodes:document.getElementsByTagName('*').length,buttons:document.querySelectorAll('button').length,cards:document.querySelectorAll('.card,.live-rail-card').length,images:document.images.length},pending:tvDiagnosticPending(),seed,modal:modal||'',detail:Boolean(detailItem),person:Boolean(personView),livePreview:{active:livePreviewActive,itemId:livePreviewItemId},jsHeap:mem?{used:mem.usedJSHeapSize,total:mem.totalJSHeapSize,limit:mem.jsHeapSizeLimit}:null,native:tvHardwareNativeSnapshot,events:[...tvDiagnosticEvents]};
 }
 async function tvRefreshNativeDiagnostics(){if(!NATIVE_ANDROID||Date.now()-tvHardwareNativePollAt<2800)return;tvHardwareNativePollAt=Date.now();try{tvHardwareNativeSnapshot=await nativeDiagnostics()||{}}catch{}}
 function updateTvHardwareOverlay(){
   if(!tvHardwareTestMode){document.querySelector('#tvHardwareOverlay')?.remove();return}
   let el=document.querySelector('#tvHardwareOverlay');if(!el){el=document.createElement('div');el.id='tvHardwareOverlay';el.className='tv-hardware-overlay';el.setAttribute('aria-hidden','true');document.body.appendChild(el)}
   tvRefreshNativeDiagnostics();const snap=tvDiagnosticSnapshotSync(),f=snap.focus||{},p=snap.pending||{},n=snap.native||{},row=f.row?`${f.row} ${f.index||'-'}/${f.rowItems||'-'}`:'none',heap=snap.jsHeap?`${Math.round(snap.jsHeap.used/1048576)}MB`:'n/a';
-  el.innerHTML=`<b>HW TEST · v${esc(ANDROID_CURRENT_VERSION)}${snap.test?` · ${esc(snap.test)}`:''}</b><span>${esc(snap.page)} · focus ${esc(row)}</span><span>scroll ${snap.scrollY} · DOM ${snap.dom.nodes} · cards ${snap.dom.cards} · img ${snap.dom.images}</span><span>pending M${p.mediaRequests}/L${p.liveRequests}/S${p.starmeterPending} · ↑↓ ${p.verticalQueue} · JS ${heap}</span><span>renderer resets ${Number(n.rendererGoneCount||0)} · keys ${Number(n.nativeKeyEventCount||0)}</span>`;
+  const seed=snap.seed;el.innerHTML=`<b>HW TEST · v${esc(ANDROID_CURRENT_VERSION)}${snap.test?` · ${esc(snap.test)}`:''}</b><span>${esc(snap.page)} · focus ${esc(row)}</span><span>scroll ${snap.scrollY} · DOM ${snap.dom.nodes} · cards ${snap.dom.cards} · img ${snap.dom.images}</span><span>pending M${p.mediaRequests}/L${p.liveRequests}/S${p.starmeterPending} · ↑↓ ${p.verticalQueue} · JS ${heap}</span>${seed?`<span>seed ${seed.ageHours}h · P${seed.people}/T${seed.titles} · ${seed.discovery.join('+')||'static'}</span>`:''}<span>renderer resets ${Number(n.rendererGoneCount||0)} · keys ${Number(n.nativeKeyEventCount||0)}</span>`;
 }
 function ensureTvHardwareOverlay(){if(!NATIVE_ANDROID)return;if(tvHardwareTestMode){updateTvHardwareOverlay();if(!tvHardwareOverlayTimer)tvHardwareOverlayTimer=setInterval(updateTvHardwareOverlay,1200)}else{document.querySelector('#tvHardwareOverlay')?.remove();if(tvHardwareOverlayTimer){clearInterval(tvHardwareOverlayTimer);tvHardwareOverlayTimer=0}}}
 function setTvHardwareTestMode(enabled){const was=tvHardwareTestMode;tvHardwareTestMode=Boolean(enabled);if(tvHardwareTestMode&&!was){tvDiagnosticEvents.length=0;try{localStorage.removeItem('swoop-tv-hardware-test-events')}catch{}}try{localStorage.setItem('swoop-tv-hardware-test-mode',tvHardwareTestMode?'1':'0')}catch{}tvDiagRecord('hardware-mode',{enabled:tvHardwareTestMode});ensureTvHardwareOverlay();if(state.page==='settings')setTimeout(render,0)}
@@ -755,7 +761,8 @@ async function enrichItemMetadata(item,{rerender=true,force=false}={}){
   if(metadataFresh&&!force){if(!imdbFresh)queueVisibleMetadata(item);return cached;}
   const task=(async()=>{
     try{
-      const metadata=await fetchTitleMetadata({settings:state.settings,item}),stamp=Date.now(),hasImdbField=Boolean(tenPointRating(metadata?.imdbRating));
+      const seed=await getInstallSeedCache(),seeded=installSeedTitleMetadata(seed,item);
+      const metadata=(seeded&&installSeedFresh(seed))?seeded:(await fetchTitleMetadata({settings:state.settings,item}).catch(()=>seeded)),stamp=Date.now(),hasImdbField=Boolean(tenPointRating(metadata?.imdbRating));
       state.metadataCache[item.id]={...cached,...(metadata||{}),checkedAt:stamp,titleLogoCheckedAt:stamp,titleLookupSchema:TITLE_LOOKUP_SCHEMA,...(hasImdbField?{imdbRatingCheckedAt:stamp}:{})};metadataRevision++;
       if(metadata?.tmdbId&&!item.tmdbId)item.tmdbId=metadata.tmdbId;
       if(metadata?.imdbId&&!item.imdbId)item.imdbId=metadata.imdbId;
@@ -1116,8 +1123,16 @@ function discoveryRowTtl(id){return /^(top20-|trending|new-hot|streaming|box-off
 async function discoveryBundle(mediaType,force=false){
   const key=mediaType==='show'?'tv':'movie',cached=discoveryBundleMemory.get(key),now=Date.now();
   if(!force&&cached&&now-cached.at<5*60*1000)return cached.data;
+  const seed=await getInstallSeedCache(),seeded=installSeedDiscovery(seed,key);
+  if(seeded&&(!cached||cached.seeded||force)){
+    discoveryBundleMemory.set(key,{at:now,data:seeded,seeded:true});
+    // A release build carries a current provider-neutral discovery snapshot. Use it now,
+    // then replace it quietly with the latest network bundle without holding up Home.
+    if(force||!installSeedFresh(seed))setTimeout(()=>fetchSwoopDiscovery({settings:state.settings,mediaType:key}).then(data=>{if(!data||typeof data!=='object')return;discoveryBundleMemory.set(key,{at:Date.now(),data,seeded:false});const id=key==='tv'?'top20-shows':'top20-movies';if(state.webDiscovery?.[id])state.webDiscovery[id].updatedAt=0;if(state.page==='home'&&!profilePickerOpen)setTimeout(()=>refreshDiscoveryRows(false,false,null,[id]).then(()=>patchMountedHomeRows([id])).catch(()=>{}),120)}).catch(()=>{}),0);
+    return seeded;
+  }
   const data=await fetchSwoopDiscovery({settings:state.settings,mediaType:key});
-  discoveryBundleMemory.set(key,{at:now,data});return data;
+  discoveryBundleMemory.set(key,{at:now,data,seeded:false});return data;
 }
 async function androidMatchDiscoveryPayload(payload,mediaType,{sourceLimit=800,limit=100}={}){
   if(NATIVE_ANDROID&&tvCatalogWorkerReady){
@@ -1819,10 +1834,11 @@ async function starmeterManifestUrl(){let repo='';try{repo=String(globalThis.Swo
 async function ensureStarmeterLoaded(){
   if(starmeterLoaded||starmeterLoading)return starmeterPeople;starmeterLoading=true;starmeterError='';
   try{
-    let data=null;const remote=await starmeterManifestUrl();
-    if(remote&&NATIVE_ANDROID){try{data=JSON.parse(String(await nativeFetchText(remote)||'{}'))}catch{}}
+    let data=null;const seed=await getInstallSeedCache();
+    if(Array.isArray(seed?.starmeter?.people)&&seed.starmeter.people.length)data=seed.starmeter;
+    if(!Array.isArray(data?.people)||!data.people.length){const remote=await starmeterManifestUrl();if(remote&&NATIVE_ANDROID){try{data=JSON.parse(String(await nativeFetchText(remote)||'{}'))}catch{}}}
     if(!Array.isArray(data?.people)||!data.people.length){const res=await fetch('./starmeter.json',{cache:'no-store'});if(!res.ok)throw new Error(`STARmeter manifest HTTP ${res.status}`);data=await res.json()}
-    starmeterPeople=(Array.isArray(data.people)?data.people:[]).slice(0,100).map((p,i)=>({rank:Number(p.rank||i+1),name:String(p.name||'').trim(),profile:String(p.profile||''),id:String(p.id||''),knownForDepartment:String(p.knownForDepartment||'Person')})).filter(x=>x.name);
+    starmeterPeople=(Array.isArray(data.people)?data.people:[]).slice(0,100).map((p,i)=>{const person=p?.person&&typeof p.person==='object'?p.person:p;const entry={rank:Number(p.rank||i+1),name:String(p.name||person.name||'').trim(),profile:String(person.profile||p.profile||''),id:String(person.id||p.id||''),knownForDepartment:String(person.knownForDepartment||p.knownForDepartment||'Person')};const key=starmeterNormalize(entry.name);if(key&&(person.id||person.profile||Array.isArray(p.credits))){starmeterHotCache.set(key,{person:{id:entry.id,name:entry.name,profile:entry.profile,knownForDepartment:entry.knownForDepartment},credits:Array.isArray(p.credits)?p.credits:[],seeded:true,loadedAt:Number(Date.parse(seed?.builtAt||''))||Date.now()})}return entry}).filter(x=>x.name);
     starmeterLoaded=true;starmeterLoading=false;starmeterVisibleCount=STARMETER_INITIAL_VISIBLE;if(state.page==='starmeter'&&!detailItem&&!personView)render();setTimeout(()=>prewarmStarmeterHotCache(100),1200);return starmeterPeople;
   }catch(err){starmeterLoading=false;starmeterError=err?.message||String(err);if(state.page==='starmeter')render();return[]}
 }
@@ -1851,8 +1867,8 @@ async function hydrateStarmeterIdentity(entry={}){
 async function hydrateStarmeterPerson(entry={}){
   const key=starmeterNormalize(entry.name);if(!key)return null;if(starmeterPersonCache.has(key))return starmeterPersonCache.get(key);if(starmeterHydratePending.has(key))return starmeterHydratePending.get(key);
   const task=(async()=>{try{
-    const seed=await hydrateStarmeterIdentity(entry)||starmeterPersonSeed(entry);
-    const ready=NATIVE_ANDROID?await loadAndroidPersonData(seed):(async()=>{const remote=await fetchPersonCredits({settings:state.settings,personId:seed.id,name:seed.name});if(!remote)return {person:seed,movies:[],shows:[]};const matched=await matchPersonCreditsToLibrary(remote.credits||[]);return {person:{...seed,...remote,profile:remote.profile||seed.profile},...matched}})();
+    const seed=await hydrateStarmeterIdentity(entry)||starmeterPersonSeed(entry),preseed=starmeterHotCache.get(key),preseedCredits=Array.isArray(preseed?.credits)?preseed.credits:[];
+    const ready=NATIVE_ANDROID?await loadAndroidPersonData(seed,{credits:preseedCredits}):(async()=>{if(preseedCredits.length){const matched=await matchPersonCreditsToLibrary(preseedCredits);return {person:preseed?.person||seed,...matched}}const remote=await fetchPersonCredits({settings:state.settings,personId:seed.id,name:seed.name});if(!remote)return {person:seed,movies:[],shows:[]};const matched=await matchPersonCreditsToLibrary(remote.credits||[]);return {person:{...seed,...remote,profile:remote.profile||seed.profile},...matched}})();
     const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterPersonCache.set(key,value);starmeterHotCache.set(key,value);personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
   }catch{return null}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
@@ -2326,7 +2342,7 @@ function continueOptionsModal(){
 }
 function whatsNewModal(){
   const entries=(androidLatestManifest?.changes||[]).slice(0,12);
-  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Google TV navigation, browsing and readability pass.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
+  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Whole-app warm-start seed cache and faster cold-start metadata.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
 }
 function modalHtml(){if(modal==='provider')return providerModal();if(modal==='homeRows')return homeRowsModal();if(modal==='profiles')return profilesModal();if(modal==='profileEdit')return profileEditorModal();if(modal==='pin')return pinModal();if(modal==='continueOptions')return continueOptionsModal();if(modal==='whatsNew')return whatsNewModal();return mdblistModal()}
 function setStatus(id,msg,type='info'){const el=document.querySelector(id);if(el)el.innerHTML=`<div class="status ${type}">${esc(msg)}</div>`}
@@ -2406,8 +2422,10 @@ async function loadPersonView(){
     personMovies=matched.movies;personShows=matched.shows;personProgress=100;personStatus='Library match complete';personLoading=false;patchPersonPage();
   }catch(err){if(!personView)return;personLoading=false;personError=err.message||String(err);personProgress=100;patchPersonPage()}
 }
-async function loadAndroidPersonData(seed={}){
-  const remote=await fetchPersonCredits({settings:state.settings,personId:seed.id||'',name:seed.name||''});
+async function loadAndroidPersonData(seed={},options={}){
+  const bundledCredits=Array.isArray(options?.credits)?options.credits:[];
+  let remote=bundledCredits.length?{...seed,credits:bundledCredits}:null;
+  if(!remote)remote=await fetchPersonCredits({settings:state.settings,personId:seed.id||'',name:seed.name||''});
   if(!remote)throw new Error('Swoop TV could not identify this person on TMDb.');
   const moviePayload=personCreditPayload(remote.credits||[],'movie'),showPayload=personCreditPayload(remote.credits||[],'series');
   let matched=null;
@@ -2421,7 +2439,8 @@ async function loadAndroidPersonData(seed={}){
 function openPerson(person={}){
   const name=String(person.name||'').trim();if(!name)return;
   if(NATIVE_ANDROID){
-    const token=++personOpenToken,fromDetail=Boolean(detailItem),seed={id:String(person.id||''),name,profile:String(person.profile||''),character:String(person.character||''),knownForDepartment:String(person.knownForDepartment||person.department||'Person')};
+    const token=++personOpenToken,fromDetail=Boolean(detailItem),baseSeed={id:String(person.id||''),name,profile:String(person.profile||''),character:String(person.character||''),knownForDepartment:String(person.knownForDepartment||person.department||'Person')};
+    const installRecord=installSeedCache?installSeedPerson(installSeedCache,{id:baseSeed.id,name}):null,seed={...baseSeed,...(installRecord?.person||{}),name:(installRecord?.person?.name||baseSeed.name),profile:(installRecord?.person?.profile||baseSeed.profile),character:baseSeed.character};
     const suspended=fromDetail?suspendDetailViewForPerson():suspendBaseViewForDetail();if(!suspended)return;
     personView={...seed};personMovies=[];personShows=[];personLoading=true;personError='';personProgress=6;personStatus=`Opening ${name}…`;personScrollTop=0;
     render();
@@ -2429,7 +2448,7 @@ function openPerson(person={}){
     if(cached){personView={...seed,...cached.person};personMovies=cached.movies;personShows=cached.shows;personLoading=false;personProgress=100;personStatus='';patchPersonPage();return;}
     setTimeout(async()=>{try{
       personProgress=18;personStatus='Loading filmography in the background…';patchPersonPage();
-      const ready=await loadAndroidPersonData(seed);if(token!==personOpenToken||profilePickerOpen||!personView)return;
+      const ready=await loadAndroidPersonData(seed,{credits:Array.isArray(installRecord?.credits)?installRecord.credits:[]});if(token!==personOpenToken||profilePickerOpen||!personView)return;
       personLibraryCache.set(cacheKey,{...ready,loadedAt:Date.now()});
       personView=ready.person;personMovies=ready.movies;personShows=ready.shows;personLoading=false;personError='';personProgress=100;personStatus='';patchPersonPage();
     }catch(err){if(token===personOpenToken&&personView){personLoading=false;personError=err?.message||`Could not open ${name}.`;personProgress=100;patchPersonPage();}}},0);return;
@@ -2578,7 +2597,7 @@ function patchDetailFromState({sections=true,controls=false}={}){const ok=patchD
 
 async function enrichEpisodeMetadata(item,ep){
   if(!item||!ep?.episodeNum)return null;const key=episodeMetaKey(item,ep.season,ep.episodeNum);if(episodeMetadataCache.has(key))return episodeMetadataCache.get(key);if(episodeMetadataPending.has(key))return episodeMetadataPending.get(key);
-  const task=fetchEpisodeMetadata({settings:state.settings,item,season:ep.season,episode:ep.episodeNum}).then(meta=>{if(!meta)return null;const value={plot:String(meta.plot||meta.overview||''),runtime:episodeRuntimeLabel(meta.runtime||meta.duration||''),airDate:String(meta.airDate||meta.air_date||meta.releaseDate||'')};episodeMetadataCache.set(key,value);return value}).catch(()=>null).finally(()=>episodeMetadataPending.delete(key));episodeMetadataPending.set(key,task);return task
+  const task=(async()=>{const seed=await getInstallSeedCache(),seeded=installSeedEpisodeMetadata(seed,item,ep.season,ep.episodeNum);const meta=(seeded&&installSeedFresh(seed))?seeded:(await fetchEpisodeMetadata({settings:state.settings,item,season:ep.season,episode:ep.episodeNum}).catch(()=>seeded));if(!meta)return null;const value={plot:String(meta.plot||meta.overview||''),runtime:episodeRuntimeLabel(meta.runtime||meta.duration||''),airDate:String(meta.airDate||meta.air_date||meta.releaseDate||'')};episodeMetadataCache.set(key,value);return value})().catch(()=>null).finally(()=>episodeMetadataPending.delete(key));episodeMetadataPending.set(key,task);return task
 }
 async function prewarmSelectedEpisodeMetadata(){
   if(!detailItem||detailItem.kind!=='series'||detailLoading)return;const seasons=seriesSeasons(detailItem,detailPayload||{}),selected=seasons.find(s=>s.season===detailSeason)||seasons[0];if(!selected?.episodes?.length)return;
@@ -2883,7 +2902,7 @@ async function runPeopleSearch(term,seq){
   if(term.length<2){host.innerHTML='';return}
   if(NATIVE_ANDROID)host.innerHTML='';else host.innerHTML='<div class="search-people-loading"><span class="provider-spinner"></span><span>Searching actors, actresses and directors…</span></div>';
   try{
-    const hot=starmeterPeopleForSearch(term);if(hot.length){host.innerHTML=searchPeopleMarkup(hot);hydrateArtwork(host);bindPersonLinks(host)}
+    const seed=installSeedCache||await getInstallSeedCache(),installHot=seed?searchInstallSeedPeople(seed,term,12):[],hot=[...new Map([...installHot,...starmeterPeopleForSearch(term)].map(p=>[starmeterNormalize(p.name),p])).values()].slice(0,12);if(hot.length){host.innerHTML=searchPeopleMarkup(hot);hydrateArtwork(host);bindPersonLinks(host)}
     const remote=await searchPeople({settings:state.settings,query:term,limit:12}),merged=[...new Map([...hot,...(remote||[])].map(p=>[starmeterNormalize(p.name),p])).values()].slice(0,12);
     if(seq!==peopleSearchSeq||document.querySelector('#searchInput')?.value.trim()!==term)return;
     const current=document.querySelector('#searchPeople');if(!current)return;
@@ -3059,7 +3078,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:827,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:828,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});

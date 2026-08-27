@@ -1,45 +1,25 @@
-# Swoop TV v0.8.27 Build Verification
+# Swoop TV v0.8.28 Build Verification
 
-## Static/runtime gates
+## Version alignment
+- [ ] `app/build.gradle` is `versionName 0.8.28` / `versionCode 828`.
+- [ ] `ANDROID_CURRENT_VERSION` and Android bridge/User-Agent markers report 0.8.28.
+- [ ] Diagnostic export filenames identify v0.8.28.
 
-- [ ] Every JavaScript file under `app/src/main/assets` passes `node --check`.
+## Whole-app seed contracts
+- [ ] `app/src/main/assets/seed-cache.json` parses and has schema >= 2.
+- [ ] Seed sourceVersion is `0.8.28`.
+- [ ] Seed contains exactly 100 ranked STARmeter people.
+- [ ] Runtime imports `src/seedCache.js`.
+- [ ] Discovery uses bundled seed before a blocking network refresh.
+- [ ] STARmeter/People Search use seeded people identities/credits when available.
+- [ ] Title metadata checks bundled TMDb/IMDb/title-year metadata before network.
+- [ ] Episode metadata uses seed when present and otherwise hydrates asynchronously.
+- [ ] No provider credentials, provider-specific catalogue, personal viewing/profile data or live EPG are written into the seed.
+- [ ] CI refreshes the install seed before APK compilation and publishes the release copy.
+
+## Regression gates
+- [ ] All asset JavaScript passes `node --check`.
 - [ ] `tests/card-runtime-smoke.mjs` passes.
 - [ ] `tests/tv-ui-runtime-smoke.mjs` passes.
-- [ ] `app/src/main/assets/starmeter.json` parses and contains exactly 100 unique ranks 1–100.
-- [ ] Root `swoop-tv-starmeter.json` matches the bundled manifest.
-- [ ] Android markers are aligned to `versionName 0.8.27` / `versionCode 827`.
-- [ ] MainActivity User-Agent/version bridge reports `0.8.27`.
-- [ ] GitHub Actions publishes the versioned APK, stable Downloader APK, latest-version manifest and STARmeter manifest.
-- [ ] Source ZIP integrity test passes and SHA-256 is recorded.
-
-
-## v0.8.27 hardware-workflow contracts
-
-- [ ] Pressing OK on the Settings cog five times within four seconds toggles Hardware Test Mode.
-- [ ] The HW TEST HUD is non-focusable and does not alter D-pad geometry.
-- [ ] NAV-001/002/003, PERF-001, LIVE-001, STAR-001 and STAB-001 are selectable from the Hardware Test Settings card.
-- [ ] Save Diagnostics creates a timestamped v0.8.27 JSON file through the Android bridge.
-- [ ] Diagnostic payload includes current focus/rail index, pending work, DOM counts, recent events, native heap/player state, native key count and renderer-loss data.
-- [ ] Long-task logging is bounded and dormant unless Hardware Test Mode is enabled.
-- [ ] Renderer-loss state persists across Activity recreation.
-- [ ] `scripts/generate-build-metadata.mjs` validates app/build version alignment and creates `swoop-tv-latest.json`, `build-metadata.json` and `release-summary.md`.
-- [ ] GitHub workflow APK names and release title are derived from generated metadata rather than manually hard-coded version strings.
-
-## v0.8.27 regression contracts
-
-- [ ] Right from Top 100 Movies item 24 reaches item 25 in the same row; it cannot jump to Top 100 TV Shows.
-- [ ] Home Top 100 can continue through rank 100 when 100 genuine matches exist.
-- [ ] Movies/TV Shows category rails can continue beyond 25 and beyond 100 through subsequent 100-item data batches.
-- [ ] Moving Down from a middle-screen poster chooses the visually nearest card in the row below.
-- [ ] STARmeter appears after Guide and before Movies and progressively hydrates provider-available title rails.
-- [ ] People Search consults the STARmeter hot cache first.
-- [ ] Home hero uses the approved enlarged bounded TV height and all poster rails use consistent safe-left inset.
-- [ ] Live TV hero renders info left / preview centre / contained logo right; Browse Live TV cards use the larger TV sizing.
-- [ ] Episode cards never show fake `0:00` and do not show generic “Play this episode from your connected provider” copy.
-- [ ] Guide logo scaling does not alter Guide column/row geometry.
-- [ ] IMDb rating badges use the reduced corner treatment.
-- [ ] v0.8.24 What’s New still traps focus and background scroll correctly.
-- [ ] STARmeter and Live TV use visible-window/in-place append rendering rather than rebuilding large active pages.
-- [ ] Heavy Android pages are not retained in the persistent DOM cache after tab changes.
-- [ ] Android renderer-process loss is logged and preview playback is released before Activity recovery.
-- [ ] Search / Providers / Settings / Profile are in the deterministic top-header Left/Right chain.
+- [ ] STARmeter and seed JSON manifests validate.
+- [ ] GitHub Actions YAML parses.

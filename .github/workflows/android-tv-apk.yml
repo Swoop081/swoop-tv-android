@@ -15,6 +15,7 @@ on:
       - 'tests/**'
       - 'scripts/**'
       - 'swoop-tv-starmeter.json'
+      - 'swoop-tv-seed-cache.json'
       - 'RELEASE_NOTES.md'
       - 'TV_HARDWARE_TEST_CHECKLIST.md'
       - 'TV_HARDWARE_RUNNING_FIXES.md'
@@ -56,11 +57,18 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
+      - name: Refresh packaged warm-start seed cache
+        shell: bash
+        run: |
+          node scripts/refresh-seed-cache.mjs
+          python -m json.tool app/src/main/assets/seed-cache.json >/dev/null
+          python -m json.tool swoop-tv-seed-cache.json >/dev/null
+
       - name: Generate version and release metadata
         id: meta
         run: node scripts/generate-build-metadata.mjs
 
-      - name: Validate Swoop TV runtime and hardware-test contracts
+      - name: Validate Swoop TV runtime, seed cache and hardware-test contracts
         shell: bash
         run: |
           find app/src/main/assets -name '*.js' -print0 | xargs -0 -n1 node --check
@@ -69,6 +77,8 @@ jobs:
           python -m json.tool app/src/main/assets/starmeter.json >/dev/null
           python -m json.tool swoop-tv-starmeter.json >/dev/null
           python -m json.tool swoop-tv-latest.json >/dev/null
+          python -m json.tool app/src/main/assets/seed-cache.json >/dev/null
+          python -m json.tool swoop-tv-seed-cache.json >/dev/null
 
       - name: Build Google TV test APK
         run: gradle --no-daemon :app:assembleDebug
@@ -95,6 +105,7 @@ jobs:
             ${{ steps.meta.outputs.stable_apk }}.sha256
             swoop-tv-latest.json
             swoop-tv-starmeter.json
+            swoop-tv-seed-cache.json
             build-metadata.json
             release-summary.md
             TV_HARDWARE_TEST_CHECKLIST.md
@@ -132,6 +143,7 @@ jobs:
             "$STABLE_APK.sha256" \
             swoop-tv-latest.json \
             swoop-tv-starmeter.json \
+            swoop-tv-seed-cache.json \
             TV_HARDWARE_TEST_CHECKLIST.md \
             --clobber
           echo "Downloader code 3682231 remains on the stable URL below:" >> "$GITHUB_STEP_SUMMARY"

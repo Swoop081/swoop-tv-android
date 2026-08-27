@@ -1,6 +1,6 @@
 # Swoop TV Google TV — Hardware Test Checklist
 
-Current test build: **v0.8.27 / versionCode 827**
+Current test build: **v0.8.28 / versionCode 828**
 
 ## Turn on Hardware Test Mode
 
@@ -13,6 +13,13 @@ Current test build: **v0.8.27 / versionCode 827**
 The overlay is intentionally non-focusable and does not participate in D-pad geometry.
 
 ## Numbered physical-TV checks
+
+### CACHE-001 — Whole-app warm-start seed
+- Fresh-install v0.8.28 and connect/restore a provider library.
+- Enter Home, STARmeter, Search and a popular title/person page before waiting for background refreshes.
+- Pass: seeded screens can show useful ranking/person/metadata immediately; no screen blocks on a cold discovery/person request.
+- Pass: a later background refresh may improve data but must not reset focus or rebuild the active page.
+
 
 ### NAV-001 — Top 100 Movies 1 → 100
 - Enter Home → Top 100 Movies.
@@ -54,7 +61,7 @@ While Hardware Test Mode is active, go to **Settings → Hardware Test Mode → 
 
 The app writes a timestamped JSON file to the app's external Documents directory, typically:
 
-`/storage/emulated/0/Android/data/tv.swoop.player/files/Documents/Swoop-TV-v0.8.27-Diagnostics-YYYYMMDD-HHMMSS.json`
+`/storage/emulated/0/Android/data/tv.swoop.player/files/Documents/Swoop-TV-v0.8.28-Diagnostics-YYYYMMDD-HHMMSS.json`
 
 The file contains the current screen/focus state, rail index, scroll/DOM counts, pending jobs, JavaScript heap information when available, native Java heap metrics, Media3 playback/preview state, WebView renderer-reset information, native key counters and the rolling hardware event log.
 
@@ -62,10 +69,10 @@ The file contains the current screen/focus state, rail index, scroll/DOM counts,
 
 Use this short format with a photo/video and diagnostic file when available:
 
-`v0.8.27 · NAV-001 · stops at movie #26`
+`v0.8.28 · NAV-001 · stops at movie #26`
 
 or
 
-`v0.8.27 · PERF-001 · Up/Down starts missing after ~20 seconds`
+`v0.8.28 · PERF-001 · Up/Down starts missing after ~20 seconds`
 
 That gives the source build, exact regression test and symptom without needing a long written explanation.
