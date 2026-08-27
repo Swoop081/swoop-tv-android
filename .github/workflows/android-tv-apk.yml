@@ -114,7 +114,7 @@ jobs:
           retention-days: 30
 
       - name: Publish Downloader test release
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_downloader_release }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_downloader_release) }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -122,7 +122,9 @@ jobs:
           VERSIONED_APK: ${{ steps.meta.outputs.versioned_apk }}
           STABLE_APK: ${{ steps.meta.outputs.stable_apk }}
         run: |
+          set -euo pipefail
           TAG="google-tv-test-v0.8.1"
+
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
               --target "$GITHUB_SHA" \
@@ -136,17 +138,47 @@ jobs:
               --notes-file release-summary.md \
               --prerelease
           fi
-          gh release upload "$TAG" \
-            "$VERSIONED_APK" \
-            "$VERSIONED_APK.sha256" \
-            "$STABLE_APK" \
-            "$STABLE_APK.sha256" \
-            swoop-tv-latest.json \
-            swoop-tv-starmeter.json \
-            swoop-tv-seed-cache.json \
-            TV_HARDWARE_TEST_CHECKLIST.md \
-            --clobber
-          echo "Downloader code 3682231 remains on the stable URL below:" >> "$GITHUB_STEP_SUMMARY"
+
+          upload_retry() {
+            local file="$1"
+            local attempt
+            for attempt in 1 2 3; do
+              echo "Uploading ${file} (attempt ${attempt}/3)..."
+              if timeout 120s gh release upload "$TAG" "$file" --clobber; then
+                return 0
+              fi
+              echo "Upload attempt ${attempt} failed or timed out for ${file}."
+              sleep $((attempt * 5))
+            done
+            echo "Failed to upload ${file} after 3 attempts."
+            return 1
+          }
+
+          # Downloader code 3682231 uses this fixed-name asset. Publish it first
+          # so a successful build becomes available to the TV before archival data.
+          upload_retry "$STABLE_APK"
+          upload_retry "$STABLE_APK.sha256"
+          upload_retry swoop-tv-latest.json
+
+          # Verify that GitHub has fully committed the stable APK, rather than
+          # leaving an incomplete release asset in the transient 'starter' state.
+          STABLE_STATE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" \
+            --jq ".assets[] | select(.name == \"${STABLE_APK}\") | .state" | tail -n1)
+          if [ "$STABLE_STATE" != "uploaded" ]; then
+            echo "Stable Downloader APK is not fully uploaded (state=${STABLE_STATE:-missing})."
+            exit 1
+          fi
+
+          # Versioned/archive assets are secondary and can follow once Downloader
+          # already has a verified current APK.
+          upload_retry "$VERSIONED_APK"
+          upload_retry "$VERSIONED_APK.sha256"
+          upload_retry swoop-tv-starmeter.json
+          upload_retry swoop-tv-seed-cache.json
+          upload_retry TV_HARDWARE_TEST_CHECKLIST.md
+
+          echo "Downloader code 3682231 updated and verified:" >> "$GITHUB_STEP_SUMMARY"
           echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${STABLE_APK}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Stable APK release state: ${STABLE_STATE}" >> "$GITHUB_STEP_SUMMARY"
           echo "Hardware test checklist and generated release metadata are attached to this workflow artifact." >> "$GITHUB_STEP_SUMMARY"
