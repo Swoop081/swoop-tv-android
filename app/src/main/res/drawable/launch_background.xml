@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="#050508" />
+    <item>
+        <bitmap
+            android:src="@drawable/swoop_launch_logo"
+            android:gravity="center"
+            android:filter="true" />
+    </item>
+</layer-list>

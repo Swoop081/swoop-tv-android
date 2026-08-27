@@ -1,21 +1,22 @@
-# Swoop TV v0.8.31 — Google TV STARmeter Matching + Guide Banner Hotfix
+# Swoop TV v0.8.32 — Google TV Fast Navigation + Hydration Stability
 
 Current Android/Google TV source baseline.
 
-## v0.8.31 highlights
+## v0.8.32 highlights
 
-- Expands STARmeter provider matching through one prebuilt availability index with TMDb/IMDb matching, IPTV-cleaned title/year aliases and a controlled same-bucket fuzzy fallback.
-- Prevents STARmeter from indexing the small Android Home snapshot as though it were the full provider library; person matching waits for the durable catalogue when needed.
-- GitHub seed generation now preloads filmography credits for all 100 STARmeter people by default and preserves original title/name aliases.
-- Prewarms STARmeter portraits much farther ahead so actor photos are ready before focus reaches them.
-- Guide now always opens at the true top and shows an explicit LIVE TV / TV Guide date-and-current-time banner before All Channels and the two-hour EPG.
-- Retains My SwoopTV, 100-item Top 100 focus rails, Live TV card parity, title/episode stability, whole-app warm-start cache and Hardware Test Mode.
+- STARmeter now mounts a fixed 100-person surface with stable row geometry, bounded concurrent matching and an 18-person directional look-ahead so rapid vertical D-pad navigation cannot outrun rendering.
+- Home/Top 100 artwork prefetch follows focus direction and warms substantially farther ahead of the visible rail.
+- Home hero swaps are atomic: the previous hero remains until the next backdrop is decoded, correct `w1280` backdrop prewarming is used, and text remains visible until a title logo is ready.
+- Android profile-to-Home startup prewarms visible Home artwork before revealing the route; Live TV also warms initial categories/channel logos ahead of focus.
+- Live preview chrome remains visually absent until the native Media3 preview is active.
+- TV Guide logo artwork is larger inside the existing approved cells; Guide geometry is unchanged.
+- Android cold launch now uses a branded Swoop TV launch surface rather than an all-black frame.
 
 ## Android package
 
 - applicationId: `tv.swoop.player`
-- versionName: `0.8.31`
-- versionCode: `831`
+- versionName: `0.8.32`
+- versionCode: `832`
 - minSdk: 23
 - target/compile SDK: 36
 - Java: 17
@@ -30,7 +31,7 @@ GitHub Actions refreshes `seed-cache.json` immediately before APK compilation. P
 
 Open **Settings**, focus the Settings cog and press **OK five times within four seconds** to enable Hardware Test Mode. Select the numbered test, reproduce the issue, then choose **Save Diagnostics**.
 
-See `TV_HARDWARE_TEST_CHECKLIST.md` for the v0.8.31 physical-TV gates.
+See `TV_HARDWARE_TEST_CHECKLIST.md` for the v0.8.32 physical-TV gates.
 
 ## APK build
 

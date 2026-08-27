@@ -1,5 +1,16 @@
 # Swoop TV Release Notes
 
+## v0.8.32 — Google TV Fast Navigation + Hydration Stability
+
+- Rebuilds STARmeter as a fixed 100-person TV surface so fast vertical D-pad navigation can no longer outrun mounted rows or fall into a blank viewport.
+- Replaces single-flight STARmeter matching with bounded 3-way concurrent hydration, focus-priority scheduling and an 18-person look-ahead while preserving provider-index matching and cancellation guards.
+- Enlarges STARmeter filmography cards into stable horizontal mini-rails and caps rendered credits per person to protect TV memory/layout stability.
+- Adds directional artwork prefetching across Home and long TV rails so focused content and the next 24–32 cards are promoted ahead of ordinary lazy loading.
+- Corrects Home hero cache warming to request true `w1280` TMDb backdrops, keeps the previous hero until replacement artwork is decoded, and preserves text-title fallback until a title logo is ready.
+- Prewarms Home while the profile screen is still visible and warms initial Live TV categories/logos before navigation reaches them. Empty Live preview chrome now stays hidden until the native Media3 preview is actually active.
+- Enlarges TV Guide logos inside their existing cells without changing the approved Guide columns, row heights or spacing, and adds a branded native Swoop TV cold-launch surface instead of a black startup frame.
+- Android versionName is **0.8.32** and versionCode is **832**.
+
 ## v0.8.31 — Google TV STARmeter Matching + Guide Banner Hotfix
 
 - Fixes STARmeter false `0 titles` results by expanding the one-time provider availability index to use TMDb/IMDb IDs, IPTV-cleaned title aliases, ±1-year matching and a bounded same-bucket fuzzy fallback without rescanning the whole provider library for every actor.

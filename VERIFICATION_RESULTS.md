@@ -1,15 +1,19 @@
-# Swoop TV v0.8.31 Verification Results
+# Swoop TV v0.8.32 Verification Results
 
-- JavaScript syntax: **PASS** — all bundled JS modules parse successfully.
+- JavaScript syntax: **PASS** — `app.js` and the catalogue index worker parse successfully.
 - Card runtime smoke: **PASS**.
-- Google TV UI runtime smoke: **PASS**.
-- STARmeter indexed matching: **PASS** — synthetic provider catalogue test matches IPTV-prefixed movie names, exact/near-year aliases, leading-article variants and TV-series credits without scanning the entire catalogue per credit.
-- STARmeter durable-catalogue guard: **PASS** — Android person matching will not treat the small cached Home snapshot as the complete provider library.
-- STARmeter warm-start seed contract: **PASS** — GitHub seed generation defaults to all 100 people and keeps original title/name credit aliases.
-- STARmeter portrait prefetch contract: **PASS** — identity hydration looks eight people ahead and background identity prewarming remains active while STARmeter is open.
-- Guide entry/banner contract: **PASS** — primary Guide entry resets to the true top and the explicit LIVE TV / TV Guide / date/current-time banner precedes All Channels + the two-hour EPG.
-- Warm-start seed: **PASS** — schema valid, sourceVersion 0.8.31, 100 unique STARmeter people.
-- Build/update metadata: **PASS** — 0.8.31 / versionCode 831.
-- GitHub Actions YAML: **PASS**.
+- Google TV UI runtime smoke: **PASS**, including new v0.8.32 regression guards.
+- STARmeter fixed-surface contract: **PASS** — all 100 ranked people are mounted with fixed-height TV row geometry.
+- STARmeter hydration contract: **PASS** — bounded 3-way concurrency, priority queueing and 18-person look-ahead are present.
+- STARmeter filmography layout contract: **PASS** — bounded larger horizontal title cards replace the tiny full-credit strip.
+- Home/Top 100 directional artwork contract: **PASS** — focus promotes a 24–32-card window instead of relying only on viewport lazy loading.
+- Hero artwork contract: **PASS** — prewarming uses `w1280` backdrops; old hero content remains until replacement visuals are ready/timeout; title text remains until a title logo is ready.
+- Android entry prewarm contract: **PASS** — Home artwork can warm while the profile UI remains displayed, with destination prewarming for Live/Guide/STARmeter.
+- Live preview contract: **PASS** — web preview chrome remains visually absent until native Media3 preview activation; native preview itself remains hidden until `Player.STATE_READY`.
+- Guide presentation contract: **PASS** — channel logos are scaled within their existing cells; Guide geometry remains unchanged.
+- Android cold-launch contract: **PASS** — theme + runtime overlay use the Swoop TV launch logo and the overlay fades after WebView page completion.
+- Warm-start seed: **PASS** — schema remains valid, sourceVersion 0.8.32, 100 STARmeter people retained.
+- Build/update metadata: **PASS** — 0.8.32 / versionCode 832.
+- Direct source parent SHA-256 recorded for the uploaded v0.8.31 baseline.
 
-A binary APK is **not** compiled in this packaging runtime because Android SDK 36 / Gradle 9.5.0 are not installed here. The included GitHub Actions workflow remains the authoritative APK compile gate and publishes both the versioned v0.8.31 APK and the stable Downloader-code-3682231 APK asset.
+Binary APK compile was **not available in this packaging runtime**: there is no Gradle executable/wrapper JAR and no Android SDK configured. The included GitHub Actions workflow remains the authoritative APK compile gate.

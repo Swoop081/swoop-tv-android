@@ -2493,3 +2493,107 @@ html.android-tv .guide-live-banner .guide-now span{font-size:10px!important}
 html.android-tv .guide-live-banner .guide-now strong{font-size:28px!important}
 html.android-tv .guide-schedule-head{min-height:74px!important;padding:12px 3px 10px!important}
 html.android-tv .starmeter-person-card img{object-fit:cover!important;object-position:center 24%!important}
+
+/* ========================================================================== */
+/* v0.8.32 — Google TV fast-navigation + hydration stability pass.            */
+/* ========================================================================== */
+
+/* Never blank the hero title while a provider/TMDb title logo is still
+   downloading. The text remains the couch-readable fallback until decode. */
+html.android-tv .hero-title-slot.logo-pending .hero-title-text,
+html.android-tv .hero-title-slot.has-logo:not(.logo-ready) .hero-title-text{
+  opacity:1!important;
+  visibility:visible!important;
+}
+html.android-tv .hero-title-slot.logo-ready .hero-title-text{
+  opacity:0!important;
+  visibility:hidden!important;
+}
+html.android-tv .hero-title-logo{opacity:0!important;transition:opacity .12s linear!important}
+html.android-tv .hero-title-logo.loaded{opacity:1!important}
+html.android-tv .hero-title-slot.logo-pending .hero-title-wait{display:none!important}
+
+/* STARmeter now mounts all 100 identity rows at once. Every row owns exactly
+   the same vertical geometry, so async provider matching cannot move the page
+   under focus or leave a blank viewport during rapid Up/Down navigation. */
+html.android-tv .starmeter-person-section{
+  height:360px!important;
+  min-height:360px!important;
+  max-height:360px!important;
+  margin-bottom:28px!important;
+  contain:layout style!important;
+}
+html.android-tv .starmeter-library-column{
+  min-width:0!important;
+  height:338px!important;
+  overflow:visible!important;
+}
+html.android-tv .starmeter-title-rail{
+  grid-auto-columns:minmax(0,196px)!important;
+  gap:16px!important;
+  min-height:294px!important;
+  max-height:304px!important;
+  overflow-x:auto!important;
+  overflow-y:visible!important;
+}
+html.android-tv .starmeter-row-loading{
+  height:294px!important;
+  min-height:294px!important;
+  display:grid!important;
+  grid-template-columns:230px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:18px!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+}
+html.android-tv .starmeter-loading-copy{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  color:#a8acb5!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+}
+html.android-tv .starmeter-loading-posters{
+  display:grid!important;
+  grid-auto-flow:column!important;
+  grid-auto-columns:156px!important;
+  gap:16px!important;
+  justify-content:start!important;
+  overflow:hidden!important;
+}
+html.android-tv .starmeter-loading-posters i{
+  display:block!important;
+  width:156px!important;
+  aspect-ratio:2/3!important;
+  border-radius:9px!important;
+  background:linear-gradient(105deg,#101216 22%,#1b1e25 42%,#101216 62%)!important;
+  background-size:220% 100%!important;
+  animation:swoop-skeleton 1.25s linear infinite!important;
+}
+html.android-tv .starmeter-empty-row{
+  height:294px!important;
+  min-height:294px!important;
+}
+
+/* The native preview view is the visual surface. Until Media3 has a stream to
+   show, leave deliberate negative space rather than a black "broken TV" box. */
+html.android-tv .live-hub-preview-panel{
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+html.android-tv .live-preview-anchor{background:transparent!important}
+html.android-tv .live-hub-preview-panel.preview-active{
+  border-color:rgba(255,255,255,.09)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.32)!important;
+}
+
+/* Preserve the approved Guide grid/row/column geometry; only let the actual
+   channel mark use more of the existing logo cell. */
+html.android-tv .guide-channel img{
+  padding:0!important;
+  transform:scale(1.30)!important;
+  transform-origin:center!important;
+  object-fit:contain!important;
+}

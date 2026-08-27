@@ -1,12 +1,12 @@
-Swoop TV Google TV hardware-test channel — current v0.8.31.
+Swoop TV Google TV hardware-test channel — current v0.8.32.
 
-- Fixes STARmeter false 0 titles results by expanding the one-time provider availability index to use TMDb/IMDb IDs, IPTV-cleaned title aliases, ±1-year matching and a bounded same-bucket fuzzy fallback without rescanning the whole provider library for every actor.
-- Prevents STARmeter from treating the small cached Android Home snapshot as the full provider catalogue; person matching waits for the durable provider library before building its availability index when necessary.
-- Makes the availability worker usable with smaller provider libraries as well as very large ones.
-- GitHub seed generation now preloads filmography credits for the full STARmeter Top 100 by default and preserves original-title/original-name aliases for stronger local matching.
-- Prewarms STARmeter actor identities/portraits substantially farther ahead of the visible scroll position to reduce initial-letter portrait fallbacks.
-- Forces Guide tab entry to the true top of the page and makes the requested LIVE TV / TV Guide / date / current-time banner visually explicit above All Channels and the two-hour EPG.
-- Retains the complete v0.8.30 My SwoopTV, Top 100, Live TV, profile/detail, warm-start seed and Hardware Test Mode work.
-- Android versionName is 0.8.31 and versionCode is 831.
+- Rebuilds STARmeter as a fixed 100-person TV surface so fast vertical D-pad navigation can no longer outrun mounted rows or fall into a blank viewport.
+- Replaces single-flight STARmeter matching with bounded 3-way concurrent hydration, focus-priority scheduling and an 18-person look-ahead while preserving provider-index matching and cancellation guards.
+- Enlarges STARmeter filmography cards into stable horizontal mini-rails and caps rendered credits per person to protect TV memory/layout stability.
+- Adds directional artwork prefetching across Home and long TV rails so focused content and the next 24–32 cards are promoted ahead of ordinary lazy loading.
+- Corrects Home hero cache warming to request true w1280 TMDb backdrops, keeps the previous hero until replacement artwork is decoded, and preserves text-title fallback until a title logo is ready.
+- Prewarms Home while the profile screen is still visible and warms initial Live TV categories/logos before navigation reaches them. Empty Live preview chrome now stays hidden until the native Media3 preview is actually active.
+- Enlarges TV Guide logos inside their existing cells without changing the approved Guide columns, row heights or spacing, and adds a branded native Swoop TV cold-launch surface instead of a black startup frame.
+- Android versionName is 0.8.32 and versionCode is 832.
 
 Test-only signing identity; not a production release.

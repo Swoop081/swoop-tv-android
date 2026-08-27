@@ -1,6 +1,6 @@
-# Swoop TV v0.8.31 — Google TV Hardware Test Checklist
+# Swoop TV v0.8.32 — Google TV Hardware Test Checklist
 
-Current test build: **v0.8.31 / versionCode 831**
+Current test build: **v0.8.32 / versionCode 832**
 
 Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five times within four seconds**. Select the numbered test before reproducing it, then choose **Save Diagnostics**.
 
@@ -25,6 +25,10 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 ## STARmeter
 
 - **STAR-001:** enter STARmeter, browse at least #1 → #30. Large centred circular portraits remain stable and are prefetched ahead of focus so initials are only a genuine no-photo fallback. Visible people resolve provider titles via the full durable-library index; known available credits should not falsely report 0 titles, and no row remains “Finding titles…” indefinitely. Up from #1 reaches the STARmeter header/nav and Android Back always exits.
+
+- **STAR-002 — fast scroll:** hold/tap Down rapidly from #1 toward #100. The page must never become blank, rows must not collapse/reflow, and filmography rails must stay readable while matching catches up.
+- **ART-001 — Top 100 artwork:** hold Right through #1 → #100. Focus must remain responsive and poster placeholders should be prefetched far enough ahead that the visible focused window does not become an all-placeholder strip.
+- **HERO-001 — atomic hero:** rapid Top 100 focus changes must never clear the current hero into an empty black backdrop; previous artwork/title remains until the new hero is ready.
 - Rapidly leave STARmeter while matching is active; late work must be cancelled and must not reappear over the destination page.
 
 ## Details / route lifecycle
@@ -36,4 +40,4 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 
 After reproducing a failure, save the JSON and upload it with the phone video. Diagnostic exports are written to the app Documents directory with a filename beginning:
 
-`Swoop-TV-v0.8.31-Diagnostics-`
+`Swoop-TV-v0.8.32-Diagnostics-`

@@ -51,7 +51,7 @@ if (!cssSource.includes('scroll-behavior:auto!important')) throw new Error('TV r
 
 // v0.8.23 continuous 100-at-a-time catalogue rails.
 if (!appSource.includes('const LONG_RAIL_BATCH_SIZE=100')) throw new Error('100-item long-rail batches missing');
-if (!appSource.includes('LONG_RAIL_PREFETCH_THRESHOLD=12')) throw new Error('Ahead-of-end long-rail prefetch missing');
+if (!appSource.includes('LONG_RAIL_PREFETCH_THRESHOLD=24')) throw new Error('Ahead-of-end long-rail prefetch missing');
 if (!appSource.includes('data-long-rail="media"') || !appSource.includes('data-long-rail="live"')) throw new Error('Long-rail pagination markers missing');
 if (!appSource.includes('function prefetchMediaRail(') || !appSource.includes('function prefetchLiveRail(')) throw new Error('Long-rail prefetch functions missing');
 
@@ -67,7 +67,7 @@ if (!cssSource.includes('data-tv-density="compact"') || !cssSource.includes('dat
 // v0.8.25 long-rail/vertical-position regressions.
 if (!appSource.includes("if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true")) throw new Error('Horizontal rail ownership guard missing; focus can escape to another row at a render boundary');
 if (!appSource.includes("const r=card.getBoundingClientRect(),cx=(r.left+r.right)/2")) throw new Error('Visual-column Up/Down targeting missing');
-if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=18') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=18')) throw new Error('Larger lazy-render safety window missing');
+if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=24') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=24')) throw new Error('Larger lazy-render safety window missing');
 if (!appSource.includes("['home','Home'],['myswoop','My SwoopTV'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies']")) throw new Error('STARmeter primary navigation placement missing');
 if (!appSource.includes('function starmeterPage()') || !appSource.includes('function prewarmStarmeterHotCache')) throw new Error('STARmeter page/hot-cache implementation missing');
 if (!appSource.includes("fetch('./starmeter.json'")) throw new Error('Bundled STARmeter fallback manifest missing');
@@ -105,7 +105,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.31';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.32';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -116,7 +116,7 @@ if (!appSource.includes('modalRoot.contains(found)')) throw new Error('TV focus 
 // v0.8.26 hardware performance/stability regressions.
 if (!appSource.includes('async function tvAdvanceLongRailRight(current)')) throw new Error('Async long-rail boundary continuation missing');
 if (!appSource.includes('ANDROID_HEAVY_NONPERSISTENT_PAGES')) throw new Error('Android heavy-page DOM eviction missing');
-if (!appSource.includes('STARMETER_INITIAL_VISIBLE=3,STARMETER_APPEND_BATCH=2')) throw new Error('STARmeter visible-window virtualization constants missing');
+if (!appSource.includes('STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100')) throw new Error('STARmeter visible-window virtualization constants missing');
 if (!appSource.includes('function appendStarmeterSections(') || !appSource.includes('function setupStarmeterAutoLoad()')) throw new Error('STARmeter virtual append/autoload missing');
 if (!appSource.includes('function hydrateStarmeterIdentity(')) throw new Error('STARmeter identity-only prewarm path missing');
 if (!appSource.includes('function appendLiveCategorySections(')) throw new Error('Live TV in-place category append missing');
@@ -138,14 +138,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.31-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.32-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.31') throw new Error('Install seed source version is not v0.8.31');
+if (String(installSeed.sourceVersion||'') !== '0.8.32') throw new Error('Install seed source version is not v0.8.32');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -163,7 +163,7 @@ if (!appSource.includes('function discardTransientMediaRoutes()')) throw new Err
 if (!appSource.includes('if(detailItem||personView)discardTransientMediaRoutes()')) throw new Error('Primary navigation does not force-close stale detail/person routes');
 if (!appSource.includes('function focusDefaultProfileChoice()')) throw new Error('Default first-profile focus helper missing');
 if (!appSource.includes('if(personView){closePerson();return true}')) throw new Error('Android Back does not close person route before underlying detail');
-if (!appSource.includes('const starmeterHydrateQueue=[]') || !appSource.includes('let starmeterHydrateBusy=false') || !appSource.includes('function pumpStarmeterHydration()')) throw new Error('Single-flight STARmeter hydration queue missing');
+if (!appSource.includes('const starmeterHydrateQueue=[]') || !appSource.includes('let starmeterHydrateBusy=0') || !appSource.includes('function pumpStarmeterHydration()')) throw new Error('Bounded-concurrent STARmeter hydration queue missing');
 if (!appSource.includes("guide:categories") || !appSource.includes("guide:channels") || !appSource.includes("guide:program:")) throw new Error('Guide focus diagnostics missing');
 if (!activitySource.includes('Player.STATE_READY') || !activitySource.includes('previewPlayerView.setVisibility(View.GONE)')) throw new Error('Live preview ready-state blank-surface guard missing');
 if (!appSource.includes('function tvDetailDirectionalTarget(')) throw new Error('Detail/episode deterministic directional navigation missing');
@@ -172,6 +172,19 @@ if (!cssSource.includes('width:200px!important;height:200px!important')) throw n
 if (!cssSource.includes('.episode-card') || !cssSource.includes('grid-template-columns:minmax(220px,300px)')) throw new Error('Wide episode-row/thumbnail treatment missing');
 
 
+
+// v0.8.32 fast-navigation + hydration stability regressions.
+if (!appSource.includes('STARMETER_HYDRATE_CONCURRENCY=3') || !appSource.includes('STARMETER_PREFETCH_AHEAD=18') || !appSource.includes('STARMETER_TITLE_RENDER_LIMIT=24')) throw new Error('v0.8.32 STARmeter concurrency/lookahead/title limits missing');
+if (!appSource.includes('const visible=starmeterPeople.slice(0,100)')) throw new Error('STARmeter does not mount a fixed 100-row surface');
+if (!appSource.includes('function tvPrefetchArtworkWindow(current,ahead=28,behind=3)')) throw new Error('Directional TV artwork prefetch window missing');
+if (!appSource.includes('const artworkPrewarmPool=new Map()') || !appSource.includes("[item?.backdrop,'w1280']")) throw new Error('Correct-size retained hero artwork prewarm missing');
+if (!appSource.includes('let homeHeroSwapToken=0') || !appSource.includes('async function replaceHomeHero()')) throw new Error('Atomic Home hero swap guard missing');
+if (!appSource.includes('async function prewarmAndroidEntryArtwork(timeoutMs=1800)')) throw new Error('Android profile-to-Home entry prewarm missing');
+if (!cssSource.includes('.hero-title-slot.logo-ready .hero-title-text')) throw new Error('Hero title fallback-until-logo-ready CSS missing');
+if (!cssSource.includes('height:360px!important') || !cssSource.includes('.starmeter-person-section')) throw new Error('Stable fixed-height STARmeter row geometry missing');
+if (!cssSource.includes('.live-hub-preview-panel.preview-active')) throw new Error('Live preview hidden-until-active treatment missing');
+if (!cssSource.includes('transform:scale(1.30)')) throw new Error('Guide logo scale-up within existing cells missing');
+if (!activitySource.includes('launchSplashView') || !activitySource.includes('onPageFinished') || !activitySource.includes('swoop_launch_logo')) throw new Error('Branded Android cold-launch overlay missing');
 
 // v0.8.31 STARmeter provider matching + Guide banner hardware hotfix.
 if (!appSource.includes("const PINNED_HOME_ROWS=['top20-movies','top20-shows'];")) throw new Error('Home is not discovery-first after My SwoopTV migration');

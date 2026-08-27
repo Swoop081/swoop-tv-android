@@ -1,22 +1,22 @@
-# Swoop TV v0.8.31 Build Verification
+# Swoop TV v0.8.32 Build Verification
 
-- [x] `app/build.gradle` is `versionName 0.8.31` / `versionCode 831`.
-- [x] Android bridge/User-Agent and diagnostic filenames report v0.8.31.
-- [x] `ANDROID_CURRENT_VERSION` reports 0.8.31.
-- [x] Service-worker shell cache is bumped to v0831.
-- [x] Install seed schema remains valid and `sourceVersion` is 0.8.31.
-- [x] Full 100-person STARmeter manifests remain valid.
-- [x] GitHub warm-start seed generation targets filmography credits for all 100 STARmeter people by default.
-- [x] STARmeter person credits preserve original-title/original-name aliases for stronger provider matching.
-- [x] Android STARmeter waits for the durable provider library before indexing when only the small Home snapshot is active.
-- [x] Provider availability matching supports TMDb/IMDb IDs, IPTV-cleaned aliases, year tolerance and bounded same-bucket fuzzy matching.
-- [x] STARmeter portrait identity prewarm extends substantially ahead of current focus.
-- [x] Guide tab entry discards stale scrolled Guide snapshots and resets to the true top.
-- [x] Guide contains an explicit LIVE TV / TV Guide / date / current-time banner above All Channels/EPG.
+- [x] `app/build.gradle` is `versionName 0.8.32` / `versionCode 832`.
+- [x] Android bridge/User-Agent and diagnostic filenames report v0.8.32.
+- [x] `ANDROID_CURRENT_VERSION` reports 0.8.32.
+- [x] Service-worker shell cache is bumped to v0832.
+- [x] Install seed schema remains valid and `sourceVersion` is 0.8.32.
+- [x] STARmeter mounts all 100 ranked people as stable fixed-height rows.
+- [x] STARmeter hydration uses bounded 3-way concurrency with focus priority and 18-person look-ahead.
+- [x] STARmeter filmography rendering is bounded and uses larger horizontal TV cards.
+- [x] Home/long rails use directional artwork prefetch around current focus.
+- [x] Hero prewarm requests `w1280` backdrops and hero swaps retain the old hero until replacement visual readiness/timeout.
+- [x] Hero title text remains available until a title-logo image reports ready.
+- [x] Android profile-to-Home entry artwork prewarm is wired before Home reveal when a durable catalogue already exists.
+- [x] Android destination prewarm covers initial Live TV categories/logos and STARmeter preparation.
+- [x] Live preview panel remains visually hidden until native preview activation.
+- [x] Guide logo artwork is enlarged without changing Guide layout geometry.
+- [x] Android native launch overlay uses branded Swoop TV artwork and fades after WebView page completion.
 - [x] JavaScript syntax checks pass.
 - [x] Card runtime smoke passes.
 - [x] Google TV UI runtime smoke passes.
-- [x] Synthetic indexed person-match test passes for IPTV-prefixed titles, title/year matching, article aliases and TV-series matching.
-- [x] Build/update/seed/STARmeter JSON validates.
-- [x] GitHub Actions YAML parses.
-- [ ] Binary APK compile is performed by GitHub Actions because Android SDK 36 / Gradle are unavailable in this packaging runtime.
+- [ ] Binary APK compile status recorded separately below after local Gradle attempt.

@@ -2,7 +2,7 @@
 
 ## Current build under test
 
-**v0.8.31 — Google TV STARmeter Matching + Guide Banner Hotfix**
+**v0.8.32 — Google TV STARmeter Matching + Guide Banner Hotfix**
 
 ## Implemented — needs physical-TV verification
 

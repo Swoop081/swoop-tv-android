@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.31';
+const ANDROID_CURRENT_VERSION='0.8.32';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,10 +36,10 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Expands STARmeter provider matching with TMDb/IMDb IDs, normalized title and year aliases, controlled fuzzy fallback and a one-time provider index so real available titles are not falsely reported as zero.',
-  'Seeds filmographies for the full STARmeter Top 100 during GitHub APK builds and prewarms portraits much farther ahead of the current scroll position.',
-  'Forces Guide to enter at the true top of the screen and makes the Live TV / TV Guide date-and-time banner visually explicit above All Channels and the two-hour EPG.',
-  'Retains My SwoopTV, 100-card Top 100 focus rails, Live TV card parity, profile/detail stability, whole-app warm-start cache and Hardware Test Mode from v0.8.30.'
+  'Makes STARmeter a fixed 100-row TV surface so fast D-pad scrolling can never outrun row mounting or collapse the viewport while provider matches hydrate.',
+  'Runs bounded concurrent STARmeter matching with directional look-ahead, stable row geometry and larger horizontal filmography rails.',
+  'Aggressively preloads artwork ahead of focus on Top 100 and long TV rails, including correctly-sized hero backdrops, while keeping text/title fallbacks visible until artwork has decoded.',
+  'Prewarms Home and Live TV before route entry, hides the Live preview surface until native video is actually ready, enlarges Guide logos inside the existing cells and adds a branded Android launch surface.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -238,7 +238,7 @@ const HOME_STANDARD_ROW_LIMIT=100;
 const ANDROID_TV_HOME_EAGER_ROWS=5;
 const ANDROID_TV_HOME_DATA_STANDARD_LIMIT=100;
 const ANDROID_TV_HOME_DATA_RANKED_LIMIT=100;
-const ANDROID_TV_HOME_INITIAL_RENDER=32;
+const ANDROID_TV_HOME_INITIAL_RENDER=48;
 const ANDROID_TV_HOME_EXPAND_CHUNK=32;
 const ANDROID_DYNAMIC_HOME_ROWS=new Set(['continue','recently-watched','recommended','recent-live','mylist']);
 let androidLibraryLoading=false,tvForceHomeTop=false;
@@ -423,9 +423,9 @@ let detailItem=null,detailPayload=null,detailLoading=false,detailError='',detail
 let personView=null,personLoading=false,personError='',personMovies=[],personShows=[],personProgress=0,personStatus='',personScrollTop=0,personOpenToken=0;
 let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
 const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map(),starmeterRetryCounts=new Map();
-const starmeterHydrateQueue=[];let starmeterHydrateBusy=false,starmeterGeneration=0;
+const starmeterHydrateQueue=[];let starmeterHydrateBusy=0,starmeterGeneration=0;
 function withTimeout(promise,ms=6000,label='Operation timed out'){return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))])}
-function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=false;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
+function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
 let suspendedBaseView=null,suspendedDetailView=null,suspendedPersonView=null;
 const persistentPageViews=new Map();
@@ -438,10 +438,10 @@ const detailPrefetchPending=new Map();
 const detailEpisodeItems=new Map();
 const viewLimits={live:100,movie:100,series:100};
 let guideLimit=48,guideCategory='',liveCategory='',providerFilter='all',pageCategory={movie:'',series:''},guideAutoLoadPending=false;
-const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=18,LONG_RAIL_RENDER_CHUNK=18,LONG_RAIL_PREFETCH_THRESHOLD=12;
+const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=24,LONG_RAIL_RENDER_CHUNK=24,LONG_RAIL_PREFETCH_THRESHOLD=24;
 const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=3;
 const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=6;
-const STARMETER_INITIAL_VISIBLE=3,STARMETER_APPEND_BATCH=2;
+const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=3,STARMETER_PREFETCH_AHEAD=18,STARMETER_TITLE_RENDER_LIMIT=24;
 let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
@@ -561,6 +561,7 @@ let startupRefreshState={progress:2,title:'Updating your TV library…',detail:'
 let libraryRestored=Boolean(state.catalog.length&&!tvHomeSnapshotActive);
 let libraryRestorePromise=null;
 const artworkCache=new Map();
+const artworkPrewarmPool=new Map();
 const artworkRelayQueue=[]; let artworkRelayActive=0;
 let artworkObserver=null;
 let detailReturnScroll=0,detailScrollTop=0;
@@ -621,18 +622,26 @@ function navigatePage(nextPage){
   if(restorePersistentPageView(nextPage))return;render();
   if(NATIVE_ANDROID&&nextPage==='guide')requestAnimationFrame(()=>{window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;requestAnimationFrame(()=>window.scrollTo(0,0))});
 }
+function artworkWarmEntry(url,size='w342'){
+  const raw=String(url||'').trim();if(!raw)return'';
+  return /image\.tmdb\.org\/t\/p\//i.test(raw)?raw.replace(/\/t\/p\/(?:original|w\d+)\//i,`/t/p/${size}/`):raw;
+}
+function rememberArtworkPrewarm(url){
+  if(!url||artworkPrewarmPool.has(url))return;
+  try{const img=new Image();img.decoding='async';img.onload=img.onerror=()=>{const hit=artworkPrewarmPool.get(url);if(hit)hit.loadedAt=Date.now()};img.src=url;artworkPrewarmPool.set(url,{img,loadedAt:0});while(artworkPrewarmPool.size>260)artworkPrewarmPool.delete(artworkPrewarmPool.keys().next().value)}catch{}
+}
 function prewarmArtworkUrls(items=[],limit=28){
-  const urls=[];for(const item of items){for(const url of [item?.logo,item?.backdrop]){const value=String(url||'').trim();if(value&&!urls.includes(value))urls.push(value);if(urls.length>=limit)break}if(urls.length>=limit)break}
-  for(const url of urls){
-    if(location.protocol==='https:'&&/^http:\/\//i.test(url)&&canRelayArtwork()){relayArtworkUrl(url,'normal').catch(()=>null);continue}
-    try{const img=new Image();img.decoding='async';img.src=/image\.tmdb\.org\/t\/p\//i.test(url)?url.replace(/\/t\/p\/(?:original|w\d+)\//i,'/t/p/w342/'):url}catch{}
-  }
+  const urls=[];for(const raw of items){const item=visualItem(raw||{});for(const [value,size] of [[item?.logo,'w342'],[item?.backdrop,'w1280'],[item?.titleLogo,'w500']]){const url=artworkWarmEntry(value,size);if(url&&!urls.includes(url))urls.push(url);if(urls.length>=limit)break}if(urls.length>=limit)break}
+  for(const url of urls){if(location.protocol==='https:'&&/^http:\/\//i.test(url)&&canRelayArtwork()){relayArtworkUrl(url,'normal').catch(()=>null);continue}rememberArtworkPrewarm(url)}
 }
 async function preloadCriticalArtwork(items=[],limit=36,timeoutMs=4200){
-  const urls=[];for(const raw of items){const item=visualItem(raw||{});for(const url of [item?.logo,item?.backdrop]){const value=String(url||'').trim();if(value&&!urls.includes(value))urls.push(value);if(urls.length>=limit)break}if(urls.length>=limit)break}
+  const urls=[];for(const raw of items){const item=visualItem(raw||{});for(const [value,size] of [[item?.backdrop,'w1280'],[item?.logo,'w342'],[item?.titleLogo,'w500']]){const url=artworkWarmEntry(value,size);if(url&&!urls.includes(url))urls.push(url);if(urls.length>=limit)break}if(urls.length>=limit)break}
   if(!urls.length)return;
-  let timer=null;const all=Promise.all(urls.map(url=>new Promise(resolve=>{try{const img=new Image();let done=false;const finish=()=>{if(done)return;done=true;resolve()};img.onload=finish;img.onerror=finish;img.decoding='async';img.src=/image\.tmdb\.org\/t\/p\//i.test(url)?url.replace(/\/t\/p\/(?:original|w\d+)\//i,'/t/p/w342/'):url;if(img.complete)finish();setTimeout(finish,timeoutMs)}catch{resolve()}})));
+  let timer=null;const all=Promise.all(urls.map(url=>new Promise(resolve=>{try{if(artworkPrewarmPool.has(url)){resolve();return}const img=new Image();let done=false;const finish=()=>{if(done)return;done=true;artworkPrewarmPool.set(url,{img,loadedAt:Date.now()});resolve()};img.onload=()=>{if(typeof img.decode==='function')img.decode().then(finish).catch(finish);else finish()};img.onerror=finish;img.decoding='async';img.src=url;if(img.complete)finish();setTimeout(finish,timeoutMs)}catch{resolve()}})));
   await Promise.race([all,new Promise(resolve=>{timer=setTimeout(resolve,timeoutMs)})]);if(timer)clearTimeout(timer);
+}
+async function prewarmAndroidEntryArtwork(timeoutMs=1800){
+  if(!NATIVE_ANDROID||!state.catalog.length)return;const warm=[];const feature=featureItem();if(feature)warm.push(feature);for(const def of selectedHomeRows().slice(0,5))warm.push(...homeRowItems(def.id).slice(0,14));await preloadCriticalArtwork(warm,72,timeoutMs);prewarmArtworkUrls(warm,96);
 }
 async function warmBrowseTabs(){
   if(browseWarmupRunning||!nativeCatalogMode||startupRefreshActive||storageRestoring||!state.catalog.length)return;
@@ -1820,16 +1829,16 @@ function patchLiveHeroFocusedChannel(item){
   const visual=visualItem(item),logo=String(visual?.logo||'');let img=brand.querySelector('.live-hub-art');if(logo){if(!img){img=document.createElement('img');img.className='live-hub-art';img.alt='';brand.prepend(img)}if(img.dataset.swoopArt!==logo){img.dataset.swoopArt=logo;img.dataset.swoopLoaded='';img.removeAttribute('src');loadArtwork(img,{priority:'high'})}}else img?.remove();return true;
 }
 function stopLiveHeroPreview(){
-  if(livePreviewTimer){clearTimeout(livePreviewTimer);livePreviewTimer=null}livePreviewItemId='';
+  if(livePreviewTimer){clearTimeout(livePreviewTimer);livePreviewTimer=null}livePreviewItemId='';document.querySelector('.live-hub-preview-panel')?.classList.remove('preview-active');
   if(livePreviewActive){livePreviewActive=false;nativeStopPreview().catch(()=>null)}
 }
 function scheduleLiveHeroPreview(item,delay=650){
   if(!NATIVE_ANDROID||state.page!=='live'||detailItem||personView||playerItem||!item)return;
-  if(livePreviewTimer)clearTimeout(livePreviewTimer);const token=++livePreviewPageToken,id=String(item.id||'');livePreviewItemId=id;
+  if(livePreviewTimer)clearTimeout(livePreviewTimer);document.querySelector('.live-hub-preview-panel')?.classList.remove('preview-active');const token=++livePreviewPageToken,id=String(item.id||'');livePreviewItemId=id;
   livePreviewTimer=setTimeout(async()=>{livePreviewTimer=null;if(token!==livePreviewPageToken||state.page!=='live'||livePreviewItemId!==id||playerItem)return;
     const anchor=document.querySelector('.live-preview-anchor');if(!anchor)return;const source=preferredLiveSource(item);if(!source?.streamUrl)return;
     const r=anchor.getBoundingClientRect(),vw=Math.max(1,innerWidth),vh=Math.max(1,innerHeight);if(r.width<80||r.height<50)return;
-    try{const result=await nativePreviewLive(source,{left:r.left/vw,top:r.top/vh,width:r.width/vw,height:r.height/vh});livePreviewActive=Boolean(result?.ok)}catch{}
+    try{const result=await nativePreviewLive(source,{left:r.left/vw,top:r.top/vh,width:r.width/vw,height:r.height/vh});livePreviewActive=Boolean(result?.ok);document.querySelector('.live-hub-preview-panel')?.classList.toggle('preview-active',livePreviewActive)}catch{livePreviewActive=false;document.querySelector('.live-hub-preview-panel')?.classList.remove('preview-active')}
   },Math.max(400,Number(delay||650)));
 }
 
@@ -1864,7 +1873,7 @@ async function ensureStarmeterLoaded(){
     if(!Array.isArray(data?.people)||!data.people.length){const remote=await starmeterManifestUrl();if(remote&&NATIVE_ANDROID){try{data=JSON.parse(String(await nativeFetchText(remote)||'{}'))}catch{}}}
     if(!Array.isArray(data?.people)||!data.people.length){const res=await fetch('./starmeter.json',{cache:'no-store'});if(!res.ok)throw new Error(`STARmeter manifest HTTP ${res.status}`);data=await res.json()}
     starmeterPeople=(Array.isArray(data.people)?data.people:[]).slice(0,100).map((p,i)=>{const person=p?.person&&typeof p.person==='object'?p.person:p;const entry={rank:Number(p.rank||i+1),name:String(p.name||person.name||'').trim(),profile:String(person.profile||p.profile||''),id:String(person.id||p.id||''),knownForDepartment:String(person.knownForDepartment||p.knownForDepartment||'Person')};const key=starmeterNormalize(entry.name);if(key&&(person.id||person.profile||Array.isArray(p.credits))){starmeterHotCache.set(key,{person:{id:entry.id,name:entry.name,profile:entry.profile,knownForDepartment:entry.knownForDepartment},credits:Array.isArray(p.credits)?p.credits:[],seeded:true,loadedAt:Number(Date.parse(seed?.builtAt||''))||Date.now()})}return entry}).filter(x=>x.name);
-    starmeterLoaded=true;starmeterLoading=false;starmeterVisibleCount=STARMETER_INITIAL_VISIBLE;if(state.page==='starmeter'&&!detailItem&&!personView)render();setTimeout(()=>prewarmStarmeterHotCache(100),1200);return starmeterPeople;
+    starmeterLoaded=true;starmeterLoading=false;starmeterVisibleCount=starmeterPeople.length;if(state.page==='starmeter'&&!detailItem&&!personView)render();setTimeout(()=>prewarmStarmeterHotCache(100),500);return starmeterPeople;
   }catch(err){starmeterLoading=false;starmeterError=err?.message||String(err);if(state.page==='starmeter')render();return[]}
 }
 function starmeterPersonSeed(entry={}){const hot=starmeterHotCache.get(starmeterNormalize(entry.name));return hot?.person||{id:entry.id||'',name:entry.name||'',profile:entry.profile||'',knownForDepartment:entry.knownForDepartment||'Person'}}
@@ -1877,12 +1886,12 @@ function starmeterPersonTitles(cached){
 function starmeterPersonSection(entry={}){
   const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached);
   const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
-  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div>`);
+  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><div class="starmeter-loading-copy"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div><div class="starmeter-loading-posters"><i></i><i></i><i></i><i></i></div></div>`);
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
-  const visible=starmeterPeople.slice(0,Math.max(STARMETER_INITIAL_VISIBLE,starmeterVisibleCount));
-  const body=visible.length?`${visible.map(starmeterPersonSection).join('')}<div class="starmeter-auto-load-sentinel" data-starmeter-sentinel aria-hidden="true"></div>`:starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
+  const visible=starmeterPeople.slice(0,100);
+  const body=visible.length?visible.map(starmeterPersonSection).join(''):starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
   return `<main class="page starmeter-page"><section class="starmeter-hero"><div><span class="eyebrow">IMDb · TRENDING PEOPLE</span><h1>STARmeter</h1><p>The current IMDb Top 100 people, connected directly to movies and TV shows available in your Swoop TV providers.</p></div><div class="starmeter-count"><strong>${starmeterPeople.length||100}</strong><span>PEOPLE</span></div></section><div class="page-content starmeter-content">${body}</div></main>`;
 }
 async function hydrateStarmeterIdentity(entry={}){
@@ -1899,13 +1908,16 @@ async function hydrateStarmeterPerson(entry={}){
     const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterRetryCounts.delete(key);starmeterPersonCache.set(key,value);starmeterHotCache.set(key,{...hot,...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
   }catch(err){if(generation!==starmeterGeneration||state.page!=='starmeter')return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);if(retryable){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
-function queueStarmeterPerson(entry={}){
+function queueStarmeterPerson(entry={},options={}){
   const key=starmeterNormalize(entry.name);if(!key||starmeterPersonCache.has(key)||starmeterHydratePending.has(key)||starmeterHydrateQueue.some(x=>starmeterNormalize(x.name)===key))return;
-  starmeterHydrateQueue.push(entry);pumpStarmeterHydration();
+  if(options?.priority)starmeterHydrateQueue.unshift(entry);else starmeterHydrateQueue.push(entry);pumpStarmeterHydration();
 }
-async function pumpStarmeterHydration(){
-  if(starmeterHydrateBusy||state.page!=='starmeter')return;const entry=starmeterHydrateQueue.shift();if(!entry)return;const generation=starmeterGeneration;starmeterHydrateBusy=true;
-  try{await hydrateStarmeterPerson(entry)}finally{if(generation===starmeterGeneration)starmeterHydrateBusy=false;if(generation===starmeterGeneration&&state.page==='starmeter'&&starmeterHydrateQueue.length)setTimeout(pumpStarmeterHydration,30)}
+function pumpStarmeterHydration(){
+  if(state.page!=='starmeter')return;
+  while(starmeterHydrateBusy<STARMETER_HYDRATE_CONCURRENCY&&starmeterHydrateQueue.length){
+    const entry=starmeterHydrateQueue.shift(),generation=starmeterGeneration;starmeterHydrateBusy++;
+    Promise.resolve(hydrateStarmeterPerson(entry)).finally(()=>{if(generation===starmeterGeneration)starmeterHydrateBusy=Math.max(0,starmeterHydrateBusy-1);if(generation===starmeterGeneration&&state.page==='starmeter'&&starmeterHydrateQueue.length)setTimeout(pumpStarmeterHydration,18)});
+  }
 }
 function patchStarmeterIdentity(rank,person={}){if(state.page!=='starmeter')return false;const section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!section)return false;const cardEl=section.querySelector('.starmeter-person-card');if(!cardEl)return false;cardEl.dataset.personId=person.id||'';cardEl.dataset.personProfile=person.profile||'';cardEl.dataset.personDepartment=person.knownForDepartment||'Person';const old=cardEl.querySelector('img,.starmeter-person-fallback'),fresh=person.profile?Object.assign(document.createElement('img'),{alt:person.name||''}):document.createElement('div');if(person.profile){fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true}
 function patchStarmeterPerson(rank){
@@ -1920,11 +1932,11 @@ function appendStarmeterSections(count=STARMETER_APPEND_BATCH){
   const wrap=document.createElement('div');wrap.innerHTML=starmeterPeople.slice(start,end).map(starmeterPersonSection).join('');const nodes=[...wrap.children];for(const node of nodes)host.insertBefore(node,sentinel);starmeterVisibleCount=end;for(const node of nodes){hydrateArtwork(node);bindDynamicCards(node);bindPersonLinks(node);observeStarmeterSections(node)}if(end>=starmeterPeople.length)sentinel.remove();return true;
 }
 function observeStarmeterSections(root=document){
-  if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,Math.min(starmeterVisibleCount,6)).forEach(hydrateStarmeterPerson);return}
-  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx]);for(let ahead=1;ahead<=8;ahead++){const next=starmeterPeople[idx+ahead];if(next)setTimeout(()=>hydrateStarmeterIdentity(next),ahead*45)}}}}, {root:null,rootMargin:'700px 0px 700px 0px',threshold:.01});
+  if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,Math.min(starmeterPeople.length,18)).forEach((entry,i)=>queueStarmeterPerson(entry,{priority:i<6}));return}
+  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=5})}}}}, {root:null,rootMargin:'1700px 0px 1700px 0px',threshold:.01});
   const nodes=root?.matches?.('.starmeter-person-section')?[root]:[...(root?.querySelectorAll?.('.starmeter-person-section')||[])];nodes.forEach(x=>starmeterObserver.observe(x));
 }
-function setupStarmeterAutoLoad(){if(state.page!=='starmeter')return;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;const sentinel=document.querySelector('[data-starmeter-sentinel]');if(!sentinel)return;if(!('IntersectionObserver'in globalThis))return;if(starmeterVisibleCount>=starmeterPeople.length){sentinel.remove();return}starmeterAutoLoadObserver=new IntersectionObserver(entries=>{if(!entries.some(e=>e.isIntersecting))return;if(appendStarmeterSections(STARMETER_APPEND_BATCH)&&starmeterVisibleCount<starmeterPeople.length)setupStarmeterAutoLoad()},{root:null,rootMargin:'700px 0px',threshold:.01});starmeterAutoLoadObserver.observe(sentinel)}
+function setupStarmeterAutoLoad(){starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;starmeterVisibleCount=starmeterPeople.length}
 function prewarmStarmeterHotCache(limit=100){
   clearTimeout(starmeterPrewarmTimer);let index=0,max=Math.min(Number(limit||100),starmeterPeople.length);const step=async()=>{if(index>=max)return;if(Date.now()-Number(tvLastActivationAt||0)<900){starmeterPrewarmTimer=setTimeout(step,900);return}const entry=starmeterPeople[index++];await hydrateStarmeterIdentity(entry);starmeterPrewarmTimer=setTimeout(step,index<18?260:900)};starmeterPrewarmTimer=setTimeout(step,500)
 }
@@ -2121,8 +2133,8 @@ async function prewarmAndroidGuideEpg(){
 }
 function scheduleAndroidDestinationPrewarm(){
   if(!NATIVE_ANDROID||androidDestinationPrewarmStarted||profilePickerOpen||!state.catalog.length)return;androidDestinationPrewarmStarted=true;
-  const run=()=>{try{const rows=selectedHomeRows().slice(0,4),warm=[];for(const def of rows)warm.push(...homeRowItems(def.id).slice(0,7));prewarmArtworkUrls(warm,36);const hero=featureItem();if(hero)prewarmDetail(hero);prewarmAndroidGuideEpg().catch(()=>null)}catch{}};
-  if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:2200});else setTimeout(run,1200);
+  const run=async()=>{try{const rows=selectedHomeRows().slice(0,4),warm=[];for(const def of rows)warm.push(...homeRowItems(def.id).slice(0,10));prewarmArtworkUrls(warm,56);const hero=featureItem();if(hero)prewarmDetail(hero);prewarmAndroidGuideEpg().catch(()=>null);await ensureStarmeterLoaded().catch(()=>[]);await ensureGuideProviderCategoryOrder().catch(()=>false);const cats=liveRailCategories().slice(0,4).map(x=>x.name).filter(Boolean);for(const name of cats){await ensureLiveCategoryRail(name).catch(()=>null);const snap=liveRailSnapshot(name);prewarmArtworkUrls((snap.items||[]).slice(0,18),24)}}catch{}};
+  if('requestIdleCallback'in window)requestIdleCallback(()=>run(),{timeout:1400});else setTimeout(run,700);
 }
 
 function bindHomeHeroTitleLogoFailure(root=document){
@@ -2146,12 +2158,13 @@ function bindHeroControls(root=document){
   root.querySelectorAll('[data-hero-go]').forEach(el=>el.onclick=()=>{const pool=heroCandidates();if(!pool.length)return;heroRotationIndex=Math.max(0,Math.min(pool.length-1,Number(el.dataset.heroGo||0)));replaceHomeHero()});
   bindHomeHeroTitleLogoFailure(root);
 }
-function replaceHomeHero(){
+let homeHeroSwapToken=0;
+async function replaceHomeHero(){
   if(state.page!=='home'||modal||detailItem||playerItem)return;
   const current=document.querySelector('[data-home-hero]'),pool=heroCandidates();if(!current||!pool.length)return;
-  heroRotationIndex=((heroRotationIndex%pool.length)+pool.length)%pool.length;
-  const item=pool[heroRotationIndex],wrap=document.createElement('div');wrap.innerHTML=hero(item,providerSummaryName(),{total:pool.length,index:heroRotationIndex});
-  const next=wrap.firstElementChild;if(!next)return;current.replaceWith(next);hydrateArtwork(next);bindDynamicCards(next);bindHeroControls(next);
+  heroRotationIndex=((heroRotationIndex%pool.length)+pool.length)%pool.length;const index=heroRotationIndex,item=pool[index],token=++homeHeroSwapToken;
+  await preloadCriticalArtwork([item],3,NATIVE_ANDROID?950:1400);if(token!==homeHeroSwapToken||state.page!=='home'||modal||detailItem||playerItem)return;
+  const liveCurrent=document.querySelector('[data-home-hero]');if(!liveCurrent)return;const wrap=document.createElement('div');wrap.innerHTML=hero(item,providerSummaryName(),{total:pool.length,index});const next=wrap.firstElementChild;if(!next)return;liveCurrent.replaceWith(next);hydrateArtwork(next);bindDynamicCards(next);bindHeroControls(next);
   if(!NATIVE_ANDROID&&item&&['movie','series'].includes(item.kind))enrichItemMetadata(item,{rerender:false}).then(()=>patchHomeHeroTitle(item));
 }
 
@@ -2328,7 +2341,7 @@ function render(){
   bind();bindHeroControls(document);
   if(NATIVE_ANDROID){if(profilePickerOpen)requestAnimationFrame(focusDefaultProfileChoice);else restoreTvFocus();ensureTvHardwareOverlay();}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='search')runSearch('');
-  if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>{observeStarmeterSections(document);setupStarmeterAutoLoad()},0)}
+  if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>{observeStarmeterSections(document);setupStarmeterAutoLoad();starmeterPeople.slice(0,18).forEach((entry,i)=>queueStarmeterPerson(entry,{priority:i<6}))},0)}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='live')setTimeout(setupLiveCategoryAutoLoad,0)
   if(detailRoute&&detailItem?.kind==='series'&&!detailLoading)setTimeout(prewarmSelectedEpisodeMetadata,0);
   hydrateArtwork();
@@ -2342,7 +2355,7 @@ function render(){
     // prepared frame and defers optional metadata work so remote input always wins.
     const heroNow=featureItem();if(!NATIVE_ANDROID&&heroNow&&['movie','series'].includes(heroNow.kind))setTimeout(()=>enrichItemMetadata(heroNow,{rerender:false}).then(()=>patchHomeHeroTitle(heroNow)),40);
     if(state.catalog.length&&!androidFastHomeMode()&&!NATIVE_ANDROID)setTimeout(()=>refreshDiscoveryRows(false),largeLibraryMode()?1200:0);
-    if(nativeCatalogMode)setTimeout(primeNativeHomeRows,140);
+    if(nativeCatalogMode)setTimeout(primeNativeHomeRows,140);if(NATIVE_ANDROID)setTimeout(scheduleAndroidDestinationPrewarm,650);
     if(!androidFastHomeMode()&&!NATIVE_ANDROID)scheduleBrowseWarmup(largeLibraryMode()?650:1000);
   }
   if(!profilePickerOpen&&!mediaRoute&&playerItem?.kind==='live')setTimeout(()=>{loadPlayerNowNext(playerItem);loadLiveMiniGuide(playerItem)},0);
@@ -2935,7 +2948,7 @@ function pumpArtworkRelay(){while(artworkRelayActive<artworkRelayLimit()&&artwor
 async function relayArtworkUrl(url,priority='normal'){if(artworkCache.has(url))return artworkCache.get(url);const promise=queueArtworkRelay(async()=>{const blob=await fetchXtreamAssetBlob({relayUrl:sessionRelay.url,relayToken:sessionRelay.token},url);return URL.createObjectURL(blob)},priority).catch(err=>{artworkCache.delete(url);throw err});artworkCache.set(url,promise);return promise}
 function canRelayArtwork(){return !NATIVE_WINDOWS&&Boolean(sessionRelay.url&&sessionRelay.token&&enabledProviders().some(p=>p.type==='xtream'))}
 function optimizedArtworkUrl(url,img){const raw=String(url||'');if(!/image\.tmdb\.org\/t\/p\//i.test(raw))return raw;const cls=img?.className||'';let size='w500';if(/backdrop|hero-art|hero-backdrop|detail-backdrop/i.test(cls))size='w1280';else if(/title-logo/i.test(cls))size='w500';else if(/cast/i.test(cls))size='w185';else if(img?.closest?.('.poster, .poster-content-grid'))size='w342';return raw.replace(/\/t\/p\/(?:original|w\d+)\//i,`/t/p/${size}/`)}
-function revealArtwork(img){const show=()=>{img.classList.add('loaded');img.closest?.('.card')?.classList.add('art-ready')};if(typeof img.decode==='function')img.decode().then(show).catch(show);else show()}
+function revealArtwork(img){const show=()=>{img.classList.add('loaded');img.closest?.('.card')?.classList.add('art-ready');if(img.classList.contains('hero-title-logo'))img.closest?.('.hero-title-slot')?.classList.add('logo-ready')};if(typeof img.decode==='function')img.decode().then(show).catch(show);else show()}
 function artworkLoadFailed(img){img.dataset.swoopFailed='1';img.classList.add('artwork-failed');img.removeAttribute('src');const card=img.closest?.('[data-imdb-item]'),id=card?.dataset?.imdbItem,item=id?savedItem(id):null;if(item&&['movie','series'].includes(item.kind))queueVisibleMetadata(item,{forceArtwork:true});try{img.dispatchEvent(new Event('swoop-artwork-failed'))}catch{}}
 function artworkNearViewport(img,vertical=520,horizontal=1100){const r=img.getBoundingClientRect();return r.bottom>=-vertical&&r.top<=innerHeight+vertical&&r.right>=-horizontal&&r.left<=innerWidth+horizontal}
 function loadArtwork(img,{priority='normal'}={}){if(img.dataset.swoopLoaded==='1')return;img.dataset.swoopLoaded='1';const original=img.dataset.swoopArt||'';if(!original)return;const url=optimizedArtworkUrl(original,img);img.decoding='async';const critical=/hero|detail-backdrop|title-logo/i.test(img.className||''),eager=critical||priority==='high'||artworkNearViewport(img);if(!critical){img.loading=eager?'eager':'lazy';try{img.fetchPriority=eager?'high':'low'}catch{}}let relayTried=false;const fallback=async()=>{if(relayTried||!canRelayArtwork()){artworkLoadFailed(img);return}relayTried=true;try{const relay=await relayArtworkUrl(original,eager?'high':priority);img.onload=()=>revealArtwork(img);img.onerror=()=>artworkLoadFailed(img);img.src=relay}catch{artworkLoadFailed(img)}};if(location.protocol==='https:'&&/^http:\/\//i.test(original)&&canRelayArtwork()){fallback();return}img.onload=()=>revealArtwork(img);img.onerror=()=>fallback();img.src=url}
@@ -3128,7 +3141,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:831,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:832,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3262,7 +3275,7 @@ function expandAndroidHomeRail(current,key){
   const rendered=rail.children.length,total=Number(section.dataset.homeRowTotal||0);
   if(!total||rendered>=total)return false;
   const children=[...rail.children],pos=children.indexOf(current.closest('.card')||current);
-  if(pos<Math.max(0,rendered-12))return false;
+  if(pos<Math.max(0,rendered-24))return false;
   const def=homeRowDef(rowId),data=homeRowItems(rowId),end=Math.min(data.length,rendered+ANDROID_TV_HOME_EXPAND_CHUNK);
   if(end<=rendered)return false;
   const ranked=Boolean(def?.ranked),poster=def?.poster!==false;
@@ -3287,6 +3300,11 @@ function longRailAppend(current){
     track.insertAdjacentHTML('beforeend',snap.items.slice(rendered,end).map(liveRailCard).join(''));liveRailRenderLimits.set(key,end);track.dataset.longRailLoaded=String(snap.items.length);track.dataset.longRailTotal=String(snap.total||snap.items.length);hydrateArtwork(track);bindDynamicCards(track);return true;
   }
   return false;
+}
+function tvPrefetchArtworkWindow(current,ahead=28,behind=3){
+  const cardEl=current?.closest?.('.card,.live-rail-card');if(!cardEl)return;const rail=cardEl.parentElement;if(!rail)return;let cards=[...rail.querySelectorAll(':scope > .card,:scope > .live-rail-card,:scope > .continue-card-shell > .card')],index=cards.indexOf(cardEl);if(index<0)return;
+  if(NATIVE_ANDROID&&state.page==='home'&&index>=Math.max(0,cards.length-24)){expandAndroidHomeRail(cardEl,'ArrowRight');cards=[...rail.querySelectorAll(':scope > .card,:scope > .live-rail-card,:scope > .continue-card-shell > .card')];index=cards.indexOf(cardEl)}
+  const start=Math.max(0,index-Math.max(0,behind)),end=Math.min(cards.length,index+Math.max(8,ahead)+1);for(const el of cards.slice(start,end)){for(const img of el.querySelectorAll('img[data-swoop-art]'))if(img.dataset.swoopLoaded!=='1')loadArtwork(img,{priority:'high'})}
 }
 function longRailPrefetchForFocus(current){
   const track=current?.closest?.('[data-long-rail]');if(!track)return;const cards=[...track.querySelectorAll(':scope > button,:scope > .card')],index=cards.indexOf(current.closest?.('button,.card')||current);if(index<0)return;
@@ -3463,10 +3481,10 @@ document.addEventListener('focusin',e=>{
   if(el&&el instanceof HTMLElement){
     document.querySelector('[data-swoop-tv-focused="1"]')?.removeAttribute('data-swoop-tv-focused');
     el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;tvDiagRecord('focus',{focus:tvDiagnosticElement(el)});
-    const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);longRailPrefetchForFocus(card)}
+    const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);tvPrefetchArtworkWindow(card,state.page==='home'?32:24,4);longRailPrefetchForFocus(card)}
     if((detailItem||personView)&&el.closest?.('[data-detail-close],[data-person-close]')){const scroller=document.querySelector(detailItem?'.detail-scroll':'.person-scroll');if(scroller)scroller.scrollTop=0}
     if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,450)}}
-    if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(idx>=0)queueStarmeterPerson(starmeterPeople[idx]);if(rank&&rank>=starmeterVisibleCount-1){appendStarmeterSections(STARMETER_APPEND_BATCH);setupStarmeterAutoLoad()}}
+    if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=6})}}}
     if(state.page==='guide')maybeAutoLoadGuideFromFocus(el);
   }
 },true);
@@ -3638,11 +3656,10 @@ async function runAndroidStartupGate(){
     // A valid saved catalogue always wins the launch race. Home opens immediately and all
     // provider/app freshness checks are scheduled only after remote input is available.
     if(state.catalog.length){
-      startupRefreshActive=false;androidStartupGateComplete=true;state.page='home';
-      clearAndroidPreparedHome();androidPreparedHomeReady=true;clearPersistentPageViews(['home']);
-      render();forceAndroidHomeEntry();
+      startupRefreshActive=false;state.page='home';clearAndroidPreparedHome();androidPreparedHomeReady=true;clearPersistentPageViews(['home']);
+      await prewarmAndroidEntryArtwork(1800).catch(()=>null);androidStartupGateComplete=true;render();forceAndroidHomeEntry();
       restoreDurableEpgCache().catch(()=>false);
-      setTimeout(()=>startAndroidBackgroundRestore(),900);
+      setTimeout(()=>{startAndroidBackgroundRestore();scheduleAndroidDestinationPrewarm()},700);
       return true;
     }
 
