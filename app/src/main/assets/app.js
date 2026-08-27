@@ -23,7 +23,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.25';
+const ANDROID_CURRENT_VERSION='0.8.26';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -35,12 +35,13 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Adds IMDb STARmeter as a primary TV tab with current Top 100 people and provider-available filmography rails.',
-  'Fixes the long-rail 24→25 focus jump and preserves the visual column when moving Up/Down between rows.',
-  'Expands the Home hero, standardises TV rail safe insets, and reduces the IMDb badge footprint.',
-  'Rebalances Live TV into left information, centre muted preview and right contained channel branding with larger browse tiles.',
-  'Adds richer episode air-date, synopsis and runtime enrichment without blocking series-page opening.',
-  'Makes TV Guide channel logos larger inside the existing approved layout while preserving v0.8.24 modal focus ownership.'
+  'Rebuilds long-rail boundary navigation so Top 100 and large Movies/TV rails cannot hard-stop while the next batch is loading.',
+  'Virtualises STARmeter and Live TV category work so metadata matching, artwork and row mounting no longer fight D-pad input.',
+  'Redesigns STARmeter with large circular cast-style portraits, prominent ranks and larger provider-available movie/TV rails.',
+  'Cleans the Home featured hero: fully contained artwork and a tiny non-focusable 10-dot rotation indicator.',
+  'Brings Movies and TV Shows onto the approved Home-sized TV hero treatment and fixes Search/Providers header focus routing.',
+  'Refines Live TV preview/logo sizing and restores Browse Live TV tiles to the approved Recent Channels scale.',
+  'Adds TV runtime guards for asynchronous rail focus, virtual section loading and render-process recovery diagnostics.'
 ];
 const tvCatalogWorkerPending=new Map();
 let nativeCatalogMode=false,nativeCatalogStats=null,nativeCatalogMigration=false;
@@ -414,16 +415,17 @@ const visibleArtworkRepairIds=new Set();
 let visibleMetadataActive=0,visibleMetadataObserver=null;
 const DISCOVERY_REFRESH_MS=4*60*60*1000;
 const DISCOVERY_FAST_REFRESH_MS=90*60*1000;
-const TOP100_RANKING_SCHEMA=2;
+const TOP100_RANKING_SCHEMA=3;
 const discoveryBundleMemory=new Map();
 let detailItem=null,detailPayload=null,detailLoading=false,detailError='',detailSeason='';
 let personView=null,personLoading=false,personError='',personMovies=[],personShows=[],personProgress=0,personStatus='',personScrollTop=0,personOpenToken=0;
-let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null;
+let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
 const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map();
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
 let suspendedBaseView=null,suspendedDetailView=null,suspendedPersonView=null;
 const persistentPageViews=new Map();
 const PERSISTENT_PAGE_IDS=new Set(['home','live','guide','starmeter','movies','series','mylist','search','settings']);
+const ANDROID_HEAVY_NONPERSISTENT_PAGES=new Set(['live','starmeter','movies','series']);
 let browseWarmupTimer=null,browseWarmupRunning=false;
 const detailCache=new Map();
 const personLibraryCache=new Map();
@@ -431,9 +433,10 @@ const detailPrefetchPending=new Map();
 const detailEpisodeItems=new Map();
 const viewLimits={live:100,movie:100,series:100};
 let guideLimit=48,guideCategory='',liveCategory='',providerFilter='all',pageCategory={movie:'',series:''},guideAutoLoadPending=false;
-const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=48,LONG_RAIL_RENDER_CHUNK=48,LONG_RAIL_PREFETCH_THRESHOLD=30;
-const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=10;
-const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=10;
+const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=36,LONG_RAIL_RENDER_CHUNK=36,LONG_RAIL_PREFETCH_THRESHOLD=30;
+const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=5;
+const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=6;
+const STARMETER_INITIAL_VISIBLE=5,STARMETER_APPEND_BATCH=4;
 let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
@@ -506,6 +509,7 @@ function clearPersistentPageViews(pages=null){
 }
 function cacheCurrentPageView(){
   if(profilePickerOpen||startupRefreshActive||storageRestoring||detailItem||personView||modal||!PERSISTENT_PAGE_IDS.has(state.page))return false;
+  if(NATIVE_ANDROID&&ANDROID_HEAVY_NONPERSISTENT_PAGES.has(state.page)){starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;return false;}
   const shell=$app?.querySelector?.('.app-shell'),main=shell?.querySelector?.(':scope > main');if(!shell||!main)return false;
   const prior=persistentPageViews.get(state.page);if(prior?.main&&prior.main!==main)prior.main.remove?.();
   persistentPageViews.set(state.page,{main,scrollY:window.scrollY||document.documentElement.scrollTop||0,savedAt:Date.now()});
@@ -519,9 +523,10 @@ function updateCachedNavState(page=state.page){
 function resumePageWork(page,root=document){
   hydrateArtwork(root);hydrateVisibleImdbRatings(root);bindRailStability(root);
   if(page==='home'){mountLazyHomeRows(root);scheduleHeroRotation();if(nativeCatalogMode)setTimeout(primeNativeHomeRows,80);if(!androidFastHomeMode())setTimeout(()=>refreshDiscoveryRows(false),1800);}
-  else if(page==='live')setTimeout(()=>primeLiveCategoryRails(),40);
+  else if(page==='live')setTimeout(()=>{primeLiveCategoryRails();setupLiveCategoryAutoLoad()},40);
   else if(page==='movies')setTimeout(()=>primeMediaCategoryRails('movie'),40);
   else if(page==='series')setTimeout(()=>primeMediaCategoryRails('series'),40);
+  else if(page==='starmeter')setTimeout(()=>{observeStarmeterSections(root);setupStarmeterAutoLoad()},40);
   else if(page==='guide')setTimeout(()=>loadGuideEpg(),250);
   if(state.catalog.length)setTimeout(scheduleMetadataEnrichment,450);
 }
@@ -538,6 +543,7 @@ function restorePersistentPageView(page){
 }
 function navigatePage(nextPage){
   if(NATIVE_ANDROID)personOpenToken++;
+  if(String(nextPage||'home')!=='starmeter'){starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
   if(NATIVE_ANDROID&&String(nextPage||'home')!=='live')stopLiveHeroPreview();
   nextPage=String(nextPage||'home');if(nextPage===state.page&&!detailItem&&!personView)return;
   if(profilePickerOpen||startupRefreshActive||storageRestoring||detailItem||personView){state.page=nextPage;if(nextPage==='guide')guideStart=Math.floor(Date.now()/1800000)*1800000;render();return}
@@ -1337,7 +1343,7 @@ function homeRowMarkup(def,dataOverride=null){
     if(def.web&&(!NATIVE_ANDROID||androidTrendingPending))return `<section class="section swoop-render-section ${def.poster?'poster-section':'landscape-section'} ${def.ranked?'ranked-section':''} ${PINNED_HOME_ROWS.includes(def.id)?'home-priority-row':''} ${androidTrendingPending?'android-home-row-pending':''}" data-home-row-mounted="${esc(def.id)}"${androidTrendingPending?' data-home-row-pending="1"':''}><div class="section-head"><div><h2>${esc(def.label)}</h2>${androidTrendingPending?'':`<span class="section-meta">${esc(discoveryMeta(def.id,data))}</span>`}</div><span class="rail-arrow">›</span></div><div class="lazy-row-skeleton poster-skeleton">${Array.from({length:6},()=>'<i></i>').join('')}</div></section>`;
     return'';
   }
-  const limit=androidFastHomeMode()?ANDROID_TV_HOME_INITIAL_RENDER:(String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT);
+  const limit=String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:(androidFastHomeMode()?ANDROID_TV_HOME_INITIAL_RENDER:HOME_STANDARD_ROW_LIMIT);
   return rail(def.label,data.slice(0,limit),def.poster,discoveryMeta(def.id,data),{page:def.page,ranked:def.ranked,rowId:def.id,priority:PINNED_HOME_ROWS.includes(def.id),total:data.length});
 }
 function androidInitialHomeRowsMarkup(rows=[],targetPopulated=ANDROID_TV_HOME_EAGER_ROWS){
@@ -1457,7 +1463,7 @@ function hero(feature,providerName,rotation={}){
   const poster=feature.logo?`<img class="hero-poster" data-swoop-art="${esc(feature.logo)}" alt="" loading="eager">`:'';
   const mainAction=isSeries?`<button class="btn play-btn" data-detail="${esc(feature.id)}"><span>▶</span> View Series</button>`:`<button class="btn play-btn" data-play="${esc(feature.id)}"><span>▶</span> Play</button>`;
   const total=Number(rotation.total||0),current=Number(rotation.index||0);
-  const rotationControls=total>1?`<div class="hero-rotation-controls"><button data-hero-step="-1" aria-label="Previous featured title">‹</button><div class="hero-rotation-dots">${Array.from({length:total},(_,i)=>`<button class="${i===current?'active':''}" data-hero-go="${i}" aria-label="Show featured title ${i+1}"></button>`).join('')}</div><button data-hero-step="1" aria-label="Next featured title">›</button></div>`:'';
+  const rotationControls=total>1?`<div class="hero-rotation-controls" aria-hidden="true"><div class="hero-rotation-dots">${Array.from({length:total},(_,i)=>`<i class="${i===current?'active':''}"></i>`).join('')}</div></div>`:'';
   const titleMarkup=`<div class="hero-title-slot ${titleLogo?'has-logo':''} ${titleState.pending?'logo-pending':''} ${titleState.settled&&!titleLogo?'logo-unavailable':''}" data-hero-title data-hero-item="${esc(feature.id)}"><h1 class="hero-title-text">${esc(displayTitle)}</h1><span class="hero-title-wait" aria-hidden="true"></span>${titleLogo?`<img class="hero-title-logo" data-swoop-art="${esc(titleLogo)}" alt="${esc(displayTitle)}">`:''}</div>`;
   const description=feature.plot?esc(feature.plot):isLive?`Watch ${esc(displayTitle)} live from your connected TV provider.`:`Discover ${esc(displayTitle)} in your connected ${esc(providerName)} library.`;
   return `<section class="hero hero-rotating" data-home-hero data-hero-item="${esc(feature.id)}"><div class="hero-media">${art}${poster}<div class="hero-fallback" style="--hero-fallback:${feature.demoColor||'linear-gradient(135deg,#1d2a44,#080a0e)'}"></div></div><div class="hero-vignette"></div>
@@ -1660,7 +1666,7 @@ async function primeMediaCategoryRails(kind='movie'){
   const cats=mediaRailCategories(kind).slice(0,limit).map(x=>x.name).filter(Boolean),pending=cats.filter(name=>!mediaRailCache.has(mediaRailKey(kind,name)));
   let cursor=0;
   async function worker(){while(cursor<pending.length){const name=pending[cursor++];try{await ensureMediaCategoryRail(kind,name);patchMediaCategoryRail(kind,name)}catch{mediaRailCache.set(mediaRailKey(kind,name),{items:[],total:0,loadedAt:Date.now()});patchMediaCategoryRail(kind,name)}}}
-  await Promise.all(Array.from({length:Math.min(3,pending.length||1)},worker));
+  await Promise.all(Array.from({length:Math.min(NATIVE_ANDROID?1:3,pending.length||1)},worker));
 }
 function mediaCategoryPage(kind='movie',title='Movies'){
   const base=nativeCatalogMode?(nativePageCache[kind]?.items||[]):items(kind),all=providerFiltered(base);
@@ -1713,7 +1719,12 @@ async function ensureLiveCategoryRail(category='',{append=false}={}){
 async function prefetchLiveRail(category=''){const snap=liveRailSnapshot(category);if(!snap.ready||snap.items.length>=Number(snap.total||0))return snap;const before=snap.items.length,next=await ensureLiveCategoryRail(category,{append:true});prewarmArtworkUrls((next.items||[]).slice(before,Math.min((next.items||[]).length,before+60)),60);return next;}
 async function primeLiveCategoryRails(){
   if(state.page!=='live'||detailItem||personView)return;const cats=liveRailCategories().slice(0,liveRailCategoryLimit).map(x=>x.name).filter(Boolean),pending=cats.filter(name=>!liveRailCache.has(liveRailKey(name)));
-  let cursor=0;async function worker(){while(cursor<pending.length){const name=pending[cursor++];try{await ensureLiveCategoryRail(name);patchLiveCategoryRail(name)}catch{liveRailCache.set(liveRailKey(name),{items:[],total:0,loadedAt:Date.now()});patchLiveCategoryRail(name)}}}await Promise.all(Array.from({length:Math.min(3,pending.length||1)},worker));
+  let cursor=0;async function worker(){while(cursor<pending.length){const name=pending[cursor++];try{await ensureLiveCategoryRail(name);patchLiveCategoryRail(name)}catch{liveRailCache.set(liveRailKey(name),{items:[],total:0,loadedAt:Date.now()});patchLiveCategoryRail(name)}}}await Promise.all(Array.from({length:Math.min(NATIVE_ANDROID?1:3,pending.length||1)},worker));
+}
+function patchLiveHeroFocusedChannel(item){
+  if(state.page!=='live'||!item)return false;const hero=document.querySelector('.live-hub-hero'),copy=hero?.querySelector('.live-hub-copy'),brand=hero?.querySelector('.live-hub-brand-panel');if(!hero||!copy||!brand)return false;
+  const title=copy.querySelector('h1');if(title)title.textContent=item.name||'Live TV';const watch=copy.querySelector('[data-play]');if(watch)watch.dataset.play=item.id||'';const fav=copy.querySelector('[data-live-favourite]');if(fav){fav.dataset.liveFavourite=item.id||'';fav.textContent=isLiveFavourite(item)?'★ Favourite':'☆ Add Favourite'}
+  const visual=visualItem(item),logo=String(visual?.logo||'');let img=brand.querySelector('.live-hub-art');if(logo){if(!img){img=document.createElement('img');img.className='live-hub-art';img.alt='';brand.prepend(img)}if(img.dataset.swoopArt!==logo){img.dataset.swoopArt=logo;img.dataset.swoopLoaded='';img.removeAttribute('src');loadArtwork(img,{priority:'high'})}}else img?.remove();return true;
 }
 function stopLiveHeroPreview(){
   if(livePreviewTimer){clearTimeout(livePreviewTimer);livePreviewTimer=null}livePreviewItemId='';
@@ -1759,37 +1770,59 @@ async function ensureStarmeterLoaded(){
     if(remote&&NATIVE_ANDROID){try{data=JSON.parse(String(await nativeFetchText(remote)||'{}'))}catch{}}
     if(!Array.isArray(data?.people)||!data.people.length){const res=await fetch('./starmeter.json',{cache:'no-store'});if(!res.ok)throw new Error(`STARmeter manifest HTTP ${res.status}`);data=await res.json()}
     starmeterPeople=(Array.isArray(data.people)?data.people:[]).slice(0,100).map((p,i)=>({rank:Number(p.rank||i+1),name:String(p.name||'').trim(),profile:String(p.profile||''),id:String(p.id||''),knownForDepartment:String(p.knownForDepartment||'Person')})).filter(x=>x.name);
-    starmeterLoaded=true;starmeterLoading=false;if(state.page==='starmeter'&&!detailItem&&!personView)render();setTimeout(()=>prewarmStarmeterHotCache(12),500);return starmeterPeople;
+    starmeterLoaded=true;starmeterLoading=false;starmeterVisibleCount=STARMETER_INITIAL_VISIBLE;if(state.page==='starmeter'&&!detailItem&&!personView)render();setTimeout(()=>prewarmStarmeterHotCache(100),1200);return starmeterPeople;
   }catch(err){starmeterLoading=false;starmeterError=err?.message||String(err);if(state.page==='starmeter')render();return[]}
 }
 function starmeterPersonSeed(entry={}){const hot=starmeterHotCache.get(starmeterNormalize(entry.name));return hot?.person||{id:entry.id||'',name:entry.name||'',profile:entry.profile||'',knownForDepartment:entry.knownForDepartment||'Person'}}
+function starmeterPopularityValue(item={}){return Number(item.popularity||item.voteCount||item.vote_count||item.rating||item.imdbRating||0)||0}
+function starmeterPersonTitles(cached){
+  if(!cached)return[];
+  const all=[...(cached.movies||[]),...(cached.shows||[])];
+  return all.sort((a,b)=>starmeterPopularityValue(b)-starmeterPopularityValue(a)||yearNumber(b)-yearNumber(a)||String(a?.name||'').localeCompare(String(b?.name||'')));
+}
 function starmeterPersonSection(entry={}){
-  const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=cached?[...cached.movies,...cached.shows].sort((a,b)=>(yearNumber(b)-yearNumber(a))):[];
-  const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
-  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">No connected-provider titles found.</div>`:`<div class="starmeter-row-loading"><i></i><i></i><i></i><i></i><span>Matching available movies & TV shows…</span></div>`);
-  return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}">${portrait}<b>#${Number(entry.rank||0)}</b><strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
+  const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached);
+  const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
+  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">No connected-provider titles found.</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`);
+  return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
-  const body=starmeterPeople.length?starmeterPeople.map(starmeterPersonSection).join(''):starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
+  const visible=starmeterPeople.slice(0,Math.max(STARMETER_INITIAL_VISIBLE,starmeterVisibleCount));
+  const body=visible.length?`${visible.map(starmeterPersonSection).join('')}<div class="starmeter-auto-load-sentinel" data-starmeter-sentinel aria-hidden="true"></div>`:starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
   return `<main class="page starmeter-page"><section class="starmeter-hero"><div><span class="eyebrow">IMDb · TRENDING PEOPLE</span><h1>STARmeter</h1><p>The current IMDb Top 100 people, connected directly to movies and TV shows available in your Swoop TV providers.</p></div><div class="starmeter-count"><strong>${starmeterPeople.length||100}</strong><span>PEOPLE</span></div></section><div class="page-content starmeter-content">${body}</div></main>`;
+}
+async function hydrateStarmeterIdentity(entry={}){
+  const key=starmeterNormalize(entry.name);if(!key)return null;const hot=starmeterHotCache.get(key);if(hot?.person?.profile||hot?.person?.id)return hot.person;
+  try{const found=await searchPeople({settings:state.settings,query:entry.name,limit:3}),exact=(found||[]).find(p=>starmeterNormalize(p.name)===key)||(found||[])[0];if(!exact)return starmeterPersonSeed(entry);const person={id:String(exact.id||entry.id||''),name:String(exact.name||entry.name),profile:String(exact.profile||entry.profile||''),knownForDepartment:String(exact.knownForDepartment||entry.knownForDepartment||'Person')};starmeterHotCache.set(key,{person,identityOnly:true,loadedAt:Date.now()});patchStarmeterIdentity(entry.rank,person);return person}catch{return starmeterPersonSeed(entry)}
 }
 async function hydrateStarmeterPerson(entry={}){
   const key=starmeterNormalize(entry.name);if(!key)return null;if(starmeterPersonCache.has(key))return starmeterPersonCache.get(key);if(starmeterHydratePending.has(key))return starmeterHydratePending.get(key);
   const task=(async()=>{try{
-    const found=await searchPeople({settings:state.settings,query:entry.name,limit:5}),exact=(found||[]).find(p=>starmeterNormalize(p.name)===key)||(found||[])[0]||{name:entry.name};
-    const seed={id:String(exact.id||entry.id||''),name:String(exact.name||entry.name),profile:String(exact.profile||entry.profile||''),knownForDepartment:String(exact.knownForDepartment||entry.knownForDepartment||'Person')};
+    const seed=await hydrateStarmeterIdentity(entry)||starmeterPersonSeed(entry);
     const ready=NATIVE_ANDROID?await loadAndroidPersonData(seed):(async()=>{const remote=await fetchPersonCredits({settings:state.settings,personId:seed.id,name:seed.name});if(!remote)return {person:seed,movies:[],shows:[]};const matched=await matchPersonCreditsToLibrary(remote.credits||[]);return {person:{...seed,...remote,profile:remote.profile||seed.profile},...matched}})();
     const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterPersonCache.set(key,value);starmeterHotCache.set(key,value);personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
   }catch{return null}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
-function patchStarmeterPerson(rank){if(state.page!=='starmeter'||detailItem||personView)return false;const entry=starmeterPeople.find(x=>Number(x.rank)===Number(rank)),section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!entry||!section)return false;const wrap=document.createElement('div');wrap.innerHTML=starmeterPersonSection(entry);const fresh=wrap.firstElementChild;if(!fresh)return false;section.replaceWith(fresh);hydrateArtwork(fresh);hydrateVisibleImdbRatings(fresh);bindDynamicCards(fresh);bindPersonLinks(fresh);observeStarmeterSections(fresh);return true}
+function patchStarmeterIdentity(rank,person={}){if(state.page!=='starmeter')return false;const section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!section)return false;const cardEl=section.querySelector('.starmeter-person-card');if(!cardEl)return false;cardEl.dataset.personId=person.id||'';cardEl.dataset.personProfile=person.profile||'';cardEl.dataset.personDepartment=person.knownForDepartment||'Person';const old=cardEl.querySelector('img,.starmeter-person-fallback'),fresh=person.profile?Object.assign(document.createElement('img'),{alt:person.name||''}):document.createElement('div');if(person.profile){fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true}
+function patchStarmeterPerson(rank){
+  if(state.page!=='starmeter'||detailItem||personView)return false;const entry=starmeterPeople.find(x=>Number(x.rank)===Number(rank)),section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!entry||!section)return false;
+  const active=section.contains(document.activeElement)?tvFocusSignature(document.activeElement):null,wrap=document.createElement('div');wrap.innerHTML=starmeterPersonSection(entry);const fresh=wrap.firstElementChild;if(!fresh)return false;
+  const oldPerson=section.querySelector('.starmeter-person-column'),oldLibrary=section.querySelector('.starmeter-library-column'),newPerson=fresh.querySelector('.starmeter-person-column'),newLibrary=fresh.querySelector('.starmeter-library-column');if(oldPerson&&newPerson)oldPerson.replaceWith(newPerson);if(oldLibrary&&newLibrary)oldLibrary.replaceWith(newLibrary);
+  hydrateArtwork(section);hydrateVisibleImdbRatings(section);bindDynamicCards(section);bindPersonLinks(section);if(active)requestAnimationFrame(()=>restoreFocusSignatureIn(section,active));return true;
+}
+function restoreFocusSignatureIn(root,sig){if(!root||!sig)return false;let target=null;if(sig.id)target=root.querySelector(`#${CSS.escape(sig.id)}`);if(!target&&sig.attr)target=[...root.querySelectorAll(`[${sig.attr}]`)].find(x=>x.getAttribute(sig.attr)===sig.value);if(!target&&sig.text)target=[...root.querySelectorAll('button,[tabindex],.card')].find(x=>(x.getAttribute('aria-label')||x.textContent||'').trim().replace(/\s+/g,' ').slice(0,100)===sig.text);if(target){try{target.focus({preventScroll:true})}catch{target.focus()}return true}return false}
+function appendStarmeterSections(count=STARMETER_APPEND_BATCH){
+  if(state.page!=='starmeter'||!starmeterPeople.length)return false;const host=document.querySelector('.starmeter-content'),sentinel=host?.querySelector('[data-starmeter-sentinel]');if(!host||!sentinel)return false;const start=Math.max(STARMETER_INITIAL_VISIBLE,starmeterVisibleCount),end=Math.min(starmeterPeople.length,start+Math.max(1,Number(count||STARMETER_APPEND_BATCH)));if(end<=start)return false;
+  const wrap=document.createElement('div');wrap.innerHTML=starmeterPeople.slice(start,end).map(starmeterPersonSection).join('');const nodes=[...wrap.children];for(const node of nodes)host.insertBefore(node,sentinel);starmeterVisibleCount=end;for(const node of nodes){hydrateArtwork(node);bindDynamicCards(node);bindPersonLinks(node);observeStarmeterSections(node)}if(end>=starmeterPeople.length)sentinel.remove();return true;
+}
 function observeStarmeterSections(root=document){
-  if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,12).forEach(hydrateStarmeterPerson);return}
-  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);for(let i=Math.max(0,idx-1);i<Math.min(starmeterPeople.length,idx+4);i++)hydrateStarmeterPerson(starmeterPeople[i]);}}, {root:null,rootMargin:'800px 0px 800px 0px',threshold:.01});
+  if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,Math.min(starmeterVisibleCount,6)).forEach(hydrateStarmeterPerson);return}
+  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){hydrateStarmeterPerson(starmeterPeople[idx]);if(idx+1<starmeterPeople.length)hydrateStarmeterIdentity(starmeterPeople[idx+1]);}}}, {root:null,rootMargin:'360px 0px 360px 0px',threshold:.01});
   const nodes=root?.matches?.('.starmeter-person-section')?[root]:[...(root?.querySelectorAll?.('.starmeter-person-section')||[])];nodes.forEach(x=>starmeterObserver.observe(x));
 }
+function setupStarmeterAutoLoad(){if(state.page!=='starmeter')return;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;const sentinel=document.querySelector('[data-starmeter-sentinel]');if(!sentinel)return;if(!('IntersectionObserver'in globalThis))return;if(starmeterVisibleCount>=starmeterPeople.length){sentinel.remove();return}starmeterAutoLoadObserver=new IntersectionObserver(entries=>{if(!entries.some(e=>e.isIntersecting))return;if(appendStarmeterSections(STARMETER_APPEND_BATCH)&&starmeterVisibleCount<starmeterPeople.length)setupStarmeterAutoLoad()},{root:null,rootMargin:'700px 0px',threshold:.01});starmeterAutoLoadObserver.observe(sentinel)}
 function prewarmStarmeterHotCache(limit=100){
-  clearTimeout(starmeterPrewarmTimer);let index=0,max=Math.min(Number(limit||100),starmeterPeople.length);const step=async()=>{if(index>=max)return;if(Date.now()-Number(tvLastActivationAt||0)<1400){starmeterPrewarmTimer=setTimeout(step,1700);return}const entry=starmeterPeople[index++];await hydrateStarmeterPerson(entry);starmeterPrewarmTimer=setTimeout(step,index<12?220:900)};starmeterPrewarmTimer=setTimeout(step,50)
+  clearTimeout(starmeterPrewarmTimer);let index=0,max=Math.min(Number(limit||100),starmeterPeople.length);const step=async()=>{if(index>=max)return;if(state.page==='starmeter'||Date.now()-Number(tvLastActivationAt||0)<2200){starmeterPrewarmTimer=setTimeout(step,2200);return}const entry=starmeterPeople[index++];await hydrateStarmeterIdentity(entry);starmeterPrewarmTimer=setTimeout(step,index<12?900:2200)};starmeterPrewarmTimer=setTimeout(step,1200)
 }
 function starmeterPeopleForSearch(term=''){
   const q=starmeterNormalize(term);if(q.length<2)return[];
@@ -2182,7 +2215,7 @@ function render(){
   bind();bindHeroControls(document);
   if(NATIVE_ANDROID)restoreTvFocus();
   if(!profilePickerOpen&&!mediaRoute&&state.page==='search')runSearch('');
-  if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>observeStarmeterSections(document),0)}
+  if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>{observeStarmeterSections(document);setupStarmeterAutoLoad()},0)}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='live')setTimeout(setupLiveCategoryAutoLoad,0)
   if(detailRoute&&detailItem?.kind==='series'&&!detailLoading)setTimeout(prewarmSelectedEpisodeMetadata,0);
   hydrateArtwork();
@@ -2909,7 +2942,7 @@ function bindDynamicCards(root=document){
 }
 
 function bind(){
-  document.querySelectorAll('[data-starmeter-retry]').forEach(el=>el.onclick=()=>{starmeterLoaded=false;starmeterLoading=false;starmeterError='';starmeterPeople=[];ensureStarmeterLoaded();render()});
+  document.querySelectorAll('[data-starmeter-retry]').forEach(el=>el.onclick=()=>{starmeterLoaded=false;starmeterLoading=false;starmeterError='';starmeterPeople=[];starmeterVisibleCount=STARMETER_INITIAL_VISIBLE;ensureStarmeterLoaded();render()});
   document.querySelectorAll('[data-profile-picker]').forEach(el=>el.onclick=()=>{syncActiveProfileFromState();persist();profilePickerOpen=true;modal=null;profileEditId='';render()});
   document.querySelectorAll('[data-profile-manage]').forEach(el=>el.onclick=()=>{profilePickerOpen=false;modal='profiles';render()});
   document.querySelectorAll('[data-profile-add]').forEach(el=>el.onclick=()=>{profilePickerOpen=false;profileEditId='';modal='profileEdit';render()});
@@ -2923,7 +2956,7 @@ function bind(){
   document.querySelector('#profilePinForm')?.addEventListener('submit',async e=>{e.preventDefault();const target=state.profiles.find(p=>p.id===pendingProfileId),pin=String(new FormData(e.currentTarget).get('pin')||'');if(!target)return;const digest=await pinDigest(pin,target.pinSalt);if(digest!==target.pinHash){profilePinError='Incorrect PIN. Try again.';render();return}const id=target.id;pendingProfileId='';profilePinError='';await switchProfile(id,{skipPin:true})});
   document.querySelector('#profileForm')?.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget),id=String(fd.get('id')||''),existing=state.profiles.find(p=>p.id===id)||null,name=String(fd.get('name')||'Profile').trim(),avatar=String(fd.get('avatar')||'lion'),kids=Boolean(fd.get('kids')),smartHome=Boolean(fd.get('smartHome')),themeId=themeById(String(fd.get('themeId')||existing?.profileSettings?.themeId||'swoop')).id,pin=String(fd.get('pin')||'').trim(),removePin=Boolean(fd.get('removePin'));if(!name){toast('Enter a profile name');return}if(pin&&!/^\d{4,8}$/.test(pin)){toast('Profile PIN must be 4–8 digits');return}if(existing?.id===state.activeProfileId)syncActiveProfileFromState();let next=existing?normalizeProfile(state.profiles.find(p=>p.id===id)||existing):makeProfile({name,avatar,kids,profileSettings:{themeId:'swoop',backgroundColor:'#030306',backgroundOverride:false,movieSourcePreferences:{},homeRows:[...DEFAULT_HOME_ROWS],smartHomeOrder:true}});next={...next,name:name.slice(0,24),avatar:avatarById(avatar).id,kids,profileSettings:{...(next.profileSettings||{}),smartHomeOrder:smartHome,themeId}};if(kids){const rawById=x=>state.catalog.find(item=>item.id===x)||next.continueWatching.find(e=>e.id===x)?.item||next.watchHistory.find(e=>e.id===x)?.item||null;next.myList=next.myList.filter(id=>{const item=rawById(id);return !item||profileAllowsMedia(next,item,state.metadataCache?.[item.id]||{})});next.continueWatching=next.continueWatching.filter(e=>!e?.item||profileAllowsMedia(next,e.item,state.metadataCache?.[e.id]||{}));next.watchHistory=next.watchHistory.filter(e=>!e?.item||profileAllowsMedia(next,e.item,state.metadataCache?.[e.id]||{}));}if(removePin){next.pinHash='';next.pinSalt=''}else if(pin){next.pinSalt=randomSalt();next.pinHash=await pinDigest(pin,next.pinSalt)}if(existing){const i=state.profiles.findIndex(p=>p.id===existing.id);state.profiles[i]=next;if(existing.id===state.activeProfileId){applyProfileToState(next)}}else{state.profiles.push(next);state.activeProfileId=next.id;applyProfileToState(next)}profileEditId='';modal=null;profilePickerOpen=false;await persist();render();toast(existing?'Profile updated':`Welcome, ${next.name}`)});
   document.querySelectorAll('[data-profile-delete]').forEach(el=>el.onclick=async()=>{const id=el.dataset.profileDelete;if(state.profiles.length<=1){toast('Swoop TV needs at least one profile');return}const wasActive=id===state.activeProfileId;state.profiles=state.profiles.filter(p=>p.id!==id);if(wasActive){state.activeProfileId=state.profiles[0].id;applyProfileToState(state.profiles[0])}profileEditId='';modal='profiles';await persist();render();toast('Profile deleted')});
-  document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>navigatePage(el.dataset.page));
+  document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{const target=el.dataset.page;navigatePage(target);if(NATIVE_ANDROID&&target==='search')requestAnimationFrame(()=>document.querySelector('#searchInput')?.focus?.({preventScroll:true}))});
   document.querySelectorAll('[data-modal]').forEach(el=>el.onclick=()=>{modal=el.dataset.modal;render()});
   document.querySelectorAll('[data-close]').forEach(el=>el.onclick=()=>{modal=null;render()});
   document.querySelectorAll('[data-close-modal]').forEach(el=>el.onclick=e=>{if(e.target===el){modal=null;render()}});
@@ -2968,7 +3001,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:825,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:826,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3148,6 +3181,30 @@ function tvPageRailSections(){
   if(state.page==='starmeter')return [...document.querySelectorAll('.starmeter-person-section')].filter(x=>x.offsetParent!==null&&tvRailCards(x).length);
   return [];
 }
+let tvRailAdvancePending=false;
+async function tvAdvanceLongRailRight(current){
+  if(tvRailAdvancePending||!current?.isConnected)return false;const track=current.closest?.('[data-long-rail]');if(!track)return false;tvRailAdvancePending=true;
+  try{
+    const before=tvRailCards(tvRailSection(current)),index=before.indexOf(current.closest?.('.card,.live-rail-card')||current);if(index<0)return false;
+    if(track.dataset.longRail==='media'){const kind=track.dataset.longRailKind||'movie',category=track.dataset.longRailCategory||'';await prefetchMediaRail(kind,category);longRailAppend(current)}
+    else if(track.dataset.longRail==='live'){const category=track.dataset.longRailCategory||'';await prefetchLiveRail(category);longRailAppend(current)}
+    const after=tvRailCards(tvRailSection(current)),freshIndex=after.indexOf(current.closest?.('.card,.live-rail-card')||current),next=freshIndex>=0?after[freshIndex+1]:after[index+1];if(next){tvHomeFocus(next,'nearest');return true}return false;
+  }finally{tvRailAdvancePending=false}
+}
+function tvTopbarDirectionalTarget(current,key){
+  if(!tvIsTopNavigationElement(current)||(key!=='ArrowLeft'&&key!=='ArrowRight'))return null;const controls=[...document.querySelectorAll('.topbar .brand,.topbar .desktop-nav .nav-btn,.topbar .top-actions button')].filter(el=>el.offsetParent!==null&&!el.disabled),index=controls.indexOf(current.closest('button'));if(index<0)return null;return controls[index+(key==='ArrowRight'?1:-1)]||null;
+}
+function tvTopbarDownTarget(current){
+  if(!tvIsTopNavigationElement(current))return null;const page=String(current?.dataset?.page||state.page||'');
+  if(page==='search')return document.querySelector('#searchInput');
+  if(page==='home')return tvHomeHeroAction();
+  if(page==='live')return document.querySelector('.live-hub-copy .btn');
+  if(page==='movies'||page==='series')return document.querySelector('.media-category-page .page-hero .btn');
+  if(page==='guide')return document.querySelector('.guide-page [data-guide-category],.guide-page button');
+  if(page==='starmeter')return document.querySelector('.starmeter-person-card,.starmeter-title-rail .card');
+  if(page==='mylist')return document.querySelector('.mylist-page .card');
+  return document.querySelector('main button,main input,main .card');
+}
 function tvGenericRailDirectionalTarget(current,key){
   const card=current?.closest?.('.card,.live-rail-card'),section=tvRailSection(card);if(!card||!section)return null;
   let cards=tvRailCards(section),index=cards.indexOf(card);if(index<0)return null;
@@ -3200,6 +3257,7 @@ function tvMoveFocus(key){
   let focusables=tvFocusableElements();if(!focusables.length)return false;
   let current=document.activeElement;
   if(!focusables.includes(current)){const first=tvInitialFocus(focusables);if(first){first.focus();first.scrollIntoView({block:'nearest',inline:'nearest'});return true}return false}
+  if(NATIVE_ANDROID){const topbarTarget=tvTopbarDirectionalTarget(current,key);if(topbarTarget)return tvHomeFocus(topbarTarget,'nearest');if(key==='ArrowDown'&&tvIsTopNavigationElement(current)){const down=tvTopbarDownTarget(current);if(down)return tvHomeFocus(down,'nearest')}}
   if(NATIVE_ANDROID&&state.page==='home'){
     const heroAction=tvHomeHeroAction(),firstSection=tvHomeFirstMountedSection(),currentSection=current.closest?.('[data-home-row-mounted]');
     if(key==='ArrowUp'&&firstSection&&currentSection===firstSection&&heroAction)return tvHomeFocus(heroAction,'start');
@@ -3210,6 +3268,7 @@ function tvMoveFocus(key){
   }
   if(NATIVE_ANDROID&&['movies','series','live','starmeter'].includes(state.page)){
     const railTarget=tvGenericRailDirectionalTarget(current,key);if(railTarget)return tvHomeFocus(railTarget,'nearest');
+    if(key==='ArrowRight'&&tvRailSection(current)){tvAdvanceLongRailRight(current);return true}
     if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true;
     const sections=tvPageRailSections(),first=sections[0],currentSection=tvRailSection(current);
     if(key==='ArrowUp'&&first&&currentSection===first){const heroAction=document.querySelector('.page-hero .btn,.live-hub-hero .btn');if(heroAction)return tvHomeFocus(heroAction,'nearest')}
@@ -3230,9 +3289,10 @@ function tvMoveFocus(key){
 }
 
 
+function appendLiveCategorySections(count=LIVE_RAIL_CATEGORY_BATCH){const browser=document.querySelector('.live-category-browser'),sentinel=browser?.querySelector('[data-live-category-sentinel]');if(!browser||!sentinel)return false;const cats=liveRailCategories(),start=liveRailCategoryLimit,end=Math.min(cats.length,start+Math.max(1,Number(count||LIVE_RAIL_CATEGORY_BATCH)));if(end<=start)return false;const wrap=document.createElement('div');wrap.innerHTML=cats.slice(start,end).map(liveCategoryRailMarkup).join('');const nodes=[...wrap.children];for(const node of nodes)browser.insertBefore(node,sentinel);liveRailCategoryLimit=end;for(const node of nodes){hydrateArtwork(node);bindDynamicCards(node)}primeLiveCategoryRails();if(end>=cats.length)sentinel.remove();return true}
 function setupLiveCategoryAutoLoad(){
-  if(state.page!=='live')return;const sentinel=document.querySelector('[data-live-category-sentinel]');if(!sentinel)return;const total=liveRailCategories().length;if(liveRailCategoryLimit>=total)return;
-  if('IntersectionObserver'in globalThis){const obs=new IntersectionObserver(entries=>{if(!entries.some(e=>e.isIntersecting))return;obs.disconnect();liveRailCategoryLimit=Math.min(total,liveRailCategoryLimit+LIVE_RAIL_CATEGORY_BATCH);render()},{root:null,rootMargin:'900px 0px',threshold:.01});obs.observe(sentinel)}
+  if(state.page!=='live')return;const sentinel=document.querySelector('[data-live-category-sentinel]');if(!sentinel)return;const total=liveRailCategories().length;if(liveRailCategoryLimit>=total){sentinel.remove();return}
+  if('IntersectionObserver'in globalThis){const obs=new IntersectionObserver(entries=>{if(!entries.some(e=>e.isIntersecting))return;obs.disconnect();appendLiveCategorySections(LIVE_RAIL_CATEGORY_BATCH);setupLiveCategoryAutoLoad()},{root:null,rootMargin:'650px 0px',threshold:.01});obs.observe(sentinel)}
 }
 function maybeAutoLoadGuideFromFocus(el){
   if(!NATIVE_ANDROID||state.page!=='guide'||guideAutoLoadPending)return;const row=el?.closest?.('[data-guide-row]');if(!row)return;
@@ -3248,7 +3308,8 @@ document.addEventListener('focusin',e=>{
     document.querySelector('[data-swoop-tv-focused="1"]')?.removeAttribute('data-swoop-tv-focused');
     el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;
     const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);longRailPrefetchForFocus(card)}
-    if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live')scheduleLiveHeroPreview(item,650)}
+    if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,700)}}
+    if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0);if(rank&&rank>=starmeterVisibleCount-1){appendStarmeterSections(STARMETER_APPEND_BATCH);setupStarmeterAutoLoad()}}
     if(state.page==='guide')maybeAutoLoadGuideFromFocus(el);
   }
 },true);
@@ -3287,6 +3348,11 @@ window.__swoopTvActivateFocused=(source='')=>{
     active.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));return true;
   }catch{return false}
 };
+
+if(NATIVE_ANDROID){
+  window.addEventListener('error',e=>{try{sessionStorage.setItem('swoop-tv-last-runtime-error',JSON.stringify({at:Date.now(),page:state.page,message:String(e?.message||'error')}));sessionStorage.setItem('swoop-tv-last-route',state.page||'home')}catch{}},true);
+  window.addEventListener('unhandledrejection',e=>{try{sessionStorage.setItem('swoop-tv-last-runtime-error',JSON.stringify({at:Date.now(),page:state.page,message:String(e?.reason?.message||e?.reason||'rejection')}));sessionStorage.setItem('swoop-tv-last-route',state.page||'home')}catch{}},true);
+}
 
 window.addEventListener('keydown',e=>{
   if(NATIVE_ANDROID&&e.key==='Enter'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){

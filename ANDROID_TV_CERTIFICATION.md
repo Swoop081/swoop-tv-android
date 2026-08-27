@@ -1,4 +1,4 @@
-# Swoop TV v0.8.25 — Google TV hardware test checklist
+# Swoop TV v0.8.26 — Google TV hardware test checklist
 
 ## Highest-priority navigation checks
 
@@ -54,11 +54,22 @@
 
 ## Update / modal regression
 
-- [ ] After installing v0.8.25, What’s New opens once after profile selection with **Got it** focused.
+- [ ] After installing v0.8.26, What’s New opens once after profile selection with **Got it** focused.
 - [ ] D-pad cannot move/scroll Home behind the modal.
 - [ ] Got it, X and Android Back dismiss correctly.
 - [ ] Settings can reopen What’s New.
 - [ ] Update check remains non-blocking and can surface a later version when one exists.
+
+
+## v0.8.26 performance/stability stress checks
+
+- [ ] Switch repeatedly between Home, Live TV, STARmeter, Movies and TV Shows for at least 10 minutes. There must be no progressive slowdown, multi-second black frame, renderer reset or unexpected return to Who’s watching.
+- [ ] On STARmeter, only a small visible people window hydrates at once. Scrolling should not trigger a whole-page rebuild, layout jump or focus loss as filmographies arrive.
+- [ ] STARmeter ranks/portraits are large and cast-style circular; title rails use large cards and remain stable while background matches resolve.
+- [ ] On Live TV, scroll through multiple category sections. Off-screen category DOM must not accumulate into a placeholder storm or make D-pad response degrade.
+- [ ] Search is reachable by Left/Right from Providers in the persistent header and opening Search immediately focuses the input.
+- [ ] Home featured art does not crop faces/heads and the old arrow/progress control is replaced by a small non-focusable 10-dot indicator.
+- [ ] Movies and TV Shows use the same approved Home hero geometry and art-containment rules.
 
 ## Playback / stability
 

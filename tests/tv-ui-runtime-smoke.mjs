@@ -40,7 +40,7 @@ if (output.filter(x=>x.name==='Villains Unite').length !== 2) throw new Error('K
 if (!appSource.includes("if(id==='top20-movies'||id==='top20-shows')return '';")) throw new Error('Top 100 availability label suppression missing');
 if (!appSource.includes("if(String(id).startsWith('top20-'))return'hot';")) throw new Error('Top 100 hot/trending mode missing');
 if (!appSource.includes('const HOME_RANKED_ROW_LIMIT=100;')) throw new Error('Top 100 100-title cap missing');
-if (!appSource.includes('const TOP100_RANKING_SCHEMA=2;')) throw new Error('Top 100 ranking cache schema missing');
+if (!appSource.includes('const TOP100_RANKING_SCHEMA=3;')) throw new Error('Top 100 ranking cache schema missing');
 
 // v0.8.23+ deterministic remote/focus system.
 if (!appSource.includes('function tvQueueVerticalMove(key)')) throw new Error('Queued vertical D-pad navigation missing');
@@ -67,13 +67,13 @@ if (!cssSource.includes('data-tv-density="compact"') || !cssSource.includes('dat
 // v0.8.25 long-rail/vertical-position regressions.
 if (!appSource.includes("if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true")) throw new Error('Horizontal rail ownership guard missing; focus can escape to another row at a render boundary');
 if (!appSource.includes("const r=card.getBoundingClientRect(),cx=(r.left+r.right)/2")) throw new Error('Visual-column Up/Down targeting missing');
-if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=48') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=48')) throw new Error('Larger lazy-render safety window missing');
+if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=36') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=36')) throw new Error('Larger lazy-render safety window missing');
 if (!appSource.includes("['home','Home'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies']")) throw new Error('STARmeter primary navigation placement missing');
 if (!appSource.includes('function starmeterPage()') || !appSource.includes('function prewarmStarmeterHotCache')) throw new Error('STARmeter page/hot-cache implementation missing');
 if (!appSource.includes("fetch('./starmeter.json'")) throw new Error('Bundled STARmeter fallback manifest missing');
 if (!appSource.includes("[data-starmeter-retry]") || !appSource.includes('starmeterObserver?.disconnect?.()')) throw new Error('STARmeter retry/observer cleanup missing');
 if (!appSource.includes('function prewarmSelectedEpisodeMetadata()') || !appSource.includes('fetchEpisodeMetadata')) throw new Error('Episode metadata background enrichment missing');
-if (!cssSource.includes('grid-template-columns:minmax(0,38%) minmax(0,34%) minmax(0,28%)')) throw new Error('Live TV left/preview/brand three-column hero missing');
+if (!cssSource.includes('grid-template-columns:minmax(0,39%) minmax(0,31%) minmax(0,30%)')) throw new Error('Live TV left/preview/brand three-column hero missing');
 if (!cssSource.includes('grid-auto-columns:minmax(0,168px)!important')) throw new Error('Larger Browse Live TV tiles missing');
 if (!cssSource.includes('font-size:8px!important')) throw new Error('Smaller TV IMDb badge missing');
 
@@ -88,6 +88,7 @@ if (!cssSource.includes('html.android-tv .card.poster .card-copy')) throw new Er
 if (!appSource.includes('live-preview-anchor')) throw new Error('Live TV preview anchor missing');
 if (!nativeSource.includes('export async function nativePreviewLive')) throw new Error('Native Live TV preview bridge missing');
 if (!activitySource.includes('startPreviewPlayer')) throw new Error('Media3 muted preview player missing');
+if (!activitySource.includes('import android.util.Log;') || !activitySource.includes('WebView renderer exited')) throw new Error('Android renderer-loss diagnostics missing');
 if (!cssSource.includes('object-fit:contain!important') || !cssSource.includes('transform:none!important')) throw new Error('Contained Live TV logo treatment missing');
 
 // Guide redesign and automatic continuation.
@@ -104,11 +105,26 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.25';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.26';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
 if (!cssSource.includes('html.android-tv.tv-modal-open')) throw new Error('TV modal background scroll lock CSS missing');
 if (!appSource.includes('modalRoot.contains(found)')) throw new Error('TV focus restore can still escape behind an open modal');
 
+
+// v0.8.26 hardware performance/stability regressions.
+if (!appSource.includes('async function tvAdvanceLongRailRight(current)')) throw new Error('Async long-rail boundary continuation missing');
+if (!appSource.includes('ANDROID_HEAVY_NONPERSISTENT_PAGES')) throw new Error('Android heavy-page DOM eviction missing');
+if (!appSource.includes('STARMETER_INITIAL_VISIBLE=5,STARMETER_APPEND_BATCH=4')) throw new Error('STARmeter visible-window virtualization constants missing');
+if (!appSource.includes('function appendStarmeterSections(') || !appSource.includes('function setupStarmeterAutoLoad()')) throw new Error('STARmeter virtual append/autoload missing');
+if (!appSource.includes('function hydrateStarmeterIdentity(')) throw new Error('STARmeter identity-only prewarm path missing');
+if (!appSource.includes('function appendLiveCategorySections(')) throw new Error('Live TV in-place category append missing');
+if (!appSource.includes('function patchLiveHeroFocusedChannel(')) throw new Error('Focused Live TV hero update missing');
+if (!appSource.includes('function tvTopbarDirectionalTarget(') || !appSource.includes('function tvTopbarDownTarget(')) throw new Error('Deterministic topbar focus routing missing');
+if (!cssSource.includes('.hero-rotation-dots i.active')) throw new Error('Small non-focusable Home hero dots missing');
+if (!cssSource.includes('.media-category-page .page-hero') || !cssSource.includes('height:440px!important')) throw new Error('Movies/TV Shows approved Home hero parity missing');
+if (!cssSource.includes('grid-template-columns:230px minmax(0,1fr)!important')) throw new Error('Large people-first STARmeter layout missing');
+if (!cssSource.includes('border-radius:999px!important;object-fit:cover!important')) throw new Error('Circular STARmeter portraits missing');
+if (!cssSource.includes('width:75%!important;height:75%!important')) throw new Error('Reduced centered Live TV brand treatment missing');
 console.log('Google TV UI runtime smoke passed');

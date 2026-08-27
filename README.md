@@ -1,26 +1,25 @@
-# Swoop TV v0.8.25 — Google TV STARmeter + Navigation + Metadata Polish
+# Swoop TV v0.8.26 — Google TV Performance + Stability + Hardware Polish
 
 Swoop TV is a content-neutral IPTV player. This source package is the current Google TV / Android TV hardware-test branch.
 
-## v0.8.25 highlights
+## v0.8.26 highlights
 
-- Adds **STARmeter** between Guide and Movies. The bundled manifest contains the current 100-name IMDb STARmeter / Trending People ordering captured for this build; each person progressively resolves into movies and TV shows that are actually available in the connected Swoop TV library.
-- Uses STARmeter people as a hot/prewarmed People Search cache so currently popular people can open substantially faster.
-- Reworks Google TV rail navigation so Right/Left remains owned by the current rail and cannot spatially escape into another row at a lazy-render boundary.
-- Large Home, Movies, TV Shows and Live TV rails load catalogue data in **100-item batches**, render lightweight chunks, prefetch the next batch before the boundary, and prewarm upcoming artwork.
-- Up/Down now chooses the nearest card by on-screen X position, so moving down from the middle of one row lands on the card visually underneath rather than the end of the next row.
-- Enlarges the Home hero while keeping it bounded beneath the persistent navigation and applies the approved rail safe-left inset consistently.
-- Rebalances Live TV hero composition: channel information/actions on the left, delayed muted preview in the centre, contained channel branding on the right; Browse Live TV tiles are enlarged.
-- Episode rows now prefer real original air date, synopsis and runtime. Invalid `0:00` runtimes and generic connected-provider placeholder copy are removed; enrichment is asynchronous and cached.
-- Enlarges Guide channel/show logos inside their existing cells without changing Guide geometry.
-- Makes IMDb poster-rating badges smaller and tighter to the corner.
-- Retains v0.8.24 modal focus trapping, v0.8.23 adaptive scaling/update/changelog work, and all cumulative native Media3 playback/cache/provider fixes.
+- Fixes asynchronous long-rail boundaries so Right keeps moving through Top 100 and large Movies/TV Shows rows while the next 100-item batch loads.
+- Advances the Top 100 ranking schema and improves IPTV title-match recall while keeping the rankings driven by current external trending signals.
+- Virtualises STARmeter and Live TV background work to keep D-pad input responsive and reduce WebView memory pressure.
+- Redesigns STARmeter with large circular cast-style portraits, prominent ranks and larger provider-available title rails.
+- Stops Android from retaining heavy Live TV / STARmeter / Movies / TV Shows DOM trees after leaving those tabs.
+- Makes Home featured artwork fully fit its frame and replaces the oversized carousel control with a tiny non-focusable 10-dot indicator.
+- Gives Movies and TV Shows the same approved TV hero height/framing as Home.
+- Refines Live TV preview/logo proportions and restores all Browse Live TV category tiles to the Recent Channels physical size.
+- Makes Search / Providers / Settings / Profile deterministic in the persistent header and focuses Search input immediately when opened.
+- Retains the episode metadata, Guide logo, Continue Watching long-press and modal-focus work from v0.8.25/v0.8.24.
 
 ## Android package
 
 - Application ID: `tv.swoop.player`
-- versionName: `0.8.25`
-- versionCode: `825`
+- versionName: `0.8.26`
+- versionCode: `826`
 - minSdk: `23`
 - targetSdk / compileSdk: `36`
 - Java: `17`
@@ -33,7 +32,7 @@ The authoritative APK build path is `.github/workflows/android-tv-apk.yml`.
 
 The workflow publishes:
 
-- `Swoop-TV-v0.8.25-Google-TV-Test.apk`
+- `Swoop-TV-v0.8.26-Google-TV-Test.apk`
 - stable compatibility asset `Swoop-TV-v0.8.1-Google-TV-Test.apk`
 - `swoop-tv-latest.json`
 - `swoop-tv-starmeter.json`
@@ -42,7 +41,7 @@ The stable APK asset preserves the existing **Downloader code 3682231** test pat
 
 ## Runtime verification
 
-Before packaging v0.8.25, run:
+Before packaging v0.8.26, run:
 
 ```bash
 find app/src/main/assets -name '*.js' -print0 | xargs -0 -n1 node --check

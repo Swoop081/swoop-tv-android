@@ -63,21 +63,21 @@ jobs:
       - name: Name APK and checksum
         shell: bash
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.25-Google-TV-Test.apk
-          cp Swoop-TV-v0.8.25-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
-          sha256sum Swoop-TV-v0.8.25-Google-TV-Test.apk > Swoop-TV-v0.8.25-Google-TV-Test.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk Swoop-TV-v0.8.26-Google-TV-Test.apk
+          cp Swoop-TV-v0.8.26-Google-TV-Test.apk Swoop-TV-v0.8.1-Google-TV-Test.apk
+          sha256sum Swoop-TV-v0.8.26-Google-TV-Test.apk > Swoop-TV-v0.8.26-Google-TV-Test.apk.sha256
           sha256sum Swoop-TV-v0.8.1-Google-TV-Test.apk > Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
           cat > swoop-tv-latest.json <<EOF
-          {"version":"0.8.25","versionCode":825,"updateUrl":"https://github.com/${GITHUB_REPOSITORY}/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk","changes":["Adds IMDb STARmeter Top 100 with provider-matched person rails and hot-search caching.","Fixes long-rail 24→25 horizontal focus jumps and preserves visual column on Up/Down.","Expands the Home hero and standardises TV-safe rail insets.","Moves Live TV preview to the centre with contained branding on the right and larger channel tiles.","Adds episode air date/synopsis/runtime enrichment and larger Guide logos."]}
+          {"version":"0.8.26","versionCode":826,"updateUrl":"https://github.com/${GITHUB_REPOSITORY}/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk","changes":["Fixes asynchronous long-rail boundaries and improves Top 100 match recall.","Virtualises STARmeter/Live TV work and evicts heavy Android page DOM to reduce freezes and renderer pressure.","Redesigns STARmeter with large circular people portraits, prominent ranks and larger title rails.","Cleans the Home hero carousel/artwork and aligns Movies/TV Shows hero sizing with Home.","Refines Live TV preview/logo proportions, restores large channel tiles and fixes persistent-header Search routing."]}
           EOF
 
       - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Swoop-TV-v0.8.25-Google-TV-Test
+          name: Swoop-TV-v0.8.26-Google-TV-Test
           path: |
-            Swoop-TV-v0.8.25-Google-TV-Test.apk
-            Swoop-TV-v0.8.25-Google-TV-Test.apk.sha256
+            Swoop-TV-v0.8.26-Google-TV-Test.apk
+            Swoop-TV-v0.8.26-Google-TV-Test.apk.sha256
             Swoop-TV-v0.8.1-Google-TV-Test.apk
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256
             swoop-tv-latest.json
@@ -101,13 +101,13 @@ jobs:
           else
             gh release edit "$TAG" \
               --target "$GITHUB_SHA" \
-              --title "Swoop TV Google TV Test — current v0.8.25" \
-              --notes "Current hardware-test channel. v0.8.25 adds STARmeter, fixes long-rail and vertical column navigation, expands the Home hero, rebalances Live TV preview/branding, enriches episode metadata and polishes Guide/poster presentation while retaining the v0.8.24 modal focus hotfix. Test-only signing identity; not a production release." \
+              --title "Swoop TV Google TV Test — current v0.8.26" \
+              --notes "Current hardware-test channel. v0.8.26 is the performance/stability hardware pass: asynchronous long-rail continuation, Top 100 match refresh, STARmeter/Live TV virtualisation, heavy-page DOM eviction, Home/Movies/TV hero cleanup, Live TV sizing and deterministic Search/header focus while retaining all v0.8.25 features. Test-only signing identity; not a production release." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            Swoop-TV-v0.8.25-Google-TV-Test.apk \
-            Swoop-TV-v0.8.25-Google-TV-Test.apk.sha256 \
+            Swoop-TV-v0.8.26-Google-TV-Test.apk \
+            Swoop-TV-v0.8.26-Google-TV-Test.apk.sha256 \
             Swoop-TV-v0.8.1-Google-TV-Test.apk \
             Swoop-TV-v0.8.1-Google-TV-Test.apk.sha256 \
             swoop-tv-latest.json \

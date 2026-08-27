@@ -1,3 +1,21 @@
+# Swoop TV Release Notes
+
+## v0.8.26 — Google TV Performance + Stability + Hardware Polish
+
+- Fixes long horizontal rails stalling at a render/data boundary. Right now owns the current rail while the next 100-item batch is fetched, then advances focus into the newly mounted card instead of silently stopping or escaping vertically.
+- Forces the two Home Top 100 rails to keep their full available ranked result set mounted as focus targets while poster artwork remains lazy-loaded. Top 100 ranking schema advances to v3 so the improved IPTV title matcher refreshes existing cached rankings.
+- Improves discovery/provider title matching recall for IPTV naming variants while retaining year-aware safeguards.
+- Virtualises STARmeter to five people initially and four-person append batches, hydrates only visible people plus a small buffer, prewarms identities separately from expensive filmography matching, and prevents async results from replacing the whole page.
+- Redesigns STARmeter around large circular cast-style portraits, prominent rank numbers and large provider-available title cards. Mixed movie/TV results are ordered by available popularity signals with newest titles as the tie-break.
+- Stops retaining heavy Live TV, STARmeter, Movies and TV Shows DOM trees in the Android persistent-page cache, substantially reducing WebView memory growth while switching screens.
+- Reduces Live TV and Movies/TV Shows background category concurrency on Google TV. Live TV appends category sections in-place rather than rebuilding the page.
+- Home featured artwork now fits fully inside the approved hero frame; the oversized carousel bar/arrows are replaced by a tiny non-focusable 10-dot indicator centred at the bottom.
+- Movies and TV Shows now use the same approved hero height/framing as Home and contain their hero art rather than cropping it.
+- Live TV preview is narrower and slightly lower, channel branding is reduced about 25% and centred, and all Browse Live TV category tiles use the same TV-friendly physical size as Recent Channels. Focusing a channel updates hero branding immediately and starts the muted preview only after focus settles.
+- Adds deterministic top-header Left/Right navigation across Search / Providers / Settings / Profile and a reliable Down path into the active page. Search takes input focus immediately when opened.
+- Adds runtime error breadcrumbs and explicit Android renderer-exit diagnostics while retaining automatic WebView recovery.
+- Android versionName is **0.8.26** and versionCode is **826**.
+
 # Swoop TV — Release Notes
 
 ## v0.8.25 — Google TV STARmeter + Navigation + Metadata Polish

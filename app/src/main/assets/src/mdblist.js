@@ -134,11 +134,11 @@ export function matchMDBListToCatalog(listPayload, catalog=[], {limit=0, sourceL
     if(!hit&&title){
       let best=null,bestScore=0;
       for(const c of normalizedCandidates){
-        if(year&&c.year!==year)continue;
+        if(year&&c.year&&Math.abs(c.year-year)>1)continue;
         const score=fuzzyScore(title,c.title);
         if(score>bestScore){bestScore=score;best=c.item}
       }
-      if(bestScore>=(year ? .94 : .97))hit=best;
+      if(bestScore>=(year ? .90 : .94))hit=best;
     }
     if (hit && !out.some(x=>x.id===hit.id)) out.push(hit);
     if (limit && out.length>=limit) break;
