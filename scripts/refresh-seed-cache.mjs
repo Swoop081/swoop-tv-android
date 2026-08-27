@@ -31,9 +31,13 @@ writeFileSync('app/src/main/assets/app.js',baseApp);
 console.log('Applying the v0.8.36 runtime patch with formatting-tolerant context matching…');
 run('patch',['--dry-run','--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
 run('patch',['--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
-// Install the exact v0.8.36 regression suite that already passes against this runtime.
+// Install the exact v0.8.36 regression suite, then make its CSS assertion formatting-insensitive
+// because the live GitHub v0.8.35 stylesheet is minified differently from the local verified snapshot.
 const testBlob='scripts/.v0836-test.b64';
 writeFileSync('tests/tv-ui-runtime-smoke.mjs',inflateSync(Buffer.from(readFileSync(testBlob,'utf8').trim(),'base64')));
+let testSource=readFileSync('tests/tv-ui-runtime-smoke.mjs','utf8');
+testSource=testSource.replace("!cssSource.includes('.starmeter-person-card{\\n  transition:none!important')","!/\\.starmeter-person-card\\s*\\{\\s*transition\\s*:\\s*none!important/.test(cssSource)");
+writeFileSync('tests/tv-ui-runtime-smoke.mjs',testSource);
 // Keep the canonical changelog current even though old GitHub docs had harmless formatting drift.
 let notes=readFileSync('RELEASE_NOTES.md','utf8');
 if(!notes.includes('## v0.8.36 — Performance Pack + Incremental Library Cache')){
