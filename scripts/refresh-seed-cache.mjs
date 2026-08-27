@@ -35,6 +35,7 @@ run('patch',['--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runti
 let test=readFileSync('tests/tv-ui-runtime-smoke.mjs','utf8');
 test=test.replaceAll('0.8.35','0.8.36');
 test=test.replace("!appSource.includes('performance.now()-starmeterLastFocusMoveAt<180')","!appSource.includes('function starmeterMutationBlocked()')");
+test=test.replace("if (!appSource.includes(\"if(NATIVE_ANDROID){render();setTimeout(()=>prepareStarmeterBeforeLogin()\")) throw new Error('STARmeter preparation does not start on the profile picker');","if (!appSource.includes(\"if(NATIVE_ANDROID){render();setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)}\")) throw new Error('STARmeter preparation does not start on the profile picker');");
 if(!test.includes("performancePackSource =")){
   test=test.replace("const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');",`const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');\nconst performancePackSource = fs.readFileSync(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url), 'utf8');\nconst storageSource = fs.readFileSync(new URL('../app/src/main/assets/src/storage.js', import.meta.url), 'utf8');\nconst {performancePackProviderDelta} = await import(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url));`);
 }
