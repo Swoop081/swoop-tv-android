@@ -10,8 +10,8 @@ android {
         applicationId 'tv.swoop.player'
         minSdk 23
         targetSdk 36
-        versionCode 828
-        versionName '0.8.28'
+        versionCode 829
+        versionName '0.8.29'
         def repo = System.getenv('GITHUB_REPOSITORY') ?: ''
         buildConfigField 'String', 'GITHUB_REPOSITORY', '"' + repo + '"'
     }

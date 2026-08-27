@@ -1,59 +1,80 @@
 # Swoop TV Google TV — Hardware Test Checklist
 
-Current test build: **v0.8.28 / versionCode 828**
+Current test build: **v0.8.29 / versionCode 829**
 
 ## Turn on Hardware Test Mode
 
 1. Open **Settings** from the persistent top bar.
 2. With the Settings cog focused, press **OK five times within four seconds**.
-3. A small **HW TEST** diagnostics overlay appears at the lower-left.
-4. The Settings page now exposes Hardware Test Mode controls, numbered tests and **Save Diagnostics**.
-5. Repeat the five-press Settings shortcut, or choose **Exit Test Mode**, to disable it.
+3. A small **HW TEST** diagnostics overlay appears.
+4. Select the numbered test before reproducing an issue.
+5. After the reproduction, choose **Save Diagnostics**.
 
 The overlay is intentionally non-focusable and does not participate in D-pad geometry.
 
-## Numbered physical-TV checks
-
-### CACHE-001 — Whole-app warm-start seed
-- Fresh-install v0.8.28 and connect/restore a provider library.
-- Enter Home, STARmeter, Search and a popular title/person page before waiting for background refreshes.
-- Pass: seeded screens can show useful ranking/person/metadata immediately; no screen blocks on a cold discovery/person request.
-- Pass: a later background refresh may improve data but must not reset focus or rebuild the active page.
-
+## Critical physical-TV checks
 
 ### NAV-001 — Top 100 Movies 1 → 100
-- Enter Home → Top 100 Movies.
-- Hold/tap Right continuously from rank 1 through rank 100.
-- Pass: the current rail owns focus throughout; no stop at ~25/26 and no vertical escape.
-- On failure: stop pressing, photograph the HW TEST overlay, then Save Diagnostics.
+- Home → Top 100 Movies.
+- Move Right continuously from rank 1 through rank 100.
+- **Pass:** the rail never stops around 25–27, never jumps vertically, and reaches rank 100 when the provider library has at least 100 unique movies.
 
 ### NAV-002 — Top 100 TV Shows 1 → 100
 - Repeat NAV-001 on Top 100 TV Shows.
-- Pass: focus reaches all available ranks through 100 without changing row.
+- **Pass:** the current row owns focus through rank 100.
 
-### NAV-003 — Vertical column preservation
-- On Movies, focus a poster near the middle of the visible row.
-- Press Down once, then Up once.
-- Pass: Down lands on the visually nearest poster beneath the original; Up returns to the corresponding visual column.
+### NAV-003 — Vertical visual-column preservation
+- Movies: focus a poster around the middle of a row.
+- Press Down, then Up.
+- **Pass:** focus lands on the visually nearest poster below/above rather than a row end.
 
-### PERF-001 — Rapid D-pad stress
-- Browse Home/Movies for 30 seconds using rapid Up/Down/Left/Right presses.
-- Pass: input remains responsive, row movement registers, and focus never enters a stale/loading placeholder.
-- Watch the overlay for growing pending counts, long-task symptoms, or a renderer reset.
+### PROFILE-001 — Who's Watching default focus
+- Cold-launch the app to **Who's Watching?**.
+- Do not press a direction key; press OK.
+- **Pass:** the first profile is already focused and opens immediately. Avatar/profile presentation is large and TV-readable.
 
 ### LIVE-001 — Live TV category + preview stress
-- Enter Live TV and browse through at least five category rows.
-- Move across 20+ channels in multiple rows.
-- Pass: logo updates immediately, muted preview follows after focus settles, and navigation remains responsive without mass blank tiles.
+- Browse at least five Live TV category rows and 20+ channels in several rows.
+- **Pass:** Recent Channels remains unchanged; Browse Live TV/category cards stay large; channel identity/logo updates immediately; muted preview follows after focus settles; no blank/white preview surface is shown before Media3 is ready; DOM/navigation stays responsive.
 
-### STAR-001 — STARmeter progressive hydration
-- Open STARmeter.
-- Browse at least ten people and several title rails.
-- Pass: person shells/portraits appear quickly, only nearby people hydrate, page geometry stays stable, and D-pad input remains responsive.
+### STAR-001 — STARmeter #1 → #30 stability
+- Open STARmeter and browse from #1 through at least #30.
+- **Pass:** large circular portraits/ranks remain aligned; nearby people hydrate progressively; title rails resolve without indefinite skeletons; one failed person cannot stall the page; no crash/freeze/renderer loss occurs.
+
+### DETAIL-001 — TV series season + episode focus path
+- Open a multi-season show such as Ted Lasso.
+- Navigate hero/actions → Season selector → each episode → Cast, then reverse with Up.
+- **Pass:** seasons are left-aligned; every episode is individually focusable/playable; thumbnail/air date/runtime/synopsis populate when available; Up can return all the way to the show hero/Back control.
+
+### ROUTE-001 — Stale person route teardown
+- Movie → Cast → Person.
+- Leave the person screen, return Home, then select Live TV.
+- **Pass:** the old person page is destroyed and never resurfaces over another primary tab; no force-stop is required.
+
+### GUIDE-001 — Cached EPG + focus diagnostics
+- Open Guide after it has previously loaded EPG.
+- Move through category sidebar, channels and programme cells.
+- **Pass:** cached programme data paints before refresh; the screen is not temporarily replaced by mass “No programme information”; HW TEST shows `guide:categories`, `guide:channels` or `guide:program:*` rather than `focus none`.
+
+### PERF-001 — Rapid D-pad stress
+- Browse Home / Movies / Live TV for 30 seconds using fast Up/Down/Left/Right input.
+- **Pass:** keys remain responsive; queued vertical intent is preserved; background metadata/image work does not move focus or rebuild the active page.
 
 ### STAB-001 — Five-minute mixed-screen stability
-- For five minutes alternate Home → Live TV → Guide → STARmeter → Movies → TV Shows → Search and back.
-- Pass: no multi-second black screen, no unexpected Who's Watching reset, no WebView renderer reset, and memory/DOM counts remain bounded.
+- Alternate Home → Live TV → Guide → STARmeter → Movies → TV Shows → Search → detail/person pages for five minutes.
+- **Pass:** no multi-second black screen, unexpected Who's Watching reset, stale overlay resurrection or WebView renderer reset.
+
+## Home content check
+
+Confirm Home order includes:
+1. Featured Hero
+2. Continue Watching (when applicable)
+3. Top 100 Movies
+4. Top 100 TV Shows
+5. Recently Added Movies
+6. Recently Added TV Shows
+
+Hero artwork should fill the available width without black side bars, while keeping important faces safely framed.
 
 ## Export diagnostics
 
@@ -61,18 +82,6 @@ While Hardware Test Mode is active, go to **Settings → Hardware Test Mode → 
 
 The app writes a timestamped JSON file to the app's external Documents directory, typically:
 
-`/storage/emulated/0/Android/data/tv.swoop.player/files/Documents/Swoop-TV-v0.8.28-Diagnostics-YYYYMMDD-HHMMSS.json`
+`/storage/emulated/0/Android/data/tv.swoop.player/files/Documents/Swoop-TV-v0.8.29-Diagnostics-YYYYMMDD-HHMMSS.json`
 
-The file contains the current screen/focus state, rail index, scroll/DOM counts, pending jobs, JavaScript heap information when available, native Java heap metrics, Media3 playback/preview state, WebView renderer-reset information, native key counters and the rolling hardware event log.
-
-## Fast feedback format
-
-Use this short format with a photo/video and diagnostic file when available:
-
-`v0.8.28 · NAV-001 · stops at movie #26`
-
-or
-
-`v0.8.28 · PERF-001 · Up/Down starts missing after ~20 seconds`
-
-That gives the source build, exact regression test and symptom without needing a long written explanation.
+Send the diagnostic JSON together with the phone video whenever possible.

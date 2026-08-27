@@ -1,5 +1,18 @@
 # Swoop TV Release Notes
 
+## v0.8.29 — Google TV Hardware Consolidation + Stability Pass
+
+- Fixes the recurring Top 100 25–27 item hard-stop with a true 100-item logical rail and bounded render windows.
+- Adds Recently Added Movies and Recently Added TV Shows directly beneath Top 100 on Home.
+- Makes Home / Movies / TV Shows featured artwork full-width with top-biased face-safe framing.
+- Rebuilds STARmeter for stable three-person progressive hydration, large circular portraits, prominent rank and large mixed title rails.
+- Makes Who’s Watching larger and focuses the first profile automatically.
+- Reduces Live TV DOM pressure and hides native preview until video is ready.
+- Improves title/person detail navigation, metadata, cast sizing, Back behaviour and bottom safe spacing.
+- Restores TV episode D-pad navigation, left-aligned season controls, thumbnails, air date, runtime and synopsis.
+- Destroys stale detail/person route state on primary-tab navigation.
+- Adds Guide focus diagnostics and cached-first EPG repaint behaviour.
+
 ## v0.8.28 — Google TV Whole-App Warm-Start Seed Cache
 
 - Adds a packaged **whole-app warm-start seed cache** inside the APK so a fresh install can begin from useful provider-neutral data instead of waiting for every discovery/metadata request to start cold.

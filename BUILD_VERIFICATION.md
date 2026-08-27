@@ -1,13 +1,13 @@
-# Swoop TV v0.8.28 Build Verification
+# Swoop TV v0.8.29 Build Verification
 
 ## Version alignment
-- [ ] `app/build.gradle` is `versionName 0.8.28` / `versionCode 828`.
-- [ ] `ANDROID_CURRENT_VERSION` and Android bridge/User-Agent markers report 0.8.28.
-- [ ] Diagnostic export filenames identify v0.8.28.
+- [ ] `app/build.gradle` is `versionName 0.8.29` / `versionCode 829`.
+- [ ] `ANDROID_CURRENT_VERSION` and Android bridge/User-Agent markers report 0.8.29.
+- [ ] Diagnostic export filenames identify v0.8.29.
 
 ## Whole-app seed contracts
 - [ ] `app/src/main/assets/seed-cache.json` parses and has schema >= 2.
-- [ ] Seed sourceVersion is `0.8.28`.
+- [ ] Seed sourceVersion is `0.8.29`.
 - [ ] Seed contains exactly 100 ranked STARmeter people.
 - [ ] Runtime imports `src/seedCache.js`.
 - [ ] Discovery uses bundled seed before a blocking network refresh.

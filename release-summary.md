@@ -1,12 +1,12 @@
-Swoop TV Google TV hardware-test channel — current v0.8.28.
+Swoop TV Google TV hardware-test channel — current v0.8.29.
 
-- Adds a packaged whole-app warm-start seed cache inside the APK so a fresh install can begin from useful provider-neutral data instead of waiting for every discovery/metadata request to start cold.
-- GitHub Actions refreshes seed-cache.json immediately before each APK build and bundles that exact snapshot into Android assets; the same swoop-tv-seed-cache.json is attached to the test release for inspection.
-- Seeds current discovery inputs for Top 100 Movies / Top 100 TV Shows and other discovery matching. Swoop TV can match the bundled ranking data against the local provider catalogue immediately, while newer discovery data refreshes quietly after the UI is usable.
-- Seeds the full STARmeter Top 100 plus resolved person identities/portraits and a bounded set of filmography credits when available. STARmeter and People Search consult this install cache before remote person lookups.
-- Adds a seed-first path for popular title metadata including IDs, poster/backdrop/logo URLs, synopsis, runtime, ratings, cast and related fields. Metadata is mapped to provider titles by trusted IDs or strict title/year identity rather than provider-specific IDs.
-- Adds the same seed-first contract for episode metadata when episode records are present; missing/stale fields still hydrate asynchronously and never block the series page.
-- Keeps the APK seed deliberately provider-neutral and privacy-safe: no IPTV credentials, provider-specific catalogue, My List, Continue Watching, watch history, profiles or live EPG data are baked into the install.
-- Adds seed-cache schema/integrity regression checks and updates the service-worker shell so the warm-start loader and seed asset are versioned with the app.
+- Fixes the recurring Top 100 25–27 item hard-stop with a true 100-item logical rail and bounded render windows.
+- Adds Recently Added Movies and Recently Added TV Shows directly beneath Top 100 on Home.
+- Makes Home / Movies / TV Shows featured artwork full-width with top-biased face-safe framing.
+- Rebuilds STARmeter for stable three-person progressive hydration, large circular portraits, prominent rank and large mixed title rails.
+- Makes Who’s Watching larger and focuses the first profile automatically.
+- Reduces Live TV DOM pressure and hides native preview until video is ready.
+- Improves title/person detail navigation, metadata, cast sizing, Back behaviour and bottom safe spacing.
+- Restores TV episode D-pad navigation, left-aligned season controls, thumbnails, air date, runtime and synopsis.
 
 Test-only signing identity; not a production release.

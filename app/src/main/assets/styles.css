@@ -2329,3 +2329,92 @@ html.android-tv .hardware-test-current{display:flex;gap:12px;align-items:center;
 html.android-tv .hardware-test-current strong{font-size:17px;color:#80f0ff}.hardware-test-current span{font-size:13px;color:var(--muted)}
 html.android-tv .hardware-test-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 html.android-tv .hardware-export-path{display:block;margin-top:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+
+
+/* ========================================================================== */
+/* v0.8.29 — consolidated hardware fixes after physical-TV video testing.      */
+/* ========================================================================== */
+
+/* Full-width Home / Movies / TV Shows featured artwork. Use a top-biased focal
+   point so faces are protected better than a hard centre crop while eliminating
+   the black side bars produced by object-fit: contain. */
+html.android-tv .hero-backdrop,
+html.android-tv .hero-backdrop-clean,
+html.android-tv .hero-backdrop-poster,
+html.android-tv .media-category-page .page-hero-art{
+  object-fit:cover!important;
+  object-position:center 28%!important;
+  background:#050507!important;
+}
+
+/* Larger, immediately usable Who's Watching screen. */
+html.android-tv .profile-picker-page{padding:60px 4vw 34px!important}
+html.android-tv .profile-picker-shell{width:min(1500px,96vw)!important}
+html.android-tv .profile-picker-shell h1{font-size:clamp(66px,7vw,96px)!important;margin:8px 0 14px!important}
+html.android-tv .profile-picker-shell>p{font-size:15px!important;margin-bottom:34px!important;max-width:940px!important}
+html.android-tv .profile-picker-grid{gap:34px!important}
+html.android-tv .profile-choice{width:235px!important;gap:11px!important}
+html.android-tv .profile-avatar-xl{width:200px!important;height:200px!important;border-radius:36px!important}
+html.android-tv .profile-choice strong{font-size:22px!important}
+html.android-tv .profile-choice>span:last-child{font-size:10px!important}
+html.android-tv .profile-picker-actions{margin-top:36px!important}
+
+/* STARmeter: portrait is visually centred in a poster-width identity column;
+   only three people need to fit comfortably at once. */
+html.android-tv .starmeter-person-section{
+  grid-template-columns:255px minmax(0,1fr)!important;
+  gap:28px!important;min-height:330px!important;margin-bottom:34px!important;
+}
+html.android-tv .starmeter-person-card{
+  width:240px!important;grid-template-columns:62px 170px!important;grid-template-rows:170px auto!important;
+}
+html.android-tv .starmeter-person-card b{font-size:40px!important}
+html.android-tv .starmeter-person-card img,
+html.android-tv .starmeter-person-fallback{
+  width:168px!important;height:168px!important;border-radius:999px!important;object-fit:cover!important;object-position:center 22%!important;
+}
+html.android-tv .starmeter-person-card strong{font-size:19px!important;max-width:230px!important}
+html.android-tv .starmeter-title-rail{grid-auto-columns:minmax(0,188px)!important;gap:16px!important}
+html.android-tv .starmeter-row-loading{height:255px!important;display:flex!important;align-items:center!important;gap:12px!important;color:#a8acb5!important;font-size:11px!important}
+html.android-tv .starmeter-row-loading .provider-spinner{width:22px!important;height:22px!important}
+html.android-tv .starmeter-row-loading i{display:none!important}
+
+/* Live TV performance: maintain Recent Channels-sized tiles everywhere while
+   mounting far fewer cards/rows in the DOM. */
+html.android-tv .live-category-rail-track,
+html.android-tv .live-clean-section .live-category-rail-track{grid-auto-columns:minmax(0,190px)!important;gap:14px!important}
+html.android-tv .live-category-section .live-rail-card,
+html.android-tv .live-clean-section .live-rail-card{min-width:190px!important;height:120px!important}
+html.android-tv .live-hub-preview-panel{height:min(150px,66%)!important;margin-top:24px!important}
+html.android-tv .live-hub-brand-panel{height:72%!important}
+
+/* Premium title/person details: compact actions, larger cast, persistent Back,
+   richer bottom breathing room. */
+html.android-tv .detail-close,
+html.android-tv .person-close{position:fixed!important;top:82px!important;left:var(--tv-safe-x)!important;z-index:220!important}
+html.android-tv .detail-copy .cta-row{gap:8px!important;flex-wrap:wrap!important;max-width:720px!important}
+html.android-tv .detail-copy .cta-row .btn{min-width:0!important;width:auto!important;padding:8px 13px!important;font-size:10px!important}
+html.android-tv .detail-cast .cast-rail{grid-auto-columns:minmax(0,142px)!important;gap:16px!important}
+html.android-tv .detail-cast .cast-card img,
+html.android-tv .detail-cast .cast-fallback{width:112px!important;height:112px!important}
+html.android-tv .detail-body{padding-bottom:110px!important}
+html.android-tv .person-results{padding-bottom:110px!important}
+
+/* Series detail hierarchy: seasons are important and live on the left; episode
+   rows use the width for artwork + real metadata instead of a narrow strip. */
+html.android-tv .detail-episodes .detail-section-head{align-items:flex-start!important;justify-content:flex-start!important;flex-direction:column!important;gap:12px!important}
+html.android-tv .season-pills{justify-content:flex-start!important;width:100%!important;padding-bottom:4px!important}
+html.android-tv .season-pills button{font-size:11px!important;padding:10px 16px!important}
+html.android-tv .episode-list{gap:8px!important;max-width:1180px!important}
+html.android-tv .episode-card{grid-template-columns:minmax(220px,300px) minmax(0,1fr)!important;gap:20px!important;padding:10px!important;min-height:145px!important}
+html.android-tv .episode-copy strong{font-size:16px!important}
+html.android-tv .episode-copy p{font-size:12px!important;line-height:1.45!important;-webkit-line-clamp:3!important}
+html.android-tv .episode-copy>div span{font-size:10px!important}
+
+/* Guide channel logos get more of their existing cell without changing the
+   approved sidebar/EPG geometry. */
+html.android-tv .guide-channel img{object-fit:contain!important;padding:2px!important;transform:scale(1.18)!important}
+
+/* Smaller supporting IMDb badge, tucked tightly into the corner. */
+html.android-tv .card-imdb-rating,
+html.android-tv .ranked-card .card-imdb-rating{right:5px!important;bottom:5px!important;padding:3px 5px!important;font-size:8px!important;border-radius:4px!important;gap:3px!important}

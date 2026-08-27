@@ -2,31 +2,40 @@
 
 ## Current build under test
 
-**v0.8.28 — Google TV Whole-App Warm-Start Seed Cache**
+**v0.8.29 — Google TV Hardware Consolidation + Stability Pass**
 
-## Open
+## Implemented — needs physical-TV verification
 
-- [ ] Physical-TV verification of the v0.8.28 warm-start seed + retained diagnostic workflow.
-- [ ] Re-test the Top 100 Movies/TV 25–26 boundary using NAV-001/NAV-002 with exported diagnostics if it still fails.
-- [ ] Re-test rapid D-pad performance and long-session renderer stability using PERF-001/STAB-001.
+- [ ] Home Top 100 Movies can browse 1 → 100 without stopping around 25–27.
+- [ ] Home Top 100 TV Shows can browse 1 → 100 without stopping around 25–27.
+- [ ] Home adds provider Recently Added Movies + Recently Added TV Shows beneath Top 100.
+- [ ] Home / Movies / TV Shows hero artwork fills the frame without black side bars while protecting faces with top-biased framing.
+- [ ] Vertical D-pad movement preserves the visual X/column between poster rows.
+- [ ] Who's Watching is substantially larger and first profile owns focus immediately.
+- [ ] Live TV category cards use TV-readable sizing; preview remains hidden until Media3 is ready; Live DOM work remains bounded.
+- [ ] STARmeter uses large circular portraits/prominent ranks and single-flight progressive catalogue hydration without stalling around #20.
+- [ ] Movie/person detail actions/cast/back/bottom spacing and richer metadata are TV-friendly.
+- [ ] Series seasons are left-aligned; episode cards are reachable and show thumbnail/air date/runtime/synopsis where available.
+- [ ] Up navigation can return from episodes/person results to the top/Back control without trapping focus.
+- [ ] Primary tabs destroy stale detail/person overlays so an old actor page cannot reappear over Live TV/Home.
+- [ ] Guide restores durable EPG cache before refresh and HW TEST reports Guide focus state rather than `focus none`.
+- [ ] v0.8.28 warm-start seed and v0.8.27 diagnostic/export workflow remain intact.
 
-## Implemented — needs TV verification
+## Critical regression gates
 
-- [ ] v0.8.28 install carries a provider-neutral seed snapshot and uses it before blocking discovery/person/metadata network paths.
-- [ ] Top 100 can match bundled discovery inputs against the local provider catalogue immediately after restore/import.
-- [ ] STARmeter and People Search use bundled Top 100 identity/filmography data where available.
-- [ ] Popular title/episode metadata uses seed-first matching while stale/missing data still refreshes asynchronously.
-- [ ] No credentials, provider catalogue, profile/history/My List or live EPG data is present in the install seed.
-- [ ] Five-press Settings shortcut toggles hidden Hardware Test Mode.
-- [ ] Non-focusable HW TEST overlay reports page, focus row/index, DOM/card/image counts, pending jobs, key count and renderer-reset count without altering navigation.
-- [ ] Numbered NAV/PERF/LIVE/STAR/STAB test sessions are selectable from Settings.
-- [ ] Save Diagnostics writes a timestamped JSON session file on Android TV.
-- [ ] D-pad/focus/route/activation/long-task/error events are captured in a bounded rolling log only while test mode is active.
-- [ ] Native diagnostics include Java heap, preview/player state, WebView dimensions, renderer-loss metadata and native key counts.
-- [ ] GitHub Actions derives version/APK naming/update manifest/release summary automatically from build.gradle + RELEASE_NOTES.md.
-- [ ] Every v0.8.26 performance/navigation/visual fix remains intact.
+- [ ] NAV-001
+- [ ] NAV-002
+- [ ] NAV-003
+- [ ] PROFILE-001
+- [ ] LIVE-001
+- [ ] STAR-001
+- [ ] DETAIL-001
+- [ ] ROUTE-001
+- [ ] GUIDE-001
+- [ ] PERF-001
+- [ ] STAB-001
 
-## Verified / closed before v0.8.25
+## Verified / closed from earlier builds
 
 - [x] v0.8.18 profile-selection → Home runtime crash.
 - [x] Top 100 rank-number clipping/safe inset presentation.
@@ -35,6 +44,6 @@
 - [x] Google TV poster dark-gradient/haze removal.
 - [x] v0.8.20 blank-Home-row regression repaired in v0.8.21.
 - [x] Live TV right-side branding expansion in v0.8.22.
-- [x] v0.8.23 What’s New background-focus/frozen-screen regression repaired in v0.8.24.
+- [x] v0.8.23 What's New background-focus/frozen-screen regression repaired in v0.8.24.
 
 Items move to **Verified / closed** only after confirmation on physical Google TV hardware.

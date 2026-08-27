@@ -51,7 +51,7 @@ if (!cssSource.includes('scroll-behavior:auto!important')) throw new Error('TV r
 
 // v0.8.23 continuous 100-at-a-time catalogue rails.
 if (!appSource.includes('const LONG_RAIL_BATCH_SIZE=100')) throw new Error('100-item long-rail batches missing');
-if (!appSource.includes('LONG_RAIL_PREFETCH_THRESHOLD=30')) throw new Error('Ahead-of-end long-rail prefetch missing');
+if (!appSource.includes('LONG_RAIL_PREFETCH_THRESHOLD=12')) throw new Error('Ahead-of-end long-rail prefetch missing');
 if (!appSource.includes('data-long-rail="media"') || !appSource.includes('data-long-rail="live"')) throw new Error('Long-rail pagination markers missing');
 if (!appSource.includes('function prefetchMediaRail(') || !appSource.includes('function prefetchLiveRail(')) throw new Error('Long-rail prefetch functions missing');
 
@@ -67,7 +67,7 @@ if (!cssSource.includes('data-tv-density="compact"') || !cssSource.includes('dat
 // v0.8.25 long-rail/vertical-position regressions.
 if (!appSource.includes("if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true")) throw new Error('Horizontal rail ownership guard missing; focus can escape to another row at a render boundary');
 if (!appSource.includes("const r=card.getBoundingClientRect(),cx=(r.left+r.right)/2")) throw new Error('Visual-column Up/Down targeting missing');
-if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=36') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=36')) throw new Error('Larger lazy-render safety window missing');
+if (!appSource.includes('LONG_RAIL_INITIAL_RENDER=18') || !appSource.includes('LONG_RAIL_RENDER_CHUNK=18')) throw new Error('Larger lazy-render safety window missing');
 if (!appSource.includes("['home','Home'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies']")) throw new Error('STARmeter primary navigation placement missing');
 if (!appSource.includes('function starmeterPage()') || !appSource.includes('function prewarmStarmeterHotCache')) throw new Error('STARmeter page/hot-cache implementation missing');
 if (!appSource.includes("fetch('./starmeter.json'")) throw new Error('Bundled STARmeter fallback manifest missing');
@@ -105,7 +105,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.28';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.29';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -116,7 +116,7 @@ if (!appSource.includes('modalRoot.contains(found)')) throw new Error('TV focus 
 // v0.8.26 hardware performance/stability regressions.
 if (!appSource.includes('async function tvAdvanceLongRailRight(current)')) throw new Error('Async long-rail boundary continuation missing');
 if (!appSource.includes('ANDROID_HEAVY_NONPERSISTENT_PAGES')) throw new Error('Android heavy-page DOM eviction missing');
-if (!appSource.includes('STARMETER_INITIAL_VISIBLE=5,STARMETER_APPEND_BATCH=4')) throw new Error('STARmeter visible-window virtualization constants missing');
+if (!appSource.includes('STARMETER_INITIAL_VISIBLE=3,STARMETER_APPEND_BATCH=2')) throw new Error('STARmeter visible-window virtualization constants missing');
 if (!appSource.includes('function appendStarmeterSections(') || !appSource.includes('function setupStarmeterAutoLoad()')) throw new Error('STARmeter virtual append/autoload missing');
 if (!appSource.includes('function hydrateStarmeterIdentity(')) throw new Error('STARmeter identity-only prewarm path missing');
 if (!appSource.includes('function appendLiveCategorySections(')) throw new Error('Live TV in-place category append missing');
@@ -138,14 +138,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.28-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.29-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.28') throw new Error('Install seed source version is not v0.8.28');
+if (String(installSeed.sourceVersion||'') !== '0.8.29') throw new Error('Install seed source version is not v0.8.29');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -153,5 +153,22 @@ if (!appSource.includes('installSeedTitleMetadata(seed,item)')) throw new Error(
 if (!appSource.includes('installSeedEpisodeMetadata(seed,item,ep.season,ep.episodeNum)')) throw new Error('Episode metadata seed-first path missing');
 if (!appSource.includes('installSeedCache||await getInstallSeedCache()') || !appSource.includes('searchInstallSeedPeople(seed,term,12)')) throw new Error('People Search install-seed hot path missing');
 if (!appSource.includes('loadAndroidPersonData(seed,{credits:Array.isArray(installRecord?.credits)?installRecord.credits:[]})')) throw new Error('Actor-page seeded filmography path missing');
+
+
+
+// v0.8.29 physical-TV consolidation regressions.
+if (!appSource.includes('const ANDROID_TV_HOME_EAGER_ROWS=5')) throw new Error('Home Recently Added rows are not included in the eager TV row budget');
+if (!appSource.includes('function completeTop100FromLibrary(') || !appSource.includes('HOME_RANKED_ROW_LIMIT')) throw new Error('Top 100 provider-backed completion path missing');
+if (!appSource.includes('function discardTransientMediaRoutes()')) throw new Error('Primary-route stale detail/person teardown missing');
+if (!appSource.includes('if(detailItem||personView)discardTransientMediaRoutes()')) throw new Error('Primary navigation does not force-close stale detail/person routes');
+if (!appSource.includes('function focusDefaultProfileChoice()')) throw new Error('Default first-profile focus helper missing');
+if (!appSource.includes('if(personView){closePerson();return true}')) throw new Error('Android Back does not close person route before underlying detail');
+if (!appSource.includes('const starmeterHydrateQueue=[]') || !appSource.includes('let starmeterHydrateBusy=false') || !appSource.includes('function pumpStarmeterHydration()')) throw new Error('Single-flight STARmeter hydration queue missing');
+if (!appSource.includes("guide:categories") || !appSource.includes("guide:channels") || !appSource.includes("guide:program:")) throw new Error('Guide focus diagnostics missing');
+if (!activitySource.includes('Player.STATE_READY') || !activitySource.includes('previewPlayerView.setVisibility(View.GONE)')) throw new Error('Live preview ready-state blank-surface guard missing');
+if (!appSource.includes('function tvDetailDirectionalTarget(')) throw new Error('Detail/episode deterministic directional navigation missing');
+if (!cssSource.includes('object-fit:cover!important') || !cssSource.includes('object-position:center 28%!important')) throw new Error('Full-width face-safer Home/media hero treatment missing');
+if (!cssSource.includes('width:200px!important;height:200px!important')) throw new Error('Large TV profile avatar treatment missing');
+if (!cssSource.includes('.episode-card') || !cssSource.includes('grid-template-columns:minmax(220px,300px)')) throw new Error('Wide episode-row/thumbnail treatment missing');
 
 console.log('Google TV UI runtime smoke passed');

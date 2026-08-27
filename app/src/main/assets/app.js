@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.28';
+const ANDROID_CURRENT_VERSION='0.8.29';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,14 +36,16 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Adds a packaged whole-app warm-start seed cache so discovery, STARmeter, people search and popular metadata can start from useful install-time data instead of a cold network path.',
-  'GitHub Actions refreshes the install seed immediately before the APK build, then bundles that exact snapshot inside the APK.',
-  'Top 100 and other discovery matching can use the bundled ranking inputs immediately while a newer discovery refresh happens quietly in the background.',
-  'STARmeter starts from the bundled Top 100 identities and pre-seeded filmography where available; People Search checks this install cache before remote lookup.',
-  'Popular title artwork, IDs, runtime, cast and other metadata can be satisfied from the seed pack before calling the metadata service.',
-  'Episode metadata supports the same seed-first path when episode records are available, while unresolved fields continue to hydrate asynchronously.',
-  'Seed data is provider-neutral: IPTV credentials, personal history, My List, live EPG and provider-specific availability remain private/local and are never baked into the APK.',
-  'Retains the complete v0.8.27 Hardware Test Mode and v0.8.26 performance/stability pass.'
+  'Fixes the Home Top 100 hard stop by separating the 100-item logical ranking from the small rendered card window, preloading ahead of focus and guaranteeing a full 1–100 provider-backed rail when the library has enough titles.',
+  'Home now keeps Recently Added Movies and Recently Added TV Shows directly under the two Top 100 rows, while the featured backdrop fills the masthead width with face-safer positioning instead of black side bars.',
+  'Live TV renders fewer off-screen channels, keeps Recent Channels sizing throughout category rows, updates channel identity immediately and only starts a muted preview after focus settles; the native preview stays hidden until video is ready.',
+  'STARmeter is rebuilt around three visible people at a time, one-at-a-time catalogue hydration, large circular cast-style portraits, prominent ranks and large mixed movie/TV poster rails sorted by popularity.',
+  'Who’s watching now opens with the first profile already focused and uses a much larger, playful animal-avatar presentation for couch distance.',
+  'Movie/person detail pages receive compact premium actions, larger cast portraits, persistent Back controls, richer metadata and deliberate bottom safe spacing.',
+  'TV-series details restore left-aligned season controls, focusable episode navigation, larger 16:9 episode artwork, air dates, runtimes and synopses with staged metadata enrichment.',
+  'Primary-tab navigation now destroys stale person/detail route state before entering the destination, preventing an old actor page from resurfacing over Home or Live TV.',
+  'Guide diagnostics now report category/channel/program focus explicitly and cached EPG rows stay visible while background refreshes patch cells in place.',
+  'Retains the v0.8.28 whole-app warm-start seed cache and v0.8.27 hardware-test diagnostics.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -239,11 +241,11 @@ const HOME_EAGER_ROWS=5;
 const HOME_EAGER_CARDS=12;
 const HOME_RANKED_ROW_LIMIT=100;
 const HOME_STANDARD_ROW_LIMIT=100;
-const ANDROID_TV_HOME_EAGER_ROWS=3;
+const ANDROID_TV_HOME_EAGER_ROWS=5;
 const ANDROID_TV_HOME_DATA_STANDARD_LIMIT=100;
 const ANDROID_TV_HOME_DATA_RANKED_LIMIT=100;
-const ANDROID_TV_HOME_INITIAL_RENDER=36;
-const ANDROID_TV_HOME_EXPAND_CHUNK=36;
+const ANDROID_TV_HOME_INITIAL_RENDER=32;
+const ANDROID_TV_HOME_EXPAND_CHUNK=32;
 const ANDROID_DYNAMIC_HOME_ROWS=new Set(['continue','recently-watched','recommended','recent-live','mylist']);
 let androidLibraryLoading=false,tvForceHomeTop=false;
 let androidStartupGateComplete=false,androidStartupGatePromise=null,androidPreparedHomeReady=false;
@@ -427,6 +429,7 @@ let detailItem=null,detailPayload=null,detailLoading=false,detailError='',detail
 let personView=null,personLoading=false,personError='',personMovies=[],personShows=[],personProgress=0,personStatus='',personScrollTop=0,personOpenToken=0;
 let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
 const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map();
+const starmeterHydrateQueue=[];let starmeterHydrateBusy=false;
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
 let suspendedBaseView=null,suspendedDetailView=null,suspendedPersonView=null;
 const persistentPageViews=new Map();
@@ -439,10 +442,10 @@ const detailPrefetchPending=new Map();
 const detailEpisodeItems=new Map();
 const viewLimits={live:100,movie:100,series:100};
 let guideLimit=48,guideCategory='',liveCategory='',providerFilter='all',pageCategory={movie:'',series:''},guideAutoLoadPending=false;
-const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=36,LONG_RAIL_RENDER_CHUNK=36,LONG_RAIL_PREFETCH_THRESHOLD=30;
-const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=5;
+const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=18,LONG_RAIL_RENDER_CHUNK=18,LONG_RAIL_PREFETCH_THRESHOLD=12;
+const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=3;
 const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=6;
-const STARMETER_INITIAL_VISIBLE=5,STARMETER_APPEND_BATCH=4;
+const STARMETER_INITIAL_VISIBLE=3,STARMETER_APPEND_BATCH=2;
 let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
@@ -457,7 +460,11 @@ const TV_HARDWARE_TESTS=[
   {id:'NAV-003',label:'Down preserves visual column'},
   {id:'PERF-001',label:'Rapid Up / Down remote stress'},
   {id:'LIVE-001',label:'Live TV category scroll + preview'},
-  {id:'STAR-001',label:'STARmeter progressive hydration'},
+  {id:'STAR-001',label:'STARmeter #1 → #30 hydration + stability'},
+  {id:'PROFILE-001',label:'Who’s Watching · first profile focused'},
+  {id:'DETAIL-001',label:'Series · seasons + episode focus path'},
+  {id:'ROUTE-001',label:'Person detail teardown across primary tabs'},
+  {id:'GUIDE-001',label:'Guide cached EPG + focus diagnostics'},
   {id:'STAB-001',label:'Five-minute mixed-screen stability'}
 ];
 let tvHardwareTestMode=false,tvHardwareSettingsTapCount=0,tvHardwareSettingsTapAt=0,tvHardwareOverlayTimer=0,tvHardwareNativePollAt=0,tvHardwareNativeSnapshot={},tvHardwareCurrentTest='',tvLastDiagnosticsPath='',tvDiagnosticPersistTimer=0;
@@ -465,6 +472,9 @@ const tvDiagnosticEvents=[];
 try{tvHardwareTestMode=localStorage.getItem('swoop-tv-hardware-test-mode')==='1';tvHardwareCurrentTest=localStorage.getItem('swoop-tv-hardware-test-id')||'';const recovered=JSON.parse(localStorage.getItem('swoop-tv-hardware-test-events')||'[]');if(tvHardwareTestMode&&Array.isArray(recovered))tvDiagnosticEvents.push(...recovered.slice(-120))}catch{}
 function tvDiagnosticElement(el){
   if(!el||!el.isConnected)return null;
+  const guideCategoryEl=el.closest?.('[data-guide-category]'),guideRowEl=el.closest?.('[data-guide-row]'),guideProgramEl=el.closest?.('.guide-program'),guideChannelEl=el.closest?.('.guide-channel');
+  if(guideCategoryEl){const all=[...document.querySelectorAll('[data-guide-category]')];return {tag:el.tagName||'',id:el.id||'',label:String(el.textContent||'').trim().replace(/\s+/g,' ').slice(0,80),row:'guide:categories',index:all.indexOf(guideCategoryEl)+1,rowItems:all.length,longRail:'',loaded:all.length,total:all.length}}
+  if(guideRowEl&&(guideProgramEl||guideChannelEl)){const rows=[...document.querySelectorAll('[data-guide-row]')],programs=[...guideRowEl.querySelectorAll('.guide-program')],index=guideProgramEl?programs.indexOf(guideProgramEl):rows.indexOf(guideRowEl);return {tag:el.tagName||'',id:el.id||'',label:String(el.getAttribute?.('aria-label')||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,80),row:guideProgramEl?`guide:program:${guideRowEl.dataset.guideRow||''}`:'guide:channels',index:index+1,rowItems:guideProgramEl?programs.length:rows.length,longRail:'',loaded:rows.length,total:Number(guideChannelSnapshot()?.total||rows.length)}}
   const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card,button'),index=card&&cards.length?cards.indexOf(card):-1,track=el.closest?.('[data-long-rail]');
   return {tag:el.tagName||'',id:el.id||'',label:String(el.getAttribute?.('aria-label')||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,80),row:section?tvRailSectionKey(section):'',index:index>=0?index+1:0,rowItems:cards.length,longRail:track?.dataset?.longRail||'',loaded:Number(track?.dataset?.longRailLoaded||0),total:Number(track?.dataset?.longRailTotal||0)};
 }
@@ -599,13 +609,17 @@ function restorePersistentPageView(page){
   requestAnimationFrame(()=>{window.scrollTo(0,snap.scrollY||0);requestAnimationFrame(()=>window.scrollTo(0,snap.scrollY||0))});
   return true;
 }
+function discardTransientMediaRoutes(){
+  personOpenToken++;resetPersonState();detailItem=null;detailPayload=null;detailLoading=false;detailError='';detailSeason='';detailEpisodeItems.clear();detailScrollTop=0;personScrollTop=0;
+  suspendedBaseView=null;suspendedDetailView=null;suspendedPersonView=null;sourceChoiceItem=null;tvVerticalQueue=0;if(tvVerticalFrame){cancelAnimationFrame(tvVerticalFrame);tvVerticalFrame=0}
+}
 function navigatePage(nextPage){
-  if(NATIVE_ANDROID)tvDiagRecord('route',{from:state.page,to:String(nextPage||'home')});
-  if(NATIVE_ANDROID)personOpenToken++;
-  if(String(nextPage||'home')!=='starmeter'){starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
-  if(NATIVE_ANDROID&&String(nextPage||'home')!=='live')stopLiveHeroPreview();
-  nextPage=String(nextPage||'home');if(nextPage===state.page&&!detailItem&&!personView)return;
-  if(profilePickerOpen||startupRefreshActive||storageRestoring||detailItem||personView){state.page=nextPage;if(nextPage==='guide')guideStart=Math.floor(Date.now()/1800000)*1800000;render();return}
+  nextPage=String(nextPage||'home');if(NATIVE_ANDROID)tvDiagRecord('route',{from:state.page,to:nextPage,detail:Boolean(detailItem),person:Boolean(personView)});
+  if(nextPage!=='starmeter'){starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
+  if(NATIVE_ANDROID&&nextPage!=='live')stopLiveHeroPreview();
+  if(nextPage===state.page&&!detailItem&&!personView)return;
+  if(detailItem||personView)discardTransientMediaRoutes();
+  if(profilePickerOpen||startupRefreshActive||storageRestoring){state.page=nextPage;if(nextPage==='guide')guideStart=Math.floor(Date.now()/1800000)*1800000;render();return}
   cacheCurrentPageView();state.page=nextPage;if(nextPage==='guide')guideStart=Math.floor(Date.now()/1800000)*1800000;
   if(restorePersistentPageView(nextPage))return;render();
 }
@@ -1231,7 +1245,16 @@ function completeTop100FromLibrary(id,list=[]){
   if(id!=='top20-movies'&&id!=='top20-shows')return list;
   const kind=id==='top20-movies'?'movie':'series',out=[],seenIds=new Set(),seenExternal=new Set(),seenTitles=new Map();
   for(const item of list||[]){if(item?.kind===kind)appendUniqueHomeTitle(out,item,seenIds,seenExternal,seenTitles);if(out.length>=HOME_RANKED_ROW_LIMIT)break}
-  return out;
+  if(out.length<HOME_RANKED_ROW_LIMIT){
+    const currentYear=new Date().getFullYear(),source=androidFastHomeMode()?(kind==='movie'?androidFastCatalog().movie:androidFastCatalog().series):items(kind);
+    const fallback=[...(source||[])].filter(x=>x&&!isDemoItem(x)).sort((a,b)=>{
+      const ay=yearNumber(a),by=yearNumber(b),ar=ratingNumber(a),br=ratingNumber(b),aa=providerAddedNumber(a),ba=providerAddedNumber(b);
+      const ah=(ay===currentYear?3:ay===currentYear-1?1.6:0)+Math.min(1.2,ar/8),bh=(by===currentYear?3:by===currentYear-1?1.6:0)+Math.min(1.2,br/8);
+      return bh-ah||ba-aa||br-ar||String(a.name||'').localeCompare(String(b.name||''));
+    });
+    for(const item of fallback){appendUniqueHomeTitle(out,item,seenIds,seenExternal,seenTitles);if(out.length>=HOME_RANKED_ROW_LIMIT)break}
+  }
+  return out.slice(0,HOME_RANKED_ROW_LIMIT);
 }
 
 async function fetchBuiltInDiscovery(id,apiKey,force=false){
@@ -1325,6 +1348,10 @@ function profilePickerPage(){
   const profiles=state.profiles||[];
   return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My List and favourite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div><div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
 }
+function focusDefaultProfileChoice(){
+  if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select]');if(!first)return false;
+  try{first.focus({preventScroll:true})}catch{first.focus()}tvLastFocusedElement=first;return true;
+}
 function profilesModal(){
   return `<div class="modal-backdrop profile-manage-backdrop" data-close-modal><div class="modal profile-manage-modal" data-modal-card><div class="modal-head"><div><div class="eyebrow">HOUSEHOLD</div><h2>Profiles</h2><p>Each person can have a completely different Swoop TV presentation without changing your shared TV providers.</p></div><button class="icon-btn" data-close>✕</button></div><div class="modal-body"><div class="profile-manage-list">${state.profiles.map(p=>{const t=profileTheme(p);return `<div class="profile-manage-row">${profileAvatarHtml(p,'profile-avatar-lg')}<div><strong>${esc(p.name)}</strong><span>${p.kids?'Kids restrictions on':'Standard profile'}${p.pinHash?' · PIN protected':''} · ${esc(t.name)} theme</span></div><button class="btn secondary compact-btn" data-profile-select="${esc(p.id)}">Switch</button><button class="btn secondary compact-btn" data-profile-edit="${esc(p.id)}">Edit</button></div>`}).join('')}</div><button class="btn accent profile-add-btn" data-profile-add>＋ Add Profile</button></div></div></div>`;
 }
@@ -1411,7 +1438,7 @@ function homeRowMarkup(def,dataOverride=null){
     if(def.web&&(!NATIVE_ANDROID||androidTrendingPending))return `<section class="section swoop-render-section ${def.poster?'poster-section':'landscape-section'} ${def.ranked?'ranked-section':''} ${PINNED_HOME_ROWS.includes(def.id)?'home-priority-row':''} ${androidTrendingPending?'android-home-row-pending':''}" data-home-row-mounted="${esc(def.id)}"${androidTrendingPending?' data-home-row-pending="1"':''}><div class="section-head"><div><h2>${esc(def.label)}</h2>${androidTrendingPending?'':`<span class="section-meta">${esc(discoveryMeta(def.id,data))}</span>`}</div><span class="rail-arrow">›</span></div><div class="lazy-row-skeleton poster-skeleton">${Array.from({length:6},()=>'<i></i>').join('')}</div></section>`;
     return'';
   }
-  const limit=String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:(androidFastHomeMode()?ANDROID_TV_HOME_INITIAL_RENDER:HOME_STANDARD_ROW_LIMIT);
+  const limit=NATIVE_ANDROID?Math.min(data.length,ANDROID_TV_HOME_INITIAL_RENDER):(String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT);
   return rail(def.label,data.slice(0,limit),def.poster,discoveryMeta(def.id,data),{page:def.page,ranked:def.ranked,rowId:def.id,priority:PINNED_HOME_ROWS.includes(def.id),total:data.length});
 }
 function androidInitialHomeRowsMarkup(rows=[],targetPopulated=ANDROID_TV_HOME_EAGER_ROWS){
@@ -1852,7 +1879,7 @@ function starmeterPersonTitles(cached){
 function starmeterPersonSection(entry={}){
   const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached);
   const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
-  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">No connected-provider titles found.</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`);
+  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">No connected-provider titles found.</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div>`);
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
@@ -1870,7 +1897,15 @@ async function hydrateStarmeterPerson(entry={}){
     const seed=await hydrateStarmeterIdentity(entry)||starmeterPersonSeed(entry),preseed=starmeterHotCache.get(key),preseedCredits=Array.isArray(preseed?.credits)?preseed.credits:[];
     const ready=NATIVE_ANDROID?await loadAndroidPersonData(seed,{credits:preseedCredits}):(async()=>{if(preseedCredits.length){const matched=await matchPersonCreditsToLibrary(preseedCredits);return {person:preseed?.person||seed,...matched}}const remote=await fetchPersonCredits({settings:state.settings,personId:seed.id,name:seed.name});if(!remote)return {person:seed,movies:[],shows:[]};const matched=await matchPersonCreditsToLibrary(remote.credits||[]);return {person:{...seed,...remote,profile:remote.profile||seed.profile},...matched}})();
     const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterPersonCache.set(key,value);starmeterHotCache.set(key,value);personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
-  }catch{return null}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
+  }catch{const seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
+}
+function queueStarmeterPerson(entry={}){
+  const key=starmeterNormalize(entry.name);if(!key||starmeterPersonCache.has(key)||starmeterHydratePending.has(key)||starmeterHydrateQueue.some(x=>starmeterNormalize(x.name)===key))return;
+  starmeterHydrateQueue.push(entry);pumpStarmeterHydration();
+}
+async function pumpStarmeterHydration(){
+  if(starmeterHydrateBusy||state.page!=='starmeter')return;const entry=starmeterHydrateQueue.shift();if(!entry)return;starmeterHydrateBusy=true;
+  try{await hydrateStarmeterPerson(entry)}finally{starmeterHydrateBusy=false;if(state.page==='starmeter'&&starmeterHydrateQueue.length)setTimeout(pumpStarmeterHydration,40)}
 }
 function patchStarmeterIdentity(rank,person={}){if(state.page!=='starmeter')return false;const section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!section)return false;const cardEl=section.querySelector('.starmeter-person-card');if(!cardEl)return false;cardEl.dataset.personId=person.id||'';cardEl.dataset.personProfile=person.profile||'';cardEl.dataset.personDepartment=person.knownForDepartment||'Person';const old=cardEl.querySelector('img,.starmeter-person-fallback'),fresh=person.profile?Object.assign(document.createElement('img'),{alt:person.name||''}):document.createElement('div');if(person.profile){fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true}
 function patchStarmeterPerson(rank){
@@ -1886,7 +1921,7 @@ function appendStarmeterSections(count=STARMETER_APPEND_BATCH){
 }
 function observeStarmeterSections(root=document){
   if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,Math.min(starmeterVisibleCount,6)).forEach(hydrateStarmeterPerson);return}
-  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){hydrateStarmeterPerson(starmeterPeople[idx]);if(idx+1<starmeterPeople.length)hydrateStarmeterIdentity(starmeterPeople[idx+1]);}}}, {root:null,rootMargin:'360px 0px 360px 0px',threshold:.01});
+  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx]);if(idx+1<starmeterPeople.length)hydrateStarmeterIdentity(starmeterPeople[idx+1]);}}}, {root:null,rootMargin:'360px 0px 360px 0px',threshold:.01});
   const nodes=root?.matches?.('.starmeter-person-section')?[root]:[...(root?.querySelectorAll?.('.starmeter-person-section')||[])];nodes.forEach(x=>starmeterObserver.observe(x));
 }
 function setupStarmeterAutoLoad(){if(state.page!=='starmeter')return;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;const sentinel=document.querySelector('[data-starmeter-sentinel]');if(!sentinel)return;if(!('IntersectionObserver'in globalThis))return;if(starmeterVisibleCount>=starmeterPeople.length){sentinel.remove();return}starmeterAutoLoadObserver=new IntersectionObserver(entries=>{if(!entries.some(e=>e.isIntersecting))return;if(appendStarmeterSections(STARMETER_APPEND_BATCH)&&starmeterVisibleCount<starmeterPeople.length)setupStarmeterAutoLoad()},{root:null,rootMargin:'700px 0px',threshold:.01});starmeterAutoLoadObserver.observe(sentinel)}
@@ -2036,7 +2071,7 @@ async function xtreamGuideText(provider){
 }
 async function loadGuideEpg(){
   if(state.page!=='guide'||guideLoading)return;
-  if(NATIVE_ANDROID&&!epgDurableRestored)await restoreDurableEpgCache();
+  if(NATIVE_ANDROID&&!epgDurableRestored){const restored=await restoreDurableEpgCache();if(restored&&state.page==='guide'){for(const ch of guideChannelSnapshot().items)updateGuideRow(ch)}}
   const token=++guideLoadToken,currentKey=guideChannelKey();
   if(nativeCatalogMode){const before=guideChannelSnapshot();if(!before.ready){await ensureGuideChannels();if(state.page!=='guide'||token!==guideLoadToken||currentKey!==guideChannelKey())return;render();return;}}
   const channels=guideChannelSnapshot().items,stale=Date.now()-EPG_TTL_MS;if(!channels.length)return;
@@ -2283,7 +2318,7 @@ function render(){
   if(detailRoute){const scroller=document.querySelector('.detail-scroll');if(scroller)scroller.scrollTop=detailScrollTop;}
   if(personRoute){const scroller=document.querySelector('.person-scroll');if(scroller)scroller.scrollTop=personScrollTop;}
   bind();bindHeroControls(document);
-  if(NATIVE_ANDROID){restoreTvFocus();ensureTvHardwareOverlay();}
+  if(NATIVE_ANDROID){if(profilePickerOpen)requestAnimationFrame(focusDefaultProfileChoice);else restoreTvFocus();ensureTvHardwareOverlay();}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='search')runSearch('');
   if(!profilePickerOpen&&!mediaRoute&&state.page==='starmeter'){if(!starmeterLoaded&&!starmeterLoading)setTimeout(ensureStarmeterLoaded,0);else setTimeout(()=>{observeStarmeterSections(document);setupStarmeterAutoLoad()},0)}
   if(!profilePickerOpen&&!mediaRoute&&state.page==='live')setTimeout(setupLiveCategoryAutoLoad,0)
@@ -2342,7 +2377,7 @@ function continueOptionsModal(){
 }
 function whatsNewModal(){
   const entries=(androidLatestManifest?.changes||[]).slice(0,12);
-  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Whole-app warm-start seed cache and faster cold-start metadata.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
+  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Hardware consolidation, stability and physical-TV navigation fixes.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
 }
 function modalHtml(){if(modal==='provider')return providerModal();if(modal==='homeRows')return homeRowsModal();if(modal==='profiles')return profilesModal();if(modal==='profileEdit')return profileEditorModal();if(modal==='pin')return pinModal();if(modal==='continueOptions')return continueOptionsModal();if(modal==='whatsNew')return whatsNewModal();return mdblistModal()}
 function setStatus(id,msg,type='info'){const el=document.querySelector(id);if(el)el.innerHTML=`<div class="status ${type}">${esc(msg)}</div>`}
@@ -2523,7 +2558,7 @@ function normalizeEpisode(item,ep,season,seasonPoster=''){
   const seriesPoster=item.logo||'',episodeNum=ep.episode_num||ep.episode||ep.episode_number||'',cache=episodeMetadataCache.get(episodeMetaKey(item,season,episodeNum))||{};
   const providerDuration=info.duration||info.duration_secs||info.runtime||info.episode_run_time||ep.duration||ep.duration_secs||ep.runtime||'';
   const providerAirDate=info.releasedate||info.releaseDate||info.release_date||info.air_date||info.airdate||ep.releasedate||ep.releaseDate||ep.release_date||ep.air_date||ep.airdate||'';
-  return {id:`${item.id}:episode:${ep.id??ep.stream_id??`${season}-${episodeNum}`}`,providerId:item.providerId,source:'xtream',kind:'episode',name:ep.title||info.title||cache.name||`Episode ${episodeNum||''}`.trim(),group:item.name,logo:resolveProviderAsset(info.movie_image||info.cover||seriesPoster,item.providerId),backdrop:resolveProviderAsset(info.movie_image||item.backdrop||seriesPoster,item.providerId),seasonPoster:seasonPoster||seriesPoster,seriesPoster,seriesBackdrop:item.backdrop||'',seriesTitle:item.name||'',streamUrl,parentSeriesId:item.id,seriesId:item.seriesId,season:String(season||ep.season||''),episodeNum,plot:cache.plot||info.plot||info.description||info.overview||ep.plot||ep.description||'',duration:episodeRuntimeLabel(cache.runtime||providerDuration),airDate:episodeAirDateLabel(cache.airDate||providerAirDate),rating:info.rating||'',year:cache.airDate||providerAirDate||info.releasedate||''};
+  return {id:`${item.id}:episode:${ep.id??ep.stream_id??`${season}-${episodeNum}`}`,providerId:item.providerId,source:'xtream',kind:'episode',name:ep.title||info.title||cache.name||`Episode ${episodeNum||''}`.trim(),group:item.name,logo:resolveProviderAsset(cache.still||info.movie_image||info.cover||seriesPoster,item.providerId),backdrop:resolveProviderAsset(cache.still||info.movie_image||item.backdrop||seriesPoster,item.providerId),seasonPoster:seasonPoster||seriesPoster,seriesPoster,seriesBackdrop:item.backdrop||'',seriesTitle:item.name||'',streamUrl,parentSeriesId:item.id,seriesId:item.seriesId,season:String(season||ep.season||''),episodeNum,plot:cache.plot||info.plot||info.description||info.overview||ep.plot||ep.description||'',duration:episodeRuntimeLabel(cache.runtime||providerDuration),airDate:episodeAirDateLabel(cache.airDate||providerAirDate),rating:info.rating||'',year:cache.airDate||providerAirDate||info.releasedate||''};
 }
 function seriesSeasons(item,payload){
   const episodes=payload?.episodes&&typeof payload.episodes==='object'?payload.episodes:{},seasonRows=Array.isArray(payload?.seasons)?payload.seasons:[],seasonPosters=new Map();const result=[];detailEpisodeItems.clear();
@@ -2597,12 +2632,12 @@ function patchDetailFromState({sections=true,controls=false}={}){const ok=patchD
 
 async function enrichEpisodeMetadata(item,ep){
   if(!item||!ep?.episodeNum)return null;const key=episodeMetaKey(item,ep.season,ep.episodeNum);if(episodeMetadataCache.has(key))return episodeMetadataCache.get(key);if(episodeMetadataPending.has(key))return episodeMetadataPending.get(key);
-  const task=(async()=>{const seed=await getInstallSeedCache(),seeded=installSeedEpisodeMetadata(seed,item,ep.season,ep.episodeNum);const meta=(seeded&&installSeedFresh(seed))?seeded:(await fetchEpisodeMetadata({settings:state.settings,item,season:ep.season,episode:ep.episodeNum}).catch(()=>seeded));if(!meta)return null;const value={plot:String(meta.plot||meta.overview||''),runtime:episodeRuntimeLabel(meta.runtime||meta.duration||''),airDate:String(meta.airDate||meta.air_date||meta.releaseDate||'')};episodeMetadataCache.set(key,value);return value})().catch(()=>null).finally(()=>episodeMetadataPending.delete(key));episodeMetadataPending.set(key,task);return task
+  const task=(async()=>{const seed=await getInstallSeedCache(),seeded=installSeedEpisodeMetadata(seed,item,ep.season,ep.episodeNum);const meta=(seeded&&installSeedFresh(seed))?seeded:(await fetchEpisodeMetadata({settings:state.settings,item,season:ep.season,episode:ep.episodeNum}).catch(()=>seeded));if(!meta)return null;const value={plot:String(meta.plot||meta.overview||''),runtime:episodeRuntimeLabel(meta.runtime||meta.duration||''),airDate:String(meta.airDate||meta.air_date||meta.releaseDate||''),still:String(meta.still||meta.stillUrl||meta.image||meta.backdrop||meta.poster||'')};episodeMetadataCache.set(key,value);return value})().catch(()=>null).finally(()=>episodeMetadataPending.delete(key));episodeMetadataPending.set(key,task);return task
 }
 async function prewarmSelectedEpisodeMetadata(){
   if(!detailItem||detailItem.kind!=='series'||detailLoading)return;const seasons=seriesSeasons(detailItem,detailPayload||{}),selected=seasons.find(s=>s.season===detailSeason)||seasons[0];if(!selected?.episodes?.length)return;
-  const candidates=selected.episodes.slice(0,12).filter(ep=>!ep.plot||!ep.duration||!ep.airDate);if(!candidates.length)return;let changed=false,index=0;
-  const worker=async()=>{while(index<candidates.length){const ep=candidates[index++],meta=await enrichEpisodeMetadata(detailItem,ep);if(meta)changed=true}};await Promise.all([worker(),worker(),worker()]);if(changed&&detailItem?.kind==='series')patchDetailSectionsFromState({controls:false})
+  const candidates=selected.episodes.slice(0,20).filter(ep=>!ep.plot||!ep.duration||!ep.airDate||!ep.logo);if(!candidates.length)return;let changed=false,index=0;
+  const worker=async()=>{while(index<candidates.length){const ep=candidates[index++],meta=await enrichEpisodeMetadata(detailItem,ep);if(meta)changed=true}};await Promise.all([worker(),worker()]);if(changed&&detailItem?.kind==='series')patchDetailSectionsFromState({controls:false})
 }
 function trailerHtml(){return trailerKey?`<div class="trailer-shell" role="dialog" aria-modal="true"><div class="trailer-card"><button class="trailer-close" data-trailer-close>✕</button><iframe src="https://www.youtube.com/embed/${esc(trailerKey)}?autoplay=1&rel=0" title="${esc(trailerTitle||'Trailer')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><div class="trailer-caption"><span class="eyebrow">TRAILER</span><strong>${esc(trailerTitle||'Official Trailer')}</strong></div></div></div>`:''}
 
@@ -3078,7 +3113,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:828,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:829,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3109,6 +3144,7 @@ window.__swoopHandleAndroidBack=()=>{
   if(trailerKey){trailerKey='';trailerTitle='';render();return true}
   if(playerItem){closePlayer();return true}
   if(sourceChoiceItem){sourceChoiceItem=null;render();return true}
+  if(personView){closePerson();return true}
   if(detailItem){closeDetail();return true}
   if(modal){modal=null;render();return true}
   if(state.page!=='home'){state.page='home';render();return true}
@@ -3211,7 +3247,7 @@ function expandAndroidHomeRail(current,key){
   const rendered=rail.children.length,total=Number(section.dataset.homeRowTotal||0);
   if(!total||rendered>=total)return false;
   const children=[...rail.children],pos=children.indexOf(current.closest('.card')||current);
-  if(pos<Math.max(0,rendered-5))return false;
+  if(pos<Math.max(0,rendered-12))return false;
   const def=homeRowDef(rowId),data=homeRowItems(rowId),end=Math.min(data.length,rendered+ANDROID_TV_HOME_EXPAND_CHUNK);
   if(end<=rendered)return false;
   const ranked=Boolean(def?.ranked),poster=def?.poster!==false;
@@ -3330,11 +3366,27 @@ function tvHomeFocus(target,block='nearest'){
   if(!preserveTop)target.scrollIntoView({behavior:'auto',block,inline:'nearest'});
   tvFocusMemory=tvFocusSignature(target);return true
 }
+function tvNearestByX(elements=[],from){if(!elements.length)return null;if(!from)return elements[0];const r=from.getBoundingClientRect(),cx=(r.left+r.right)/2;return elements.reduce((best,el)=>{const b=el.getBoundingClientRect(),d=Math.abs(((b.left+b.right)/2)-cx);return !best||d<best.d?{el,d}:best},null)?.el||elements[0]}
+function tvDetailDirectionalTarget(current,key){
+  const detail=current?.closest?.('.detail-route'),person=current?.closest?.('.person-route');if(!detail&&!person)return null;
+  if(person){const close=person.querySelector('[data-person-close]'),cards=[...person.querySelectorAll('.person-results .card')].filter(x=>x.offsetParent!==null);if(key==='ArrowUp'&&cards.includes(current.closest?.('.card'))){const firstY=Math.min(...cards.map(x=>x.getBoundingClientRect().top));if(current.getBoundingClientRect().top<=firstY+8)return close}if(key==='ArrowDown'&&current===close)return cards[0]||null;return null}
+  const close=detail.querySelector('[data-detail-close]'),hero=[...detail.querySelectorAll('.detail-copy .cta-row button')].filter(x=>x.offsetParent!==null),seasons=[...detail.querySelectorAll('.season-pills button')].filter(x=>x.offsetParent!==null),episodes=[...detail.querySelectorAll('.episode-card')].filter(x=>x.offsetParent!==null),cast=[...detail.querySelectorAll('.cast-card')].filter(x=>x.offsetParent!==null),related=[...detail.querySelectorAll('.detail-related .card')].filter(x=>x.offsetParent!==null),curEpisode=current.closest?.('.episode-card'),curSeason=current.closest?.('.season-pills button'),curCast=current.closest?.('.cast-card'),curRelated=current.closest?.('.detail-related .card');
+  if(curEpisode){const i=episodes.indexOf(curEpisode);if(key==='ArrowDown')return episodes[i+1]||tvNearestByX(cast,curEpisode)||tvNearestByX(related,curEpisode);if(key==='ArrowUp')return episodes[i-1]||tvNearestByX(seasons,curEpisode)||tvNearestByX(hero,curEpisode)}
+  if(curSeason){if(key==='ArrowDown')return tvNearestByX(episodes,curSeason)||tvNearestByX(cast,curSeason);if(key==='ArrowUp')return tvNearestByX(hero,curSeason)}
+  if(hero.includes(current)){if(key==='ArrowDown')return tvNearestByX(seasons,current)||tvNearestByX(episodes,current)||tvNearestByX(cast,current);if(key==='ArrowUp')return close}
+  if(curCast){if(key==='ArrowUp')return episodes.at(-1)||tvNearestByX(seasons,curCast)||tvNearestByX(hero,curCast);if(key==='ArrowDown')return tvNearestByX(related,curCast)}
+  if(curRelated&&key==='ArrowUp')return tvNearestByX(cast,curRelated)||episodes.at(-1)||tvNearestByX(seasons,curRelated)||tvNearestByX(hero,curRelated);
+  if(current===close&&key==='ArrowDown')return hero[0]||seasons[0]||episodes[0]||cast[0]||related[0]||null;
+  return null;
+}
 function tvMoveFocus(key){
   let focusables=tvFocusableElements();if(!focusables.length)return false;
   let current=document.activeElement;
   if(!focusables.includes(current)){const first=tvInitialFocus(focusables);if(first){first.focus();first.scrollIntoView({block:'nearest',inline:'nearest'});return true}return false}
   if(NATIVE_ANDROID){const topbarTarget=tvTopbarDirectionalTarget(current,key);if(topbarTarget)return tvHomeFocus(topbarTarget,'nearest');if(key==='ArrowDown'&&tvIsTopNavigationElement(current)){const down=tvTopbarDownTarget(current);if(down)return tvHomeFocus(down,'nearest')}}
+  if(NATIVE_ANDROID&&(detailItem||personView)){
+    const routeTarget=tvDetailDirectionalTarget(current,key);if(routeTarget)return tvHomeFocus(routeTarget,key==='ArrowUp'?'start':'nearest');
+  }
   if(NATIVE_ANDROID&&state.page==='home'){
     const heroAction=tvHomeHeroAction(),firstSection=tvHomeFirstMountedSection(),currentSection=current.closest?.('[data-home-row-mounted]');
     if(key==='ArrowUp'&&firstSection&&currentSection===firstSection&&heroAction)return tvHomeFocus(heroAction,'start');
@@ -3385,8 +3437,9 @@ document.addEventListener('focusin',e=>{
     document.querySelector('[data-swoop-tv-focused="1"]')?.removeAttribute('data-swoop-tv-focused');
     el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;tvDiagRecord('focus',{focus:tvDiagnosticElement(el)});
     const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);longRailPrefetchForFocus(card)}
-    if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,700)}}
-    if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0);if(rank&&rank>=starmeterVisibleCount-1){appendStarmeterSections(STARMETER_APPEND_BATCH);setupStarmeterAutoLoad()}}
+    if((detailItem||personView)&&el.closest?.('[data-detail-close],[data-person-close]')){const scroller=document.querySelector(detailItem?'.detail-scroll':'.person-scroll');if(scroller)scroller.scrollTop=0}
+    if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,450)}}
+    if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(idx>=0)queueStarmeterPerson(starmeterPeople[idx]);if(rank&&rank>=starmeterVisibleCount-1){appendStarmeterSections(STARMETER_APPEND_BATCH);setupStarmeterAutoLoad()}}
     if(state.page==='guide')maybeAutoLoadGuideFromFocus(el);
   }
 },true);

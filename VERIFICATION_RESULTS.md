@@ -1,25 +1,27 @@
-# Swoop TV v0.8.28 Verification Results
+# Swoop TV v0.8.29 Verification Results
 
 Verified in the packaging runtime on 27 August 2026.
 
-- JavaScript syntax: **PASS** — every JavaScript module under `app/src/main/assets`.
+- JavaScript syntax: **PASS** — every JavaScript module under `app/src/main/assets` passes `node --check`.
 - Card runtime smoke: **PASS** — `card runtime smoke passed`.
 - Google TV UI/runtime smoke: **PASS** — `Google TV UI runtime smoke passed`.
-- Install seed helper smoke: **PASS** — people search/person lookup succeeds and strict title matching rejects a false title.
-- Install seed schema: **PASS** — schema 2, sourceVersion 0.8.28, full 100-person STARmeter list.
-- Release seed schema: **PASS** — root and Android asset seed JSON both parse successfully.
-- Bundled/release STARmeter JSON: **PASS**.
-- Generated latest-version manifest JSON: **PASS**.
-- Build metadata generation: **PASS** — v0.8.28 / versionCode 828.
+- v0.8.29 regression guards: **PASS** — 100-item Home completion path, five eager Home rows, stale detail/person teardown, first-profile focus, STARmeter single-flight hydration, Guide diagnostic states, ready-only native preview visibility, explicit detail/episode focus routing, full-bleed hero framing and enlarged profile/episode treatments are present.
+- Install seed schema: **PASS** — schema 2, sourceVersion 0.8.29, 100 unique STARmeter people.
+- Release seed JSON: **PASS** — root and Android-asset copies parse successfully.
+- Bundled/release STARmeter manifests: **PASS** — 100 unique contiguous ranks and matching release copy.
+- Latest-version/build metadata JSON: **PASS** — v0.8.29 / versionCode 829.
 - GitHub Actions YAML: **PASS**.
-- Android version alignment: **PASS** — application versionName 0.8.28 / versionCode 828 and native User-Agent/diagnostics version markers match.
+- Android version alignment: **PASS** — Gradle 0.8.29 / 829, app UI marker 0.8.29, native JavaScript bridge/diagnostic version 0.8.29 and Android User-Agent 0.8.29.
+- Service-worker shell cache: **PASS** — `swoop-tv-v0829-shell`.
 
 ## Seed snapshot note
 
-The local packaging runtime has no outbound metadata access, so the source ZIP contains a valid provider-neutral fallback seed with the full 100-name STARmeter list but no freshly network-enriched discovery, person identity/filmography, or popular-title metadata rows. This is expected.
+This packaging runtime has no outbound metadata access. `SWOOP_SEED_OFFLINE=1 node scripts/refresh-seed-cache.mjs` therefore produced a valid provider-neutral fallback seed containing the complete 100-name STARmeter ranking but no freshly network-enriched person identities/filmographies/discovery/title metadata. This is expected.
 
-The included GitHub Actions workflow runs `scripts/refresh-seed-cache.mjs` **before Gradle assembles the APK**. On the connected CI runner it refreshes current provider-neutral discovery data, STARmeter identities/portraits/selected filmographies, and popular title metadata, writes the refreshed `app/src/main/assets/seed-cache.json`, validates it, and then packages that exact snapshot into the APK. If a refresh endpoint is temporarily unavailable, the last valid seed remains usable rather than failing the build or producing an empty app.
+The included GitHub Actions workflow runs `scripts/refresh-seed-cache.mjs` **before Gradle assembles the APK**. On the connected CI runner it can enrich current discovery data, STARmeter identities/portraits/selected filmographies and popular title metadata, validates that snapshot, and then packages that exact asset into the APK. A failed endpoint preserves usable fallback/previous data rather than blocking startup.
 
-No IPTV credentials, provider catalogue, profiles, My List, Continue Watching/watch history, or live EPG data are included in the seed.
+No IPTV credentials, provider catalogue, profiles, My List, Continue Watching/watch history or live EPG are bundled in the install seed.
 
-A local APK binary is not produced in this runtime because Gradle/Android SDK 36 are not installed. The included GitHub Actions workflow remains the authoritative APK build path.
+## APK compilation
+
+A binary APK is **not** compiled in this packaging runtime because Gradle 9.5.0 and Android SDK 36 are not installed here. The included GitHub Actions workflow remains the authoritative APK build/compile gate and publishes both the versioned v0.8.29 APK and the stable Downloader-code-3682231 APK asset.
