@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.37';
+const ANDROID_CURRENT_VERSION='0.8.38';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,7 +37,7 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Fixes the physical-TV STARmeter renderer crash by sharply reducing resident artwork memory and title-card pressure while preserving stable person rows.',
+  'Stops STARmeter blank/repaint stalls during held-D-pad traversal by batching deferred row patches, unloading distant artwork and serving TV-sized STARmeter images.',
   'Compacts STARmeter so the Top 5 people fit on one TV screen, with smaller portraits, ranks and provider-title cards plus clean spacing between rows.',
   'Redesigns My SwoopTV with a rotating cinematic Favorites hero and consistent Favorites naming for saved movies, TV shows and channels.',
   'Redesigns Live TV with a persistent channel header: large logo on the left and a larger native live preview on the right that follows remote focus.',
@@ -430,10 +430,16 @@ const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydrat
 const starmeterHydrateQueue=[];let starmeterHydrateBusy=0,starmeterGeneration=0;
 const starmeterDeferredPatches=new Set(),starmeterDeferredIdentityPatches=new Map(),starmeterHeldKeys=new Set();let starmeterPatchTimer=null,starmeterLastFocusMoveAt=0,starmeterHeldDirectional=false;
 function starmeterMutationBlocked(){return starmeterHeldDirectional||starmeterHeldKeys.size>0||performance.now()-starmeterLastFocusMoveAt<240}
+let starmeterArtworkTrimTimer=null;
+function starmeterActiveRank(){const focused=Number(document.activeElement?.closest?.('[data-starmeter-rank]')?.dataset?.starmeterRank||0);if(focused)return focused;let best=0,bestDistance=Infinity;const mid=Math.max(1,innerHeight||1080)/2;for(const section of document.querySelectorAll('.starmeter-person-section')){const r=section.getBoundingClientRect(),distance=Math.abs(((r.top+r.bottom)/2)-mid);if(distance<bestDistance){bestDistance=distance;best=Number(section.dataset.starmeterRank||0)}}return best}
+function starmeterSectionNearViewport(section,pad=620){if(!section)return false;const r=section.getBoundingClientRect(),h=Math.max(1,innerHeight||1080);return r.bottom>=-pad&&r.top<=h+pad}
+function starmeterPatchEligible(rank){const value=Number(rank||0),section=value?document.querySelector(`[data-starmeter-rank="${value}"]`):null,active=starmeterActiveRank();return !!section&&((active&&Math.abs(value-active)<=STARMETER_ACTIVE_RADIUS)||starmeterSectionNearViewport(section,620))}
+function trimStarmeterArtwork(){starmeterArtworkTrimTimer=null;if(state.page!=='starmeter')return;const active=starmeterActiveRank(),h=Math.max(1,innerHeight||1080);for(const section of document.querySelectorAll('.starmeter-person-section')){const rank=Number(section.dataset.starmeterRank||0),r=section.getBoundingClientRect(),near=(active&&Math.abs(rank-active)<=STARMETER_ART_RADIUS)||(r.bottom>=-520&&r.top<=h+520);if(near){hydrateArtwork(section);continue}for(const img of section.querySelectorAll('img[data-swoop-art][src]')){artworkObserver?.unobserve?.(img);img.onload=null;img.onerror=null;img.removeAttribute('src');delete img.dataset.swoopLoaded;img.classList.remove('loaded','artwork-failed');img.closest?.('.card')?.classList.remove('art-ready')}}}
+function scheduleStarmeterArtworkTrim(delay=140){if(state.page!=='starmeter'||starmeterArtworkTrimTimer)return;starmeterArtworkTrimTimer=setTimeout(trimStarmeterArtwork,Math.max(60,Number(delay||140)))}
 let starmeterBackgroundPreparePromise=null,starmeterBackgroundReady=false,starmeterBackgroundComplete=false,starmeterBackgroundProgress=0,starmeterBackgroundStatus='Preparing STARmeter…',starmeterPreparedProviderSignature='',starmeterBackgroundRetryTimer=null;
 const STARMETER_PRELOGIN_BATCH_SIZE=12;
 function withTimeout(promise,ms=6000,label='Operation timed out'){return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))])}
-function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null;starmeterDeferredPatches.clear();starmeterDeferredIdentityPatches.clear();starmeterHeldKeys.clear();starmeterHeldDirectional=false;}
+function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null;clearTimeout(starmeterArtworkTrimTimer);starmeterArtworkTrimTimer=null;starmeterDeferredPatches.clear();starmeterDeferredIdentityPatches.clear();starmeterHeldKeys.clear();starmeterHeldDirectional=false;}
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
 let suspendedBaseView=null,suspendedDetailView=null,suspendedPersonView=null;
 const persistentPageViews=new Map();
@@ -449,7 +455,7 @@ let guideLimit=48,guideCategory='',liveCategory='',providerFilter='all',pageCate
 const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=24,LONG_RAIL_RENDER_CHUNK=24,LONG_RAIL_PREFETCH_THRESHOLD=24;
 const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=3;
 const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=6;
-const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=2,STARMETER_PREFETCH_AHEAD=6,STARMETER_TITLE_RENDER_LIMIT=8;
+const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=2,STARMETER_PREFETCH_AHEAD=6,STARMETER_TITLE_RENDER_LIMIT=8,STARMETER_PATCH_BATCH=3,STARMETER_ACTIVE_RADIUS=7,STARMETER_ART_RADIUS=8;
 let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
@@ -2045,7 +2051,7 @@ function patchStarmeterIdentityNow(rank,person={}){
   if(person.profile){const old=cardEl.querySelector('img,.starmeter-person-fallback');if(old?.tagName==='IMG'&&old.dataset.swoopArt===person.profile)return true;const fresh=document.createElement('img');fresh.alt=person.name||'';fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true;
 }
 function patchStarmeterIdentity(rank,person={}){
-  const value=Number(rank||0);if(!value)return false;const section=document.querySelector(`[data-starmeter-rank="${value}"]`);if(state.page!=='starmeter'||starmeterSectionIsActive(section)||starmeterMutationBlocked()){starmeterDeferredIdentityPatches.set(value,person);scheduleStarmeterPatchFlush();return false}return patchStarmeterIdentityNow(value,person);
+  const value=Number(rank||0);if(!value)return false;const section=document.querySelector(`[data-starmeter-rank="${value}"]`);if(state.page!=='starmeter'||starmeterSectionIsActive(section)||starmeterMutationBlocked()||!starmeterPatchEligible(value)){starmeterDeferredIdentityPatches.set(value,person);scheduleStarmeterPatchFlush();return false}return patchStarmeterIdentityNow(value,person);
 }
 function starmeterLibraryRenderKey(entry={}){
   const cached=starmeterPersonCache.get(starmeterNormalize(entry.name)),titles=starmeterPersonTitles(cached);return `${cached?'ready':'loading'}|${cached?.retryable?'retry':'done'}|${titles.length}|${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>String(x?.id||x?._nativeSourceId||x?.name||'')).join(',')}`;
@@ -2062,11 +2068,14 @@ function scheduleStarmeterPatchFlush(delay=180){
 function scheduleStarmeterPersonPatch(rank,delay=180){const value=Number(rank||0);if(!value||state.page!=='starmeter')return false;starmeterDeferredPatches.add(value);scheduleStarmeterPatchFlush(delay);return true}
 function flushStarmeterDeferredPatches(){
   clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null;if(state.page!=='starmeter'||detailItem||personView){starmeterDeferredPatches.clear();starmeterDeferredIdentityPatches.clear();return}
-  if(starmeterMutationBlocked()){scheduleStarmeterPatchFlush(180);return}
-  const activeRank=Number(document.activeElement?.closest?.('[data-starmeter-rank]')?.dataset?.starmeterRank||0);
-  for(const [rank,person] of [...starmeterDeferredIdentityPatches]){if(rank===activeRank)continue;if(patchStarmeterIdentityNow(rank,person))starmeterDeferredIdentityPatches.delete(rank)}
-  for(const rank of [...starmeterDeferredPatches]){if(rank===activeRank)continue;if(patchStarmeterPersonNow(rank))starmeterDeferredPatches.delete(rank)}
-  if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(220)
+  if(starmeterMutationBlocked()){scheduleStarmeterPatchFlush(180);scheduleStarmeterArtworkTrim(120);return}
+  const activeRank=starmeterActiveRank(),distance=rank=>activeRank?Math.abs(Number(rank||0)-activeRank):0;let budget=STARMETER_PATCH_BATCH;
+  const identity=[...starmeterDeferredIdentityPatches].filter(([rank])=>starmeterPatchEligible(rank)).sort((a,b)=>distance(a[0])-distance(b[0]));
+  for(const [rank,person] of identity){if(budget<=0)break;if(Number(rank)===activeRank)continue;if(patchStarmeterIdentityNow(rank,person)){starmeterDeferredIdentityPatches.delete(rank);budget--}}
+  const rows=[...starmeterDeferredPatches].filter(rank=>starmeterPatchEligible(rank)).sort((a,b)=>distance(a)-distance(b));
+  for(const rank of rows){if(budget<=0)break;if(Number(rank)===activeRank)continue;if(patchStarmeterPersonNow(rank)){starmeterDeferredPatches.delete(rank);budget--}}
+  scheduleStarmeterArtworkTrim(90);
+  const moreEligible=[...starmeterDeferredIdentityPatches.keys()].some(starmeterPatchEligible)||[...starmeterDeferredPatches].some(starmeterPatchEligible);if(moreEligible)scheduleStarmeterPatchFlush(110)
 }
 function patchStarmeterPerson(rank){return scheduleStarmeterPersonPatch(rank)}
 function restoreFocusSignatureIn(root,sig){if(!root||!sig)return false;let target=null;if(sig.id)target=root.querySelector(`#${CSS.escape(sig.id)}`);if(!target&&sig.attr)target=[...root.querySelectorAll(`[${sig.attr}]`)].find(x=>x.getAttribute(sig.attr)===sig.value);if(!target&&sig.text)target=[...root.querySelectorAll('button,[tabindex],.card')].find(x=>(x.getAttribute('aria-label')||x.textContent||'').trim().replace(/\s+/g,' ').slice(0,100)===sig.text);if(target){try{target.focus({preventScroll:true})}catch{target.focus()}return true}return false}
@@ -3091,12 +3100,12 @@ function artworkRelayLimit(){return largeLibraryMode()?8:12}
 function pumpArtworkRelay(){while(artworkRelayActive<artworkRelayLimit()&&artworkRelayQueue.length){const job=artworkRelayQueue.shift();artworkRelayActive++;Promise.resolve().then(job.task).then(job.resolve,job.reject).finally(()=>{artworkRelayActive--;pumpArtworkRelay()})}}
 async function relayArtworkUrl(url,priority='normal'){if(artworkCache.has(url))return artworkCache.get(url);const promise=queueArtworkRelay(async()=>{const blob=await fetchXtreamAssetBlob({relayUrl:sessionRelay.url,relayToken:sessionRelay.token},url);return URL.createObjectURL(blob)},priority).catch(err=>{artworkCache.delete(url);throw err});artworkCache.set(url,promise);return promise}
 function canRelayArtwork(){return !NATIVE_WINDOWS&&Boolean(sessionRelay.url&&sessionRelay.token&&enabledProviders().some(p=>p.type==='xtream'))}
-function optimizedArtworkUrl(url,img){const raw=String(url||'');if(!/image\.tmdb\.org\/t\/p\//i.test(raw))return raw;const cls=img?.className||'';let size='w500';if(/backdrop|hero-art|hero-backdrop|detail-backdrop/i.test(cls))size='w1280';else if(/title-logo/i.test(cls))size='w500';else if(/cast/i.test(cls))size='w185';else if(img?.closest?.('.poster, .poster-content-grid'))size='w342';return raw.replace(/\/t\/p\/(?:original|w\d+)\//i,`/t/p/${size}/`)}
+function optimizedArtworkUrl(url,img){const raw=String(url||'');if(!/image\.tmdb\.org\/t\/p\//i.test(raw))return raw;const cls=img?.className||'';let size='w500';if(img?.closest?.('.starmeter-title-rail'))size='w154';else if(img?.closest?.('.starmeter-person-card'))size='w185';else if(/backdrop|hero-art|hero-backdrop|detail-backdrop/i.test(cls))size='w1280';else if(/title-logo/i.test(cls))size='w500';else if(/cast/i.test(cls))size='w185';else if(img?.closest?.('.poster, .poster-content-grid'))size='w342';return raw.replace(/\/t\/p\/(?:original|w\d+)\//i,`/t/p/${size}/`)}
 function revealArtwork(img){const show=()=>{img.classList.add('loaded');img.closest?.('.card')?.classList.add('art-ready');if(img.classList.contains('hero-title-logo'))img.closest?.('.hero-title-slot')?.classList.add('logo-ready')};if(typeof img.decode==='function')img.decode().then(show).catch(show);else show()}
 function artworkLoadFailed(img){img.dataset.swoopFailed='1';img.classList.add('artwork-failed');img.removeAttribute('src');const card=img.closest?.('[data-imdb-item]'),id=card?.dataset?.imdbItem,item=id?savedItem(id):null;if(item&&['movie','series'].includes(item.kind))queueVisibleMetadata(item,{forceArtwork:true});try{img.dispatchEvent(new Event('swoop-artwork-failed'))}catch{}}
 function artworkNearViewport(img,vertical=520,horizontal=1100){const r=img.getBoundingClientRect();return r.bottom>=-vertical&&r.top<=innerHeight+vertical&&r.right>=-horizontal&&r.left<=innerWidth+horizontal}
 function loadArtwork(img,{priority='normal'}={}){if(img.dataset.swoopLoaded==='1')return;img.dataset.swoopLoaded='1';const original=img.dataset.swoopArt||'';if(!original)return;const url=optimizedArtworkUrl(original,img);img.decoding='async';const critical=/hero|detail-backdrop|title-logo/i.test(img.className||''),eager=critical||priority==='high'||artworkNearViewport(img);if(!critical){img.loading=eager?'eager':'lazy';try{img.fetchPriority=eager?'high':'low'}catch{}}let relayTried=false;const fallback=async()=>{if(relayTried||!canRelayArtwork()){artworkLoadFailed(img);return}relayTried=true;try{const relay=await relayArtworkUrl(original,eager?'high':priority);img.onload=()=>revealArtwork(img);img.onerror=()=>artworkLoadFailed(img);img.src=relay}catch{artworkLoadFailed(img)}};if(location.protocol==='https:'&&/^http:\/\//i.test(original)&&canRelayArtwork()){fallback();return}img.onload=()=>revealArtwork(img);img.onerror=()=>fallback();img.src=url}
-function hydrateArtwork(root=document){const imgs=[...root.querySelectorAll('img[data-swoop-art]')].filter(img=>img.dataset.swoopLoaded!=='1');if(!imgs.length)return;const immediate=imgs.filter(img=>/title-logo|hero|detail-backdrop/i.test(img.className||'')||artworkNearViewport(img,600,1300));immediate.forEach(img=>loadArtwork(img,{priority:'high'}));const deferred=imgs.filter(img=>!immediate.includes(img));if(!deferred.length)return;if(!('IntersectionObserver'in window)){deferred.forEach(img=>loadArtwork(img,{priority:'normal'}));return}if(!artworkObserver)artworkObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){artworkObserver?.unobserve(entry.target);loadArtwork(entry.target,{priority:'high'})}},{rootMargin:largeLibraryMode()?'700px 1200px':'1000px 1800px',threshold:.01});deferred.forEach(img=>artworkObserver.observe(img))}
+function hydrateArtwork(root=document){const imgs=[...root.querySelectorAll('img[data-swoop-art]')].filter(img=>img.dataset.swoopLoaded!=='1');if(!imgs.length)return;const starmeterTv=NATIVE_ANDROID&&state.page==='starmeter';const immediate=imgs.filter(img=>/title-logo|hero|detail-backdrop/i.test(img.className||'')||artworkNearViewport(img,starmeterTv?720:600,starmeterTv?900:1300));immediate.forEach(img=>loadArtwork(img,{priority:'high'}));const deferred=imgs.filter(img=>!immediate.includes(img));if(!deferred.length||starmeterTv)return;if(!('IntersectionObserver'in window)){deferred.forEach(img=>loadArtwork(img,{priority:'normal'}));return}if(!artworkObserver)artworkObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){artworkObserver?.unobserve(entry.target);loadArtwork(entry.target,{priority:'high'})}},{rootMargin:largeLibraryMode()?'700px 1200px':'1000px 1800px',threshold:.01});deferred.forEach(img=>artworkObserver.observe(img))}
 
 let searchIndexKey='',searchIndexCache=[];
 function searchIndex(){const key=`${activeCatalogContext}|${movieStackPriorityKey}|live-separate|${metadataRevision}`;if(searchIndexKey===key&&searchIndexCache.length)return searchIndexCache;const logical=[...items('movie'),...items('series'),...items('live')];searchIndexCache=logical.map(item=>({item,text:`${item.name||''} ${item.group||''} ${item.year||''}`.toLowerCase()}));searchIndexKey=key;return searchIndexCache}
@@ -3630,10 +3639,10 @@ document.addEventListener('focusin',e=>{
   if(el&&el instanceof HTMLElement){
     document.querySelector('[data-swoop-tv-focused="1"]')?.removeAttribute('data-swoop-tv-focused');
     el.dataset.swoopTvFocused='1';tvLastFocusedElement=el;tvDiagRecord('focus',{focus:tvDiagnosticElement(el)});
-    const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);tvPrefetchArtworkWindow(card,state.page==='home'?32:24,4);longRailPrefetchForFocus(card)}
+    const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);if(state.page!=='starmeter'){tvPrefetchArtworkWindow(card,state.page==='home'?32:24,4);longRailPrefetchForFocus(card)}}
     if((detailItem||personView)&&el.closest?.('[data-detail-close],[data-person-close]')){const scroller=document.querySelector(detailItem?'.detail-scroll':'.person-scroll');if(scroller)scroller.scrollTop=0}
     if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,450)}}
-    if(state.page==='starmeter'){starmeterLastFocusMoveAt=performance.now();const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=6})}}if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(220)}
+    if(state.page==='starmeter'){starmeterLastFocusMoveAt=performance.now();const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(personSection)hydrateArtwork(personSection);scheduleStarmeterArtworkTrim(90);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=6})}}if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(220)}
     if(state.page==='guide')maybeAutoLoadGuideFromFocus(el);
   }
 },true);
@@ -3697,14 +3706,14 @@ window.addEventListener('keydown',e=>{
   }
   if(NATIVE_ANDROID&&profilePickerOpen&&(e.key==='Enter'||e.key==='NumpadEnter')){const active=document.activeElement;if(active?.matches?.('[data-profile-select]')){e.preventDefault();active.click();return}}
   if(NATIVE_ANDROID&&['ArrowRight','ArrowLeft','ArrowDown','ArrowUp'].includes(e.key)&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)){
-    if(state.page==='starmeter'){starmeterHeldKeys.add(e.key);starmeterLastFocusMoveAt=performance.now();if(e.repeat){starmeterHeldDirectional=true;if(starmeterPatchTimer){clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null}}}
+    if(state.page==='starmeter'){starmeterHeldKeys.add(e.key);starmeterLastFocusMoveAt=performance.now();if(e.repeat){starmeterHeldDirectional=true;if(starmeterPatchTimer){clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null}scheduleStarmeterArtworkTrim(80)}}
     if(e.key==='ArrowUp'||e.key==='ArrowDown'){tvQueueVerticalMove(e.key);e.preventDefault();e.stopPropagation();return}
     if(tvMoveFocus(e.key)){e.preventDefault();e.stopPropagation()}
   }
 });
 window.addEventListener('keyup',e=>{
   if(!NATIVE_ANDROID||!['ArrowRight','ArrowLeft','ArrowDown','ArrowUp'].includes(e.key))return;
-  starmeterHeldKeys.delete(e.key);if(state.page==='starmeter'&&!starmeterHeldKeys.size){starmeterHeldDirectional=false;starmeterLastFocusMoveAt=performance.now();if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(280)}
+  starmeterHeldKeys.delete(e.key);if(state.page==='starmeter'&&!starmeterHeldKeys.size){starmeterHeldDirectional=false;starmeterLastFocusMoveAt=performance.now();scheduleStarmeterArtworkTrim(90);if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(300)}
 });
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 

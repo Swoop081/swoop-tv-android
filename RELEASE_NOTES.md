@@ -1,5 +1,14 @@
 # Swoop TV Release Notes
 
+## v0.8.38 — STARmeter Viewport-Budget Hotfix
+
+- Fixes the remaining physical Google TV STARmeter blank/repaint stalls visible in IMG_1143.mp4 during sustained vertical D-pad traversal.
+- Keeps the stable 100-person focus geometry, but limits completed async DOM patching to three nearby rows per flush instead of mutating every deferred row after navigation settles.
+- Stops the generic artwork observer/prefetch path from accumulating STARmeter images far outside the current viewport.
+- Actively releases poster/portrait image sources outside an eight-rank working window and reloads them only when those rows return near the viewport.
+- Requests w154 title posters and w185 person portraits for STARmeter instead of much larger generic artwork sizes.
+- Hard-locks the compact STARmeter title rail to one 100 px grid row with vertical overflow clipped.
+
 ## v0.8.37 — TV UX + STARmeter Memory/Crash Hotfix
 
 - Fixes the physical-TV STARmeter WebView renderer restart seen in `IMG_1142.mp4` by reducing Android decoded-artwork retention from 260 surfaces to 48, eliminating STARmeter backdrop prewarm, limiting STARmeter prewarm to the first 12 people, reducing concurrent person hydration from 3 to 2, lowering lookahead from 18 to 6 and rendering at most 8 provider-title cards per person.

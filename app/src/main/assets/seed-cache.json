@@ -1,12 +1,12 @@
 {
   "schema": 2,
-  "sourceVersion": "0.8.37",
-  "builtAt": "2026-08-27T23:14:53.048Z",
+  "sourceVersion": "0.8.38",
+  "builtAt": "2026-08-27T23:52:20.198Z",
   "maxAgeHours": 168,
   "discovery": {
     "movie": {
       "mediaType": "movie",
-      "updatedAt": 1787872482516,
+      "updatedAt": 1787874735702,
       "enhanced": true,
       "snoak": false,
       "snoakMeta": {
@@ -60,7 +60,7 @@
             "title": "Grand Theft Auto VI: An Extended Look",
             "year": "2026",
             "popularity": 4.6158,
-            "rating": 9,
+            "rating": 8.9,
             "rank": 1
           },
           {
@@ -68,7 +68,7 @@
             "title": "The Last Sunrise",
             "year": "2026",
             "popularity": 235.9855,
-            "rating": 7.661,
+            "rating": 7.7,
             "rank": 2
           },
           {
@@ -84,7 +84,7 @@
             "title": "Mutiny",
             "year": "2026",
             "popularity": 507.5238,
-            "rating": 6.447,
+            "rating": 6.453,
             "rank": 4
           },
           {
@@ -92,31 +92,31 @@
             "title": "The Dog Stars",
             "year": "2026",
             "popularity": 76.8751,
-            "rating": 7.341,
+            "rating": 7.326,
             "rank": 5
-          },
-          {
-            "tmdb": "1729723",
-            "title": "Yellow Mirror",
-            "year": "2026",
-            "popularity": 13.3829,
-            "rating": 8.25,
-            "rank": 6
           },
           {
             "tmdb": "969681",
             "title": "Spider-Man: Brand New Day",
             "year": "2026",
             "popularity": 1257.7257,
-            "rating": 7.886,
-            "rank": 7
+            "rating": 7.9,
+            "rank": 6
           },
           {
             "tmdb": "1083381",
             "title": "Backrooms",
             "year": "2026",
             "popularity": 136.611,
-            "rating": 7.087,
+            "rating": 7.088,
+            "rank": 7
+          },
+          {
+            "tmdb": "1729723",
+            "title": "Yellow Mirror",
+            "year": "2026",
+            "popularity": 13.3829,
+            "rating": 8,
             "rank": 8
           },
           {
@@ -132,7 +132,7 @@
             "title": "Toy Story 5",
             "year": "2026",
             "popularity": 272.866,
-            "rating": 8.245,
+            "rating": 8.249,
             "rank": 10
           },
           {
@@ -140,16 +140,8 @@
             "title": "Coyote vs. Acme",
             "year": "2026",
             "popularity": 39.8145,
-            "rating": 7.313,
+            "rating": 7.4,
             "rank": 11
-          },
-          {
-            "tmdb": "1339713",
-            "title": "Obsession",
-            "year": "2026",
-            "popularity": 264.4783,
-            "rating": 8.208,
-            "rank": 12
           },
           {
             "tmdb": "950028",
@@ -157,6 +149,14 @@
             "year": "2026",
             "popularity": 53.3277,
             "rating": 7.323,
+            "rank": 12
+          },
+          {
+            "tmdb": "1339713",
+            "title": "Obsession",
+            "year": "2026",
+            "popularity": 264.4783,
+            "rating": 8.208,
             "rank": 13
           },
           {
@@ -164,7 +164,7 @@
             "title": "Batman: Knightfall Part 1: Knightfall",
             "year": "2026",
             "popularity": 105.1031,
-            "rating": 8.924,
+            "rating": 8.94,
             "rank": 14
           },
           {
@@ -172,7 +172,7 @@
             "title": "Evil Dead Burn",
             "year": "2026",
             "popularity": 135.4444,
-            "rating": 7.805,
+            "rating": 7.803,
             "rank": 15
           },
           {
@@ -184,28 +184,20 @@
             "rank": 16
           },
           {
+            "tmdb": "1291595",
+            "title": "Insidious: Out of the Further",
+            "year": "2026",
+            "popularity": 99.9185,
+            "rating": 6.532,
+            "rank": 17
+          },
+          {
             "tmdb": "1383731",
             "title": "Protector",
             "year": "2026",
             "popularity": 29.5104,
             "rating": 8.445,
-            "rank": 17
-          },
-          {
-            "tmdb": "1291595",
-            "title": "Insidious: Out of the Further",
-            "year": "2026",
-            "popularity": 99.9185,
-            "rating": 6.507,
             "rank": 18
-          },
-          {
-            "tmdb": "1621552",
-            "title": "Facing El Chapo",
-            "year": "2026",
-            "popularity": 327.4675,
-            "rating": 8.742,
-            "rank": 19
           },
           {
             "tmdb": "1698863",
@@ -213,6 +205,14 @@
             "year": "2026",
             "popularity": 84.9808,
             "rating": 4.049,
+            "rank": 19
+          },
+          {
+            "tmdb": "687163",
+            "title": "Project Hail Mary",
+            "year": "2026",
+            "popularity": 112.7467,
+            "rating": 8.648,
             "rank": 20
           }
         ],
@@ -3893,7 +3893,7 @@
     },
     "tv": {
       "mediaType": "tv",
-      "updatedAt": 1787872482222,
+      "updatedAt": 1787874735676,
       "enhanced": true,
       "snoak": false,
       "snoakMeta": {
@@ -3917,19 +3917,19 @@
         },
         "shows-rotten": {
           "slug": "most-popular-shows-on-rotten-tomatoes",
-          "sourceUpdatedAt": 1787843548000,
+          "sourceUpdatedAt": 0,
           "stale": false,
           "count": 0
         },
         "shows-trakt": {
           "slug": "trakt-s-trending-shows",
-          "sourceUpdatedAt": 1787843085000,
+          "sourceUpdatedAt": 0,
           "stale": false,
           "count": 0
         },
         "shows-latest": {
           "slug": "latest-tv-shows",
-          "sourceUpdatedAt": 1787756488000,
+          "sourceUpdatedAt": 0,
           "stale": false,
           "count": 0
         }
@@ -3941,7 +3941,7 @@
             "title": "Reacher",
             "year": "2022",
             "popularity": 627.652,
-            "rating": 8.092,
+            "rating": 8.095,
             "rank": 1
           },
           {
@@ -3957,7 +3957,7 @@
             "title": "Beauty in Black",
             "year": "2024",
             "popularity": 53.9555,
-            "rating": 8.212,
+            "rating": 8.2,
             "rank": 3
           },
           {
@@ -3965,16 +3965,8 @@
             "title": "Ted Lasso",
             "year": "2020",
             "popularity": 210.7703,
-            "rating": 8.363,
+            "rating": 8.4,
             "rank": 4
-          },
-          {
-            "tmdb": "252751",
-            "title": "Leanne",
-            "year": "2025",
-            "popularity": 17.0328,
-            "rating": 7.1,
-            "rank": 5
           },
           {
             "tmdb": "125988",
@@ -3982,15 +3974,15 @@
             "year": "2023",
             "popularity": 254.3844,
             "rating": 8.194,
-            "rank": 6
+            "rank": 5
           },
           {
-            "tmdb": "103516",
-            "title": "Star Trek: Strange New Worlds",
-            "year": "2022",
-            "popularity": 55.7463,
-            "rating": 7.9,
-            "rank": 7
+            "tmdb": "252751",
+            "title": "Leanne",
+            "year": "2025",
+            "popularity": 17.0328,
+            "rating": 7.1,
+            "rank": 6
           },
           {
             "tmdb": "330540",
@@ -3998,15 +3990,15 @@
             "year": "2026",
             "popularity": 3.3618,
             "rating": 0,
-            "rank": 8
+            "rank": 7
           },
           {
-            "tmdb": "456",
-            "title": "The Simpsons",
-            "year": "1989",
-            "popularity": 232.694,
-            "rating": 8.022,
-            "rank": 9
+            "tmdb": "103516",
+            "title": "Star Trek: Strange New Worlds",
+            "year": "2022",
+            "popularity": 55.7463,
+            "rating": 7.9,
+            "rank": 8
           },
           {
             "tmdb": "30984",
@@ -4014,6 +4006,14 @@
             "year": "2004",
             "popularity": 128.5359,
             "rating": 8.4,
+            "rank": 9
+          },
+          {
+            "tmdb": "456",
+            "title": "The Simpsons",
+            "year": "1989",
+            "popularity": 232.694,
+            "rating": 8.022,
             "rank": 10
           },
           {
@@ -4025,36 +4025,20 @@
             "rank": 11
           },
           {
-            "tmdb": "207333",
-            "title": "One Hundred Years of Solitude",
-            "year": "2024",
-            "popularity": 45.2871,
-            "rating": 7.998,
-            "rank": 12
-          },
-          {
             "tmdb": "65942",
             "title": "Re:ZERO -Starting Life in Another World-",
             "year": "2016",
             "popularity": 94.7281,
             "rating": 8.08,
+            "rank": 12
+          },
+          {
+            "tmdb": "207333",
+            "title": "One Hundred Years of Solitude",
+            "year": "2024",
+            "popularity": 45.2871,
+            "rating": 7.998,
             "rank": 13
-          },
-          {
-            "tmdb": "298168",
-            "title": "The Shards",
-            "year": "2026",
-            "popularity": 45.8872,
-            "rating": 7.7,
-            "rank": 14
-          },
-          {
-            "tmdb": "331616",
-            "title": "Death of the Pastor's Wife",
-            "year": "2026",
-            "popularity": 9.9818,
-            "rating": 8,
-            "rank": 15
           },
           {
             "tmdb": "113962",
@@ -4062,6 +4046,22 @@
             "year": "2023",
             "popularity": 351.5061,
             "rating": 8.095,
+            "rank": 14
+          },
+          {
+            "tmdb": "298168",
+            "title": "The Shards",
+            "year": "2026",
+            "popularity": 45.8872,
+            "rating": 7.7,
+            "rank": 15
+          },
+          {
+            "tmdb": "331616",
+            "title": "Death of the Pastor's Wife",
+            "year": "2026",
+            "popularity": 9.9818,
+            "rating": 8,
             "rank": 16
           },
           {
@@ -4073,19 +4073,19 @@
             "rank": 17
           },
           {
-            "tmdb": "100757",
-            "title": "Outer Banks",
-            "year": "2020",
-            "popularity": 313.8597,
-            "rating": 8.2,
-            "rank": 18
-          },
-          {
             "tmdb": "196322",
             "title": "Dark Matter",
             "year": "2024",
             "popularity": 28.8134,
             "rating": 7.8,
+            "rank": 18
+          },
+          {
+            "tmdb": "260458",
+            "title": "Adults",
+            "year": "2025",
+            "popularity": 28.1094,
+            "rating": 5.932,
             "rank": 19
           },
           {
@@ -5393,7 +5393,7 @@
             "title": "JUJUTSU KAISEN",
             "year": "2020",
             "popularity": 92.3693,
-            "rating": 8.6,
+            "rating": 8.584,
             "rank": 142
           },
           {
@@ -5409,7 +5409,7 @@
             "title": "The West Wing",
             "year": "1999",
             "popularity": 91.7995,
-            "rating": 8.261,
+            "rating": 8.3,
             "rank": 144
           },
           {
@@ -5417,7 +5417,7 @@
             "title": "Homeland",
             "year": "2011",
             "popularity": 91.72,
-            "rating": 7.591,
+            "rating": 7.592,
             "rank": 145
           },
           {
@@ -5457,7 +5457,7 @@
             "title": "Lucky",
             "year": "2026",
             "popularity": 90.3116,
-            "rating": 7.254,
+            "rating": 7.251,
             "rank": 150
           },
           {
@@ -5521,7 +5521,7 @@
             "title": "South Park",
             "year": "1997",
             "popularity": 88.8048,
-            "rating": 8.338,
+            "rating": 8.337,
             "rank": 158
           },
           {
@@ -6041,7 +6041,7 @@
             "title": "Pokémon",
             "year": "1997",
             "popularity": 77.8458,
-            "rating": 7.993,
+            "rating": 7.994,
             "rank": 223
           },
           {
@@ -6409,7 +6409,7 @@
             "title": "It's Always Sunny in Philadelphia",
             "year": "2005",
             "popularity": 72.542,
-            "rating": 8.26,
+            "rating": 8.261,
             "rank": 269
           },
           {
@@ -6433,7 +6433,7 @@
             "title": "Quiet Please!",
             "year": "2025",
             "popularity": 71.7934,
-            "rating": 7.647,
+            "rating": 7.7,
             "rank": 272
           },
           {
@@ -6441,7 +6441,7 @@
             "title": "Mad Men",
             "year": "2007",
             "popularity": 71.732,
-            "rating": 8.13,
+            "rating": 8.1,
             "rank": 273
           },
           {
@@ -6577,7 +6577,7 @@
             "title": "Black Mirror",
             "year": "2011",
             "popularity": 68.2541,
-            "rating": 8.3,
+            "rating": 8.288,
             "rank": 290
           },
           {
@@ -6585,7 +6585,7 @@
             "title": "Sterling Point",
             "year": "2026",
             "popularity": 68.1716,
-            "rating": 8.184,
+            "rating": 8.2,
             "rank": 291
           },
           {
@@ -6593,7 +6593,7 @@
             "title": "Better Call Saul",
             "year": "2015",
             "popularity": 67.9714,
-            "rating": 8.711,
+            "rating": 8.7,
             "rank": 292
           },
           {
@@ -6793,7 +6793,7 @@
             "title": "Once Upon a Time",
             "year": "2011",
             "popularity": 66.2263,
-            "rating": 7.4,
+            "rating": 7.403,
             "rank": 317
           },
           {
@@ -6809,7 +6809,7 @@
             "title": "The Wire",
             "year": "2002",
             "popularity": 66.1465,
-            "rating": 8.635,
+            "rating": 8.6,
             "rank": 319
           },
           {
@@ -6841,7 +6841,7 @@
             "title": "Slow Horses",
             "year": "2022",
             "popularity": 65.8606,
-            "rating": 8,
+            "rating": 8.003,
             "rank": 323
           },
           {
@@ -6849,7 +6849,7 @@
             "title": "Tulsa King",
             "year": "2022",
             "popularity": 65.8407,
-            "rating": 8.3,
+            "rating": 8.302,
             "rank": 324
           },
           {
@@ -119087,31 +119087,6 @@
     },
     {
       "mediaType": "movie",
-      "title": "Yellow Mirror",
-      "year": "2026",
-      "tmdbId": "1729723",
-      "imdbId": "tt43141030",
-      "poster": "https://image.tmdb.org/t/p/w500/1zdGvJAuuXC7dA3eV61OtUJNyjQ.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/exzMlOxfM5fGcMziFmjVxo91kkq.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/v3tBPXzkDSxcQO7RWh7q6dbrPb3.png",
-      "plot": "A defective lamp reveals a heartbreaking truth about what Homer believes is reality, and an AI-powered tablet befriends and controls Maggie. The Simpsons struggle to find the light through two dark tales of the curious and bizarre.",
-      "rating": "8.6",
-      "imdbRating": "",
-      "runtime": "27 min",
-      "genre": "",
-      "genres": [
-        "Animation",
-        "Comedy",
-        "Science Fiction"
-      ],
-      "castList": [],
-      "director": "Matthew Faughnan",
-      "certification": "PG",
-      "youtube": "",
-      "trailerName": "Trailer"
-    },
-    {
-      "mediaType": "movie",
       "title": "Spider-Man: Brand New Day",
       "year": "2026",
       "tmdbId": "969681",
@@ -119159,6 +119134,31 @@
       "certification": "M",
       "youtube": "",
       "trailerName": "Official Trailer"
+    },
+    {
+      "mediaType": "movie",
+      "title": "Yellow Mirror",
+      "year": "2026",
+      "tmdbId": "1729723",
+      "imdbId": "tt43141030",
+      "poster": "https://image.tmdb.org/t/p/w500/1zdGvJAuuXC7dA3eV61OtUJNyjQ.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/exzMlOxfM5fGcMziFmjVxo91kkq.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/v3tBPXzkDSxcQO7RWh7q6dbrPb3.png",
+      "plot": "A defective lamp reveals a heartbreaking truth about what Homer believes is reality, and an AI-powered tablet befriends and controls Maggie. The Simpsons struggle to find the light through two dark tales of the curious and bizarre.",
+      "rating": "8.6",
+      "imdbRating": "",
+      "runtime": "27 min",
+      "genre": "",
+      "genres": [
+        "Animation",
+        "Comedy",
+        "Science Fiction"
+      ],
+      "castList": [],
+      "director": "Matthew Faughnan",
+      "certification": "PG",
+      "youtube": "",
+      "trailerName": "Trailer"
     },
     {
       "mediaType": "movie",
@@ -119238,30 +119238,6 @@
     },
     {
       "mediaType": "movie",
-      "title": "Obsession",
-      "year": "2026",
-      "tmdbId": "1339713",
-      "imdbId": "tt37287335",
-      "poster": "https://image.tmdb.org/t/p/w500/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/5lTZyuBTNOfawsfPT8Q0cIg6qAF.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/2y6qVk9YIPxTzO43anxUQ9iTuh4.png",
-      "plot": "After breaking the mysterious \"One Wish Willow\" to win his crush's heart, a hopeless romantic finds himself getting exactly what he asked for but soon discovers that some desires come at a dark, sinister price.",
-      "rating": "8.2",
-      "imdbRating": "",
-      "runtime": "109 min",
-      "genre": "",
-      "genres": [
-        "Horror",
-        "Thriller"
-      ],
-      "castList": [],
-      "director": "Curry Barker",
-      "certification": "MA 15+",
-      "youtube": "",
-      "trailerName": "Official Trailer"
-    },
-    {
-      "mediaType": "movie",
       "title": "The Invite",
       "year": "2026",
       "tmdbId": "950028",
@@ -119284,6 +119260,30 @@
       "certification": "MA 15+",
       "youtube": "",
       "trailerName": "Official Trailer 2"
+    },
+    {
+      "mediaType": "movie",
+      "title": "Obsession",
+      "year": "2026",
+      "tmdbId": "1339713",
+      "imdbId": "tt37287335",
+      "poster": "https://image.tmdb.org/t/p/w500/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/5lTZyuBTNOfawsfPT8Q0cIg6qAF.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/2y6qVk9YIPxTzO43anxUQ9iTuh4.png",
+      "plot": "After breaking the mysterious \"One Wish Willow\" to win his crush's heart, a hopeless romantic finds himself getting exactly what he asked for but soon discovers that some desires come at a dark, sinister price.",
+      "rating": "8.2",
+      "imdbRating": "",
+      "runtime": "109 min",
+      "genre": "",
+      "genres": [
+        "Horror",
+        "Thriller"
+      ],
+      "castList": [],
+      "director": "Curry Barker",
+      "certification": "MA 15+",
+      "youtube": "",
+      "trailerName": "Official Trailer"
     },
     {
       "mediaType": "movie",
@@ -119363,30 +119363,6 @@
     },
     {
       "mediaType": "movie",
-      "title": "Protector",
-      "year": "2026",
-      "tmdbId": "1383731",
-      "imdbId": "tt34471850",
-      "poster": "https://image.tmdb.org/t/p/w500/icOZpnGuH9YrEaW3wrw5GJaXGih.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/vpuPY4UziUCxv7gYYoaZQ3LX7to.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/cOq6SPb6EaXnM5mbLrUq72FRzXE.png",
-      "plot": "Nikki's life is shattered when her daughter is kidnapped. Thrust into the criminal underworld while hunted by cops and military, she must fight to rescue her child.",
-      "rating": "8.4",
-      "imdbRating": "",
-      "runtime": "90 min",
-      "genre": "",
-      "genres": [
-        "Action",
-        "Thriller"
-      ],
-      "castList": [],
-      "director": "Adrian Grünberg",
-      "certification": "MA 15+",
-      "youtube": "",
-      "trailerName": "Official Trailer"
-    },
-    {
-      "mediaType": "movie",
       "title": "Insidious: Out of the Further",
       "year": "2026",
       "tmdbId": "1291595",
@@ -119411,28 +119387,27 @@
     },
     {
       "mediaType": "movie",
-      "title": "Facing El Chapo",
+      "title": "Protector",
       "year": "2026",
-      "tmdbId": "1621552",
-      "imdbId": "tt39390497",
-      "poster": "https://image.tmdb.org/t/p/w500/alpf5v4UqSFawPmG9RX03Or4BDk.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/c4U96GrPRfnNrS01mBtqnocvlLJ.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/1d22QQ6k9kAwI3ku4f8c3d3vUrM.png",
-      "plot": "Two Mexican officers must survive the final hours of their shift after crossing a ruthless cartel boss.",
-      "rating": "8.7",
+      "tmdbId": "1383731",
+      "imdbId": "tt34471850",
+      "poster": "https://image.tmdb.org/t/p/w500/icOZpnGuH9YrEaW3wrw5GJaXGih.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/vpuPY4UziUCxv7gYYoaZQ3LX7to.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/cOq6SPb6EaXnM5mbLrUq72FRzXE.png",
+      "plot": "Nikki's life is shattered when her daughter is kidnapped. Thrust into the criminal underworld while hunted by cops and military, she must fight to rescue her child.",
+      "rating": "8.4",
       "imdbRating": "",
-      "runtime": "91 min",
+      "runtime": "90 min",
       "genre": "",
       "genres": [
-        "Crime",
         "Action",
         "Thriller"
       ],
       "castList": [],
-      "director": "Chava Cartas",
-      "certification": "R",
+      "director": "Adrian Grünberg",
+      "certification": "MA 15+",
       "youtube": "",
-      "trailerName": "FACING EL CHAPO Official Trailer (2026) Netflix | Alfonso Herrera, Noé Hernández 🚨"
+      "trailerName": "Official Trailer"
     },
     {
       "mediaType": "movie",
@@ -119461,6 +119436,55 @@
     },
     {
       "mediaType": "movie",
+      "title": "Project Hail Mary",
+      "year": "2026",
+      "tmdbId": "687163",
+      "imdbId": "tt12042730",
+      "poster": "https://image.tmdb.org/t/p/w500/yihdXomYb5kTeSivtFndMy5iDmf.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/8Tfys3mDZVp4tNoH2ktm06a0Tau.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/jvqIELbZctv3Jqtcc7Ic5of8vY7.png",
+      "plot": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction.",
+      "rating": "8.6",
+      "imdbRating": "",
+      "runtime": "157 min",
+      "genre": "",
+      "genres": [
+        "Science Fiction",
+        "Adventure"
+      ],
+      "castList": [],
+      "director": "Phil Lord, Christopher Miller",
+      "certification": "M",
+      "youtube": "",
+      "trailerName": "Final Sneak Peak"
+    },
+    {
+      "mediaType": "movie",
+      "title": "Facing El Chapo",
+      "year": "2026",
+      "tmdbId": "1621552",
+      "imdbId": "tt39390497",
+      "poster": "https://image.tmdb.org/t/p/w500/alpf5v4UqSFawPmG9RX03Or4BDk.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/c4U96GrPRfnNrS01mBtqnocvlLJ.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/1d22QQ6k9kAwI3ku4f8c3d3vUrM.png",
+      "plot": "Two Mexican officers must survive the final hours of their shift after crossing a ruthless cartel boss.",
+      "rating": "8.7",
+      "imdbRating": "",
+      "runtime": "91 min",
+      "genre": "",
+      "genres": [
+        "Crime",
+        "Action",
+        "Thriller"
+      ],
+      "castList": [],
+      "director": "Chava Cartas",
+      "certification": "R",
+      "youtube": "",
+      "trailerName": "FACING EL CHAPO Official Trailer (2026) Netflix | Alfonso Herrera, Noé Hernández 🚨"
+    },
+    {
+      "mediaType": "movie",
       "title": "Minions & Monsters",
       "year": "2026",
       "tmdbId": "1315772",
@@ -119485,30 +119509,6 @@
       "certification": "PG",
       "youtube": "",
       "trailerName": "Final Trailer"
-    },
-    {
-      "mediaType": "movie",
-      "title": "Project Hail Mary",
-      "year": "2026",
-      "tmdbId": "687163",
-      "imdbId": "tt12042730",
-      "poster": "https://image.tmdb.org/t/p/w500/yihdXomYb5kTeSivtFndMy5iDmf.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/8Tfys3mDZVp4tNoH2ktm06a0Tau.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/jvqIELbZctv3Jqtcc7Ic5of8vY7.png",
-      "plot": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction.",
-      "rating": "8.6",
-      "imdbRating": "",
-      "runtime": "157 min",
-      "genre": "",
-      "genres": [
-        "Science Fiction",
-        "Adventure"
-      ],
-      "castList": [],
-      "director": "Phil Lord, Christopher Miller",
-      "certification": "M",
-      "youtube": "",
-      "trailerName": "Final Sneak Peak"
     },
     {
       "mediaType": "movie",
@@ -120054,11 +120054,11 @@
       "year": "2026",
       "tmdbId": "1213243",
       "imdbId": "tt27530512",
-      "poster": "https://image.tmdb.org/t/p/w500/4Ns0I4CM9S8sgtiOSWDxUbCbB0f.jpg",
+      "poster": "https://image.tmdb.org/t/p/w500/oiIPU4lvnI0Ag2K9cyAi44eCaoE.jpg",
       "backdrop": "https://image.tmdb.org/t/p/original/tBRSSfgqOAq7YlG8udcoJIBm2FG.jpg",
       "titleLogo": "https://image.tmdb.org/t/p/w500/hEpiChf63qQXCrhBMlRMZW4gtRv.png",
       "plot": "A powerful drug cartel pulls the strings behind a facade of sun-soaked beaches as a gritty, violent underworld power struggle emerges during the crumbling of Portuguese colonial rule.",
-      "rating": "5.6",
+      "rating": "6.1",
       "imdbRating": "",
       "runtime": "195 min",
       "genre": "",
@@ -120477,7 +120477,7 @@
       "year": "2024",
       "tmdbId": "246246",
       "imdbId": "tt31260386",
-      "poster": "https://image.tmdb.org/t/p/w500/i98Jl46WBpK7ymttNOakowtNuFF.jpg",
+      "poster": "https://image.tmdb.org/t/p/w500/xKk4bFCCpZ9tvjUykvvMYLSBnjo.jpg",
       "backdrop": "https://image.tmdb.org/t/p/original/ywJcUIMTCjstPLvvyIiPWP3G3m3.jpg",
       "titleLogo": "https://image.tmdb.org/t/p/w500/wUbCZ5lrBeAOnUdvn2zYvWrQjA8.png",
       "plot": "A stripper's fate takes a turn when she crosses paths with the wealthy, dysfunctional family behind a cosmetics dynasty and a devious trafficking scheme.",
@@ -120520,6 +120520,30 @@
     },
     {
       "mediaType": "tv",
+      "title": "Silo",
+      "year": "2023",
+      "tmdbId": "125988",
+      "imdbId": "tt14688458",
+      "poster": "https://image.tmdb.org/t/p/w500/gMYZZvnkVNTqSVnVCphWbPXwWwb.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/wgkzj7qsPr3s5zYj31tTn45BTPq.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/orJ5TfInOu5CzgFIDs4avqEg0wu.png",
+      "plot": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo.",
+      "rating": "8.2",
+      "imdbRating": "",
+      "runtime": "",
+      "genre": "",
+      "genres": [
+        "Sci-Fi & Fantasy",
+        "Drama"
+      ],
+      "castList": [],
+      "director": "Graham Yost",
+      "certification": "M",
+      "youtube": "",
+      "trailerName": "Official Trailer"
+    },
+    {
+      "mediaType": "tv",
       "title": "Leanne",
       "year": "2025",
       "tmdbId": "252751",
@@ -120543,25 +120567,24 @@
     },
     {
       "mediaType": "tv",
-      "title": "Silo",
-      "year": "2023",
-      "tmdbId": "125988",
-      "imdbId": "tt14688458",
-      "poster": "https://image.tmdb.org/t/p/w500/gMYZZvnkVNTqSVnVCphWbPXwWwb.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/wgkzj7qsPr3s5zYj31tTn45BTPq.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/orJ5TfInOu5CzgFIDs4avqEg0wu.png",
-      "plot": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo.",
-      "rating": "8.2",
+      "title": "Dalliance",
+      "year": "2026",
+      "tmdbId": "330540",
+      "imdbId": "tt38876221",
+      "poster": "https://image.tmdb.org/t/p/w500/oUwy6xIffGNp94bkiqowBDM9W1S.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/8Ye9jv4Ibo5xK6GgWihsec8M94A.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/zZvkrkfeAhgtBJCSDSKbTAsAx4V.png",
+      "plot": "Billy, a former cameraman, encounters Dani on a Sydney Harbour ferry as their different worlds intersect.",
+      "rating": "",
       "imdbRating": "",
       "runtime": "",
       "genre": "",
       "genres": [
-        "Sci-Fi & Fantasy",
         "Drama"
       ],
       "castList": [],
-      "director": "Graham Yost",
-      "certification": "M",
+      "director": "John Edwards, Heather Mitchell, Pip Karmel, Liz Doran",
+      "certification": "14",
       "youtube": "",
       "trailerName": "Official Trailer"
     },
@@ -120591,24 +120614,26 @@
     },
     {
       "mediaType": "tv",
-      "title": "Dalliance",
-      "year": "2026",
-      "tmdbId": "330540",
-      "imdbId": "tt38876221",
-      "poster": "https://image.tmdb.org/t/p/w500/oUwy6xIffGNp94bkiqowBDM9W1S.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/8Ye9jv4Ibo5xK6GgWihsec8M94A.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/zZvkrkfeAhgtBJCSDSKbTAsAx4V.png",
-      "plot": "Billy, a former cameraman, encounters Dani on a Sydney Harbour ferry as their different worlds intersect.",
-      "rating": "",
+      "title": "Bleach",
+      "year": "2004",
+      "tmdbId": "30984",
+      "imdbId": "tt0434665",
+      "poster": "https://image.tmdb.org/t/p/w500/2EewmxXe72ogD0EaWM8gqa0ccIw.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/o0NsbcIvsllg6CJX0FBFY8wWbsn.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/jEImh4O7mcYuwuAeryGZo3G6hg6.png",
+      "plot": "For as long as he can remember, Ichigo Kurosaki has been able to see ghosts. But when he meets Rukia, a Soul Reaper who battles evil spirits known as Hollows, he finds his life is changed forever. Now, with a newfound wealth of spiritual energy, Ichigo discovers his true calling: to protect the living and the dead from evil.",
+      "rating": "8.4",
       "imdbRating": "",
-      "runtime": "",
+      "runtime": "24 min",
       "genre": "",
       "genres": [
-        "Drama"
+        "Action & Adventure",
+        "Animation",
+        "Sci-Fi & Fantasy"
       ],
       "castList": [],
-      "director": "John Edwards, Heather Mitchell, Pip Karmel, Liz Doran",
-      "certification": "14",
+      "director": "",
+      "certification": "MA 15+",
       "youtube": "",
       "trailerName": "Official Trailer"
     },
@@ -120638,31 +120663,6 @@
     },
     {
       "mediaType": "tv",
-      "title": "Bleach",
-      "year": "2004",
-      "tmdbId": "30984",
-      "imdbId": "tt0434665",
-      "poster": "https://image.tmdb.org/t/p/w500/2EewmxXe72ogD0EaWM8gqa0ccIw.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/o0NsbcIvsllg6CJX0FBFY8wWbsn.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/jEImh4O7mcYuwuAeryGZo3G6hg6.png",
-      "plot": "For as long as he can remember, Ichigo Kurosaki has been able to see ghosts. But when he meets Rukia, a Soul Reaper who battles evil spirits known as Hollows, he finds his life is changed forever. Now, with a newfound wealth of spiritual energy, Ichigo discovers his true calling: to protect the living and the dead from evil.",
-      "rating": "8.4",
-      "imdbRating": "",
-      "runtime": "24 min",
-      "genre": "",
-      "genres": [
-        "Action & Adventure",
-        "Animation",
-        "Sci-Fi & Fantasy"
-      ],
-      "castList": [],
-      "director": "",
-      "certification": "MA 15+",
-      "youtube": "",
-      "trailerName": "Official Trailer"
-    },
-    {
-      "mediaType": "tv",
       "title": "The Early Spring",
       "year": "2026",
       "tmdbId": "299952",
@@ -120683,6 +120683,32 @@
       "certification": "PG13",
       "youtube": "",
       "trailerName": "Official Trailer"
+    },
+    {
+      "mediaType": "tv",
+      "title": "Re:ZERO -Starting Life in Another World-",
+      "year": "2016",
+      "tmdbId": "65942",
+      "imdbId": "tt5607616",
+      "poster": "https://image.tmdb.org/t/p/w500/oHqYrPAsIiTD5m4DuxumV4er8BU.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/x6y59dJBE1o0r4YRsWVQXE2nnlB.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/wNysocYhYIiCNI3SQBBTw0DTkWu.png",
+      "plot": "Natsuki Subaru, an ordinary high school  student, is on his way home from the convenience store when he finds  himself transported to another world. As he's lost and confused in a new  world where he doesn't even know left from right, the only person to  reach out to him was a beautiful girl with silver hair. Determined to  repay her somehow for saving him from his own despair, Subaru agrees to  help the girl find something she's looking for.",
+      "rating": "8.1",
+      "imdbRating": "",
+      "runtime": "25 min",
+      "genre": "",
+      "genres": [
+        "Animation",
+        "Mystery",
+        "Action & Adventure",
+        "Sci-Fi & Fantasy"
+      ],
+      "castList": [],
+      "director": "",
+      "certification": "MA 15+",
+      "youtube": "",
+      "trailerName": "Blu-ray Limited Ed. Collection"
     },
     {
       "mediaType": "tv",
@@ -120710,29 +120736,27 @@
     },
     {
       "mediaType": "tv",
-      "title": "Re:ZERO -Starting Life in Another World-",
-      "year": "2016",
-      "tmdbId": "65942",
-      "imdbId": "tt5607616",
-      "poster": "https://image.tmdb.org/t/p/w500/oHqYrPAsIiTD5m4DuxumV4er8BU.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/x6y59dJBE1o0r4YRsWVQXE2nnlB.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/wNysocYhYIiCNI3SQBBTw0DTkWu.png",
-      "plot": "Natsuki Subaru, an ordinary high school  student, is on his way home from the convenience store when he finds  himself transported to another world. As he's lost and confused in a new  world where he doesn't even know left from right, the only person to  reach out to him was a beautiful girl with silver hair. Determined to  repay her somehow for saving him from his own despair, Subaru agrees to  help the girl find something she's looking for.",
+      "title": "Lioness",
+      "year": "2023",
+      "tmdbId": "113962",
+      "imdbId": "tt13111078",
+      "poster": "https://image.tmdb.org/t/p/w500/rzpHPSEgPTpRs8EHbygwsOw7jC0.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/4NBYDOnEjAzyuP7CMkD5s7fs44K.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/xCXmYvX8UwggLh0h3I1A1fbHBxI.png",
+      "plot": "Cruz Manuelos, a rough-around-the-edges but passionate young Marine, is recruited to join the CIA's Lioness Engagement Team to help bring down a terrorist organization from within. Joe, the station chief of the Lioness program, is tasked with training, managing and leading her female undercover operatives.",
       "rating": "8.1",
       "imdbRating": "",
-      "runtime": "25 min",
+      "runtime": "",
       "genre": "",
       "genres": [
-        "Animation",
-        "Mystery",
-        "Action & Adventure",
-        "Sci-Fi & Fantasy"
+        "Drama",
+        "War & Politics"
       ],
       "castList": [],
-      "director": "",
+      "director": "Taylor Sheridan",
       "certification": "MA 15+",
       "youtube": "",
-      "trailerName": "Blu-ray Limited Ed. Collection"
+      "trailerName": "Official Trailer"
     },
     {
       "mediaType": "tv",
@@ -120784,30 +120808,6 @@
     },
     {
       "mediaType": "tv",
-      "title": "Lioness",
-      "year": "2023",
-      "tmdbId": "113962",
-      "imdbId": "tt13111078",
-      "poster": "https://image.tmdb.org/t/p/w500/rzpHPSEgPTpRs8EHbygwsOw7jC0.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/4NBYDOnEjAzyuP7CMkD5s7fs44K.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/xCXmYvX8UwggLh0h3I1A1fbHBxI.png",
-      "plot": "Cruz Manuelos, a rough-around-the-edges but passionate young Marine, is recruited to join the CIA's Lioness Engagement Team to help bring down a terrorist organization from within. Joe, the station chief of the Lioness program, is tasked with training, managing and leading her female undercover operatives.",
-      "rating": "8.1",
-      "imdbRating": "",
-      "runtime": "",
-      "genre": "",
-      "genres": [
-        "Drama",
-        "War & Politics"
-      ],
-      "castList": [],
-      "director": "Taylor Sheridan",
-      "certification": "MA 15+",
-      "youtube": "",
-      "trailerName": "Official Trailer"
-    },
-    {
-      "mediaType": "tv",
       "title": "Futurama",
       "year": "1999",
       "tmdbId": "615",
@@ -120830,30 +120830,6 @@
       "certification": "M",
       "youtube": "",
       "trailerName": "FUTURAMA | Season 1, Episode 1: Family Ties | SYFY"
-    },
-    {
-      "mediaType": "tv",
-      "title": "Outer Banks",
-      "year": "2020",
-      "tmdbId": "100757",
-      "imdbId": "tt10293938",
-      "poster": "https://image.tmdb.org/t/p/w500/ovDgO2LPfwdVRfvScAqo9aMiIW.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/fjJ0aqDeDXFzmFXXJ4CF3ryB19b.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/eXc0K8WX9tkphUPcimP5fZrnKFm.png",
-      "plot": "On a North Carolina island of haves and have-nots, John B and his tight-knit crew of friends find mystery and adventure while hunting for lost treasure.",
-      "rating": "8.2",
-      "imdbRating": "",
-      "runtime": "",
-      "genre": "",
-      "genres": [
-        "Action & Adventure",
-        "Mystery"
-      ],
-      "castList": [],
-      "director": "Shannon Burke, Jonas Pate, Josh Pate",
-      "certification": "MA 15+",
-      "youtube": "",
-      "trailerName": "Outer Banks Season 1 Trailer | Rotten Tomatoes TV"
     },
     {
       "mediaType": "tv",
@@ -120881,6 +120857,29 @@
     },
     {
       "mediaType": "tv",
+      "title": "Adults",
+      "year": "2025",
+      "tmdbId": "260458",
+      "imdbId": "tt33049767",
+      "poster": "https://image.tmdb.org/t/p/w500/oJUoRlVXGl3MJb62Ugi1G08GPbx.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/r2yaABeXmcgQDmRxRJsmLbTsPHQ.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/vlcQQkQUm66RVJgwVwdASAcgbEN.png",
+      "plot": "A group of twenty-somethings in New York trying to be good people, despite being neither \"good\" nor \"people\" yet.",
+      "rating": "5.9",
+      "imdbRating": "",
+      "runtime": "",
+      "genre": "",
+      "genres": [
+        "Comedy"
+      ],
+      "castList": [],
+      "director": "Ben Kronengold, Rebecca Shaw",
+      "certification": "MA 15+",
+      "youtube": "",
+      "trailerName": "Official Trailer"
+    },
+    {
+      "mediaType": "tv",
       "title": "Furious",
       "year": "2026",
       "tmdbId": "287238",
@@ -120902,6 +120901,30 @@
       "certification": "TV-MA",
       "youtube": "",
       "trailerName": "Official Trailer"
+    },
+    {
+      "mediaType": "tv",
+      "title": "Outer Banks",
+      "year": "2020",
+      "tmdbId": "100757",
+      "imdbId": "tt10293938",
+      "poster": "https://image.tmdb.org/t/p/w500/ovDgO2LPfwdVRfvScAqo9aMiIW.jpg",
+      "backdrop": "https://image.tmdb.org/t/p/original/fjJ0aqDeDXFzmFXXJ4CF3ryB19b.jpg",
+      "titleLogo": "https://image.tmdb.org/t/p/w500/eXc0K8WX9tkphUPcimP5fZrnKFm.png",
+      "plot": "On a North Carolina island of haves and have-nots, John B and his tight-knit crew of friends find mystery and adventure while hunting for lost treasure.",
+      "rating": "8.2",
+      "imdbRating": "",
+      "runtime": "",
+      "genre": "",
+      "genres": [
+        "Action & Adventure",
+        "Mystery"
+      ],
+      "castList": [],
+      "director": "Shannon Burke, Jonas Pate, Josh Pate",
+      "certification": "MA 15+",
+      "youtube": "",
+      "trailerName": "Outer Banks Season 1 Trailer | Rotten Tomatoes TV"
     },
     {
       "mediaType": "tv",
@@ -121862,29 +121885,6 @@
       "certification": "",
       "youtube": "",
       "trailerName": ""
-    },
-    {
-      "mediaType": "tv",
-      "title": "Adults",
-      "year": "2025",
-      "tmdbId": "260458",
-      "imdbId": "tt33049767",
-      "poster": "https://image.tmdb.org/t/p/w500/oJUoRlVXGl3MJb62Ugi1G08GPbx.jpg",
-      "backdrop": "https://image.tmdb.org/t/p/original/r2yaABeXmcgQDmRxRJsmLbTsPHQ.jpg",
-      "titleLogo": "https://image.tmdb.org/t/p/w500/vlcQQkQUm66RVJgwVwdASAcgbEN.png",
-      "plot": "A group of twenty-somethings in New York trying to be good people, despite being neither \"good\" nor \"people\" yet.",
-      "rating": "5.9",
-      "imdbRating": "",
-      "runtime": "",
-      "genre": "",
-      "genres": [
-        "Comedy"
-      ],
-      "castList": [],
-      "director": "Ben Kronengold, Rebecca Shaw",
-      "certification": "MA 15+",
-      "youtube": "",
-      "trailerName": "Official Trailer"
     }
   ],
   "episodeMetadata": [],
@@ -122829,13 +122829,6 @@
       },
       {
         "mediaType": "movie",
-        "title": "Yellow Mirror",
-        "year": "2026",
-        "tmdbId": "1729723",
-        "imdbId": "tt43141030"
-      },
-      {
-        "mediaType": "movie",
         "title": "Spider-Man: Brand New Day",
         "year": "2026",
         "tmdbId": "969681",
@@ -122847,6 +122840,13 @@
         "year": "2026",
         "tmdbId": "1083381",
         "imdbId": "tt26657236"
+      },
+      {
+        "mediaType": "movie",
+        "title": "Yellow Mirror",
+        "year": "2026",
+        "tmdbId": "1729723",
+        "imdbId": "tt43141030"
       },
       {
         "mediaType": "movie",
@@ -122871,17 +122871,17 @@
       },
       {
         "mediaType": "movie",
-        "title": "Obsession",
-        "year": "2026",
-        "tmdbId": "1339713",
-        "imdbId": "tt37287335"
-      },
-      {
-        "mediaType": "movie",
         "title": "The Invite",
         "year": "2026",
         "tmdbId": "950028",
         "imdbId": "tt14173636"
+      },
+      {
+        "mediaType": "movie",
+        "title": "Obsession",
+        "year": "2026",
+        "tmdbId": "1339713",
+        "imdbId": "tt37287335"
       },
       {
         "mediaType": "movie",
@@ -122906,13 +122906,6 @@
       },
       {
         "mediaType": "movie",
-        "title": "Protector",
-        "year": "2026",
-        "tmdbId": "1383731",
-        "imdbId": "tt34471850"
-      },
-      {
-        "mediaType": "movie",
         "title": "Insidious: Out of the Further",
         "year": "2026",
         "tmdbId": "1291595",
@@ -122920,10 +122913,10 @@
       },
       {
         "mediaType": "movie",
-        "title": "Facing El Chapo",
+        "title": "Protector",
         "year": "2026",
-        "tmdbId": "1621552",
-        "imdbId": "tt39390497"
+        "tmdbId": "1383731",
+        "imdbId": "tt34471850"
       },
       {
         "mediaType": "movie",
@@ -122934,17 +122927,24 @@
       },
       {
         "mediaType": "movie",
-        "title": "Minions & Monsters",
-        "year": "2026",
-        "tmdbId": "1315772",
-        "imdbId": "tt32890033"
-      },
-      {
-        "mediaType": "movie",
         "title": "Project Hail Mary",
         "year": "2026",
         "tmdbId": "687163",
         "imdbId": "tt12042730"
+      },
+      {
+        "mediaType": "movie",
+        "title": "Facing El Chapo",
+        "year": "2026",
+        "tmdbId": "1621552",
+        "imdbId": "tt39390497"
+      },
+      {
+        "mediaType": "movie",
+        "title": "Minions & Monsters",
+        "year": "2026",
+        "tmdbId": "1315772",
+        "imdbId": "tt32890033"
       },
       {
         "mediaType": "movie",
@@ -123235,13 +123235,6 @@
       },
       {
         "mediaType": "tv",
-        "title": "Leanne",
-        "year": "2025",
-        "tmdbId": "252751",
-        "imdbId": "tt32213668"
-      },
-      {
-        "mediaType": "tv",
         "title": "Silo",
         "year": "2023",
         "tmdbId": "125988",
@@ -123249,10 +123242,10 @@
       },
       {
         "mediaType": "tv",
-        "title": "Star Trek: Strange New Worlds",
-        "year": "2022",
-        "tmdbId": "103516",
-        "imdbId": "tt12327578"
+        "title": "Leanne",
+        "year": "2025",
+        "tmdbId": "252751",
+        "imdbId": "tt32213668"
       },
       {
         "mediaType": "tv",
@@ -123263,10 +123256,10 @@
       },
       {
         "mediaType": "tv",
-        "title": "The Simpsons",
-        "year": "1989",
-        "tmdbId": "456",
-        "imdbId": "tt0096697"
+        "title": "Star Trek: Strange New Worlds",
+        "year": "2022",
+        "tmdbId": "103516",
+        "imdbId": "tt12327578"
       },
       {
         "mediaType": "tv",
@@ -123277,10 +123270,24 @@
       },
       {
         "mediaType": "tv",
+        "title": "The Simpsons",
+        "year": "1989",
+        "tmdbId": "456",
+        "imdbId": "tt0096697"
+      },
+      {
+        "mediaType": "tv",
         "title": "The Early Spring",
         "year": "2026",
         "tmdbId": "299952",
         "imdbId": "tt37884717"
+      },
+      {
+        "mediaType": "tv",
+        "title": "Re:ZERO -Starting Life in Another World-",
+        "year": "2016",
+        "tmdbId": "65942",
+        "imdbId": "tt5607616"
       },
       {
         "mediaType": "tv",
@@ -123291,10 +123298,10 @@
       },
       {
         "mediaType": "tv",
-        "title": "Re:ZERO -Starting Life in Another World-",
-        "year": "2016",
-        "tmdbId": "65942",
-        "imdbId": "tt5607616"
+        "title": "Lioness",
+        "year": "2023",
+        "tmdbId": "113962",
+        "imdbId": "tt13111078"
       },
       {
         "mediaType": "tv",
@@ -123312,24 +123319,10 @@
       },
       {
         "mediaType": "tv",
-        "title": "Lioness",
-        "year": "2023",
-        "tmdbId": "113962",
-        "imdbId": "tt13111078"
-      },
-      {
-        "mediaType": "tv",
         "title": "Futurama",
         "year": "1999",
         "tmdbId": "615",
         "imdbId": "tt0149460"
-      },
-      {
-        "mediaType": "tv",
-        "title": "Outer Banks",
-        "year": "2020",
-        "tmdbId": "100757",
-        "imdbId": "tt10293938"
       },
       {
         "mediaType": "tv",
@@ -123340,10 +123333,24 @@
       },
       {
         "mediaType": "tv",
+        "title": "Adults",
+        "year": "2025",
+        "tmdbId": "260458",
+        "imdbId": "tt33049767"
+      },
+      {
+        "mediaType": "tv",
         "title": "Furious",
         "year": "2026",
         "tmdbId": "287238",
         "imdbId": "tt36303968"
+      },
+      {
+        "mediaType": "tv",
+        "title": "Outer Banks",
+        "year": "2020",
+        "tmdbId": "100757",
+        "imdbId": "tt10293938"
       },
       {
         "mediaType": "tv",
@@ -123624,13 +123631,6 @@
         "year": "2007",
         "tmdbId": "31472",
         "imdbId": "tt2084564"
-      },
-      {
-        "mediaType": "tv",
-        "title": "Adults",
-        "year": "2025",
-        "tmdbId": "260458",
-        "imdbId": "tt33049767"
       }
     ]
   },

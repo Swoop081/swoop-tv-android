@@ -197,7 +197,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.37 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.38 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -421,8 +421,8 @@ public class MainActivity extends Activity {
             int state = player != null ? player.getPlaybackState() : Player.STATE_IDLE;
             Runtime runtime = Runtime.getRuntime();
             long usedBytes = runtime.totalMemory() - runtime.freeMemory();
-            out.put("version", "0.8.37");
-            out.put("versionCode", 837);
+            out.put("version", "0.8.38");
+            out.put("versionCode", 838);
             out.put("uptimeMs", SystemClock.elapsedRealtime());
             out.put("playing", nativePlayerVisible && usable && state != Player.STATE_IDLE);
             out.put("paused", player != null && !player.getPlayWhenReady());
@@ -454,7 +454,7 @@ public class MainActivity extends Activity {
             if (dir == null) dir = getFilesDir();
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("Could not create diagnostics folder.");
             String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
-            File file = new File(dir, "Swoop-TV-v0.8.37-Diagnostics-" + stamp + ".json");
+            File file = new File(dir, "Swoop-TV-v0.8.38-Diagnostics-" + stamp + ".json");
             byte[] bytes = String.valueOf(payloadJson == null ? "{}" : payloadJson).getBytes(StandardCharsets.UTF_8);
             try (FileOutputStream stream = new FileOutputStream(file, false)) {
                 stream.write(bytes);
@@ -535,7 +535,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.37 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.38 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -591,7 +591,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.37 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.38 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -655,7 +655,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.37"; }
+        public String version() { return "0.8.38"; }
 
         @JavascriptInterface
         public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }

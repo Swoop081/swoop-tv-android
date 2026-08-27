@@ -2858,3 +2858,10 @@ html.android-tv .starmeter-empty-row{
 }
 html.android-tv .starmeter-row-loading .starmeter-loading-posters{height:96px!important;overflow:hidden!important}
 html.android-tv .starmeter-row-loading i{width:62px!important;height:94px!important;border-radius:5px!important}
+
+
+/* v0.8.38 — STARmeter viewport-budget hotfix. */
+html.android-tv .starmeter-person-section{will-change:auto!important;backface-visibility:visible!important}
+html.android-tv .starmeter-library-column{will-change:auto!important}
+html.android-tv .starmeter-title-rail{grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important;overflow-x:auto!important;overflow-y:hidden!important}
+html.android-tv .starmeter-title-rail>.card{contain:layout paint!important}
