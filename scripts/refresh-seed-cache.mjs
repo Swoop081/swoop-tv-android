@@ -5,7 +5,16 @@ import {inflateSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 const run=(c,a=[],o={})=>execFileSync(c,a,{stdio:'inherit',...o});
 const out=(c,a=[])=>execFileSync(c,a,{encoding:'utf8'});
-const chunks=Array.from({length:4},(_,i)=>`scripts/.v0837-patch-${String(i).padStart(2,'0')}.b64`);
+const chunks=[
+  'scripts/.v0837-patch-00a0.b64',
+  'scripts/.v0837-patch-00a1.b64',
+  'scripts/.v0837-patch-00a2.b64',
+  'scripts/.v0837-patch-00a3.b64',
+  'scripts/.v0837-patch-00b.b64',
+  'scripts/.v0837-patch-01.b64',
+  'scripts/.v0837-patch-02.b64',
+  'scripts/.v0837-patch-03.b64'
+];
 const packed=chunks.map(p=>readFileSync(p,'utf8').trim()).join('');
 const raw=inflateSync(Buffer.from(packed,'base64'));
 const digest=createHash('sha256').update(raw).digest('hex');
@@ -29,7 +38,7 @@ if(payload.releaseNotesSection){
   }
 }
 for(const p of chunks)try{unlinkSync(p)}catch{}
-for(const p of ['scripts/.v0837-full-00.b64','scripts/.v0837-full-01.b64'])try{unlinkSync(p)}catch{}
+for(const p of ['scripts/.v0837-patch-00.b64','scripts/.v0837-patch-00a.b64','scripts/.v0837-full-00.b64','scripts/.v0837-full-01.b64'])try{unlinkSync(p)}catch{}
 console.log(`Applied ${Object.keys(payload.patches).length} live-source patches and installed ${Object.keys(payload.files).length} v0.8.37 files.`);
 run(process.execPath,['scripts/refresh-seed-cache.mjs']);
 run(process.execPath,['scripts/generate-build-metadata.mjs']);
