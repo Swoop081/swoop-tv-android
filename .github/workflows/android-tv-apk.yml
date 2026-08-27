@@ -14,6 +14,7 @@ on:
       - 'app/**'
       - 'tests/**'
       - 'scripts/**'
+      - '.promotion/**'
       - 'swoop-tv-starmeter.json'
       - 'swoop-tv-seed-cache.json'
       - 'RELEASE_NOTES.md'
@@ -56,6 +57,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
+
+      - name: Apply pending source promotion
+        shell: bash
+        run: |
+          if [ -f .promotion/promote-pending.mjs ]; then
+            node .promotion/promote-pending.mjs
+          else
+            echo "No pending source promotion."
+          fi
 
       - name: Refresh packaged warm-start seed cache
         shell: bash
