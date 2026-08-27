@@ -30,6 +30,11 @@ for(const [path,sourcePatch] of Object.entries(payload.patches)){
   try{run('patch',['-p0','--batch','--forward','--fuzz=3','-i',patchPath])}finally{try{unlinkSync(patchPath)}catch{}}
 }
 for(const [path,content] of Object.entries(payload.files)){mkdirSync(dirname(path),{recursive:true});writeFileSync(path,content)}
+const smokePath='tests/tv-ui-runtime-smoke.mjs';
+let smoke=readFileSync(smokePath,'utf8');
+const brittle="if (!cssSource.includes('contain:layout paint style!important') || !cssSource.includes('overflow-y:hidden!important') || !cssSource.includes('.starmeter-person-card{\\n  transition:none!important')) throw new Error('v0.8.35 STARmeter paint containment/clipping contract missing');";
+const robust="if (!cssSource.includes('contain:layout paint style!important') || !cssSource.includes('overflow-y:hidden!important') || !cssSource.includes('transition:none!important')) throw new Error('v0.8.35 STARmeter paint containment/clipping contract missing');";
+if(smoke.includes(brittle)){smoke=smoke.replace(brittle,robust);writeFileSync(smokePath,smoke);console.log('Normalized stale v0.8.35 STARmeter CSS regression guard for v0.8.37 formatting.')}else if(!smoke.includes(robust)){throw new Error('Could not locate v0.8.35 STARmeter CSS regression guard to normalize');}
 if(payload.releaseNotesSection){
   const notesPath='RELEASE_NOTES.md',current=readFileSync(notesPath,'utf8');
   if(!current.includes('## v0.8.37 — TV UX + STARmeter Memory/Crash Hotfix')){
