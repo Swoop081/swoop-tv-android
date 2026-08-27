@@ -2,10 +2,19 @@
 
 ## Current build under test
 
-**v0.8.35 — STARmeter Stable Row Rendering Hotfix**
+**v0.8.37 — Performance Pack + Incremental Library Cache**
 
 ## Implemented — needs physical-TV verification
 
+- [ ] **PACK-001:** first provider connection performs one deliberate Performance Pack optimisation pass and caches priority artwork without breaking provider setup.
+- [ ] **PACK-002:** subsequent launches restore the durable catalogue/artwork/metadata cache before network refresh work and feel materially faster.
+- [ ] **PACK-003:** unchanged provider refresh reports a zero/small delta and does not repeat a full artwork pass.
+- [ ] **PACK-004:** provider additions/removals only trigger changed-item cache work; unchanged catalogue chunks are retained.
+- [ ] **PACK-005:** installing a newer APK over v0.8.37 preserves Performance Pack/IndexedDB/Cache Storage state.
+- [ ] **STAR-RETAIN-001:** STARmeter matches survive restart and rank movement for up to 90 days; only new people need first-time provider matching.
+- [ ] **STAR-HOLD-001:** holding/long-pressing a directional D-pad key freezes STARmeter hydration until release and never produces duplicate/ghost rows.
+- [ ] **STAR-PAINT-001:** rapid Up/Down STARmeter navigation paints each person exactly once; no duplicated rank, portrait, name or library metadata trails remain.
+- [ ] **STAR-PATCH-001:** async STARmeter matching only patches inactive library columns after focus settles; no full-page rerender or focused-row mutation occurs.
 - [ ] **STAR-STARTUP-001:** STARmeter can no longer stop at 28% with “batch match did not complete”; profile selection remains immediate and STARmeter opens to a usable 100-person surface even while background matching continues.
 - [ ] **STAR-BATCH-001:** pre-login provider matching progresses in small batches, preserves completed people if a later batch is slow, and automatically retries unfinished work.
 - [ ] **TOP-001:** after scrolling any top-level route deep down, returning focus to the active fixed top navigation tab restores the document to its true original top (`scrollY = 0`).

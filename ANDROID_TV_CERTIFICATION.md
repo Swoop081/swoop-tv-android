@@ -1,8 +1,17 @@
-# Swoop TV v0.8.34 — Google TV hardware test checklist
+# Swoop TV v0.8.37 — Google TV hardware test checklist
 
-## v0.8.34 diagnostic workflow
+## v0.8.37 diagnostic workflow
 
 Before reproducing a hardware issue, enable **Hardware Test Mode** by focusing the Settings cog and pressing OK five times within four seconds. Select the matching NAV/PERF/LIVE/STAR/STAB test ID, reproduce the problem, photograph/video the HUD, then use **Settings → Hardware Test Mode → Save Diagnostics**. See `TV_HARDWARE_TEST_CHECKLIST.md` for the numbered procedure.
+
+## v0.8.37 Performance Pack certification
+
+- [ ] Fresh provider setup completes its one-time local optimisation and priority artwork warm.
+- [ ] Warm relaunch uses saved catalogue/artwork immediately and does not present a cold-loading feel for already prepared surfaces.
+- [ ] Unchanged provider refresh does not repeat full metadata/artwork work.
+- [ ] Incremental provider changes only warm changed/new artwork.
+- [ ] STARmeter retained people survive rank movement and restart; new entrants hydrate independently.
+- [ ] Holding Down through 30+ STARmeter rows causes no ghost/duplicate painting and deferred hydration resumes only after release.
 
 ## Highest-priority navigation checks
 

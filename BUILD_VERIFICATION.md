@@ -1,21 +1,22 @@
-# Swoop TV v0.8.34 Build Verification
+# Swoop TV v0.8.37 Build Verification
 
-- [x] `app/build.gradle` is `versionName 0.8.34` / `versionCode 834`.
-- [x] Android bridge/User-Agent, native diagnostics and diagnostic filenames report v0.8.34 / 834.
-- [x] `ANDROID_CURRENT_VERSION` reports 0.8.34.
-- [x] Service-worker shell cache is bumped to v0833.
-- [x] Install seed schema remains valid and `sourceVersion` is 0.8.34.
-- [x] Top-level Google TV focus returning to the fixed top navigation invokes canonical route-top restoration.
-- [x] First-row Up on top-level pages without a focusable hero can escape to the active route tab.
-- [x] STARmeter preparation starts from the Who’s Watching/profile picker before login.
-- [x] STARmeter uses a single indexed `person-match-batch` worker request for the complete Top 100.
-- [x] STARmeter does not render partially hydrated person rows while the Android pre-login batch is incomplete.
-- [x] STARmeter permanent row geometry reserves enough vertical room for enlarged poster rails/focus scaling without overlap.
-- [x] STARmeter prewarms Top 100 portraits plus representative filmography artwork.
-- [x] v0.8.32 directional Top 100 artwork prefetch and atomic hero replacement remain present.
-- [x] v0.8.32 Live preview readiness, Guide logo scale and branded cold-launch treatment remain present.
+- [x] `app/build.gradle` is `versionName 0.8.37` / `versionCode 837`.
+- [x] Android bridge/User-Agent, native diagnostics and diagnostic filenames report v0.8.37 / 836.
+- [x] `ANDROID_CURRENT_VERSION` reports 0.8.37.
+- [x] Service-worker shell cache is bumped to v0837 and preserves the separate `swoop-tv-artwork-v1` cache.
+- [x] Install seed schema remains valid and local sourceVersion is 0.8.37; GitHub Actions regenerates it immediately before APK compilation.
+- [x] Performance Pack has a separate persistent IndexedDB manifest/provider snapshot store and item-level fingerprints.
+- [x] Provider fingerprints are order-independent; unchanged, added, changed and removed records are functionally smoke-tested.
+- [x] Xtream and M3U initial connection feed the Performance Pack; normal refresh feeds the incremental comparison path.
+- [x] Durable catalogue save schema 3 fingerprints chunks and skips unchanged 2,000-item chunks.
+- [x] STARmeter retained rows persist for 90 days and are restored before matching new entrants.
+- [x] STARmeter rank changes do not invalidate retained person matches; provider fingerprint changes revalidate stale rows after the page is usable.
+- [x] Held/repeated D-pad directions block STARmeter DOM hydration until key release and focus settle.
+- [x] Existing v0.8.35 stable identity-column/library-only patch contract remains present.
+- [x] Existing route-top, fail-open matching, Top 100 prefetch, Live preview readiness, Guide geometry/logo scale and branded launch treatments remain present.
 - [x] JavaScript syntax checks pass.
 - [x] Card runtime smoke passes.
-- [x] Google TV UI runtime smoke passes.
-- [x] STARmeter batch worker functional smoke passes.
+- [x] Google TV UI runtime smoke passes, including functional Performance Pack delta checks.
+- [x] JSON seed/STARmeter manifests validate.
+- [x] Android XML resources validate.
 - [ ] Binary APK compile is delegated to the included GitHub Actions Android SDK 36 / Gradle 9.5.0 workflow.

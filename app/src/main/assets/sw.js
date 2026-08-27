@@ -1,4 +1,4 @@
-const CACHE='swoop-tv-v0836-shell';
+const CACHE='swoop-tv-v0837-shell';
 const ARTWORK_CACHE='swoop-tv-artwork-v1';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./assets/icon.svg','./assets/swoop-tv-logo.jpg','./assets/swoop-tv-icon.png','./assets/avatar-lion.jpeg','./assets/avatar-elephant.jpeg','./assets/avatar-giraffe.jpeg','./assets/avatar-zebra.jpeg','./assets/avatar-rhino.jpeg','./assets/avatar-turtle.jpeg','./assets/avatar-monkey.jpeg','./assets/avatar-meerkat.jpeg','./assets/avatar-parrot.jpeg','./assets/avatar-tiger.jpeg','./src/m3u.js','./src/xtream.js','./src/mdblist.js','./src/sourceStack.js','./src/liveStack.js','./src/profiles.js','./src/themes.js','./src/tmdb.js','./src/discovery.js','./src/seedCache.js','./src/performancePack.js','./seed-cache.json','./starmeter.json','./src/storage.js','./src/storage-worker.js','./src/native.js','./src/nativeCatalog.js','./src/catalog-index-worker.js','./src/xmltv.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));

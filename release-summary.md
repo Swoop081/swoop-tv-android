@@ -1,8 +1,12 @@
-Swoop TV Google TV hardware-test channel — current v0.8.36.
+Swoop TV Google TV hardware-test channel — current v0.8.37.
 
-- Adds a persistent Performance Pack so installer seed data, provider fingerprints, metadata knowledge and artwork cache state survive normal launches and APK upgrades.
-- Provider refreshes calculate catalogue deltas and prioritise only added/changed titles instead of repeating expensive preparation for unchanged content.
-- STARmeter person/library matches persist for 90 days independently of rank, so rank movement does not trigger rematching; new/stale people are handled incrementally.
-- Freezes STARmeter asynchronous DOM hydration throughout a held/long-pressed D-pad direction and resumes only after key release plus scroll settle.
+- Fixes the physical-TV STARmeter WebView renderer restart seen in IMG_1142.mp4 by reducing Android decoded-artwork retention from 260 surfaces to 48, eliminating STARmeter backdrop prewarm, limiting STARmeter prewarm to the first 12 people, reducing concurrent person hydration from 3 to 2, lowering lookahead from 18 to 6 and rendering at most 8 provider-title cards per person.
+- Compacts STARmeter to a fixed 136 px person row so the Top 5 are visible in the first 1080p viewport. Portraits, ranks, names and provider title cards are all reduced while preserving stable paint containment, held-D-pad mutation freeze and fixed identity anchors.
+- Removes the redundant MY LIST poster badge and standardises saved-content UI language on Favorites. TV series remain eligible for Favorites and appear in My SwoopTV alongside movies; favorite channels remain available there too.
+- Replaces the compact My SwoopTV header with the Home-style cinematic hero, rotating through saved movie/TV Favorites. Continue Watching, Favorites, Favorite Channels and Recently Watched remain below it.
+- Recently Watched episode entries now present the parent TV-series poster/title identity instead of episode still imagery when that series art is available.
+- Redesigns Live TV around a sticky two-column TV header: large current-channel branding on the left, a substantially larger native preview on the right, and focus-driven logo/preview switching as the remote moves through channel rows. Media3 preview uses zoom fill to remove oversized letterbox side bars.
+- Adds a 180 px bottom safe-space tail to browsing pages so the final rail does not stop flush against the bottom edge. The TV Guide layout and geometry are deliberately unchanged.
+- Simplifies What’s New to one visible close action: Got it.
 
 Test-only signing identity; not a production release.

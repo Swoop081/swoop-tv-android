@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.36';
+const ANDROID_CURRENT_VERSION='0.8.37';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,10 +37,12 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Adds the Swoop TV Performance Pack: installer seed data, persistent artwork caching and incremental provider fingerprints are retained across launches and app updates.',
-  'Provider refreshes now compare the new catalogue against the saved local snapshot and only warm artwork for added or changed titles instead of rebuilding the whole visual cache.',
-  'STARmeter person/library matches persist for 90 days, survive rank changes and are reused immediately; only new people are blocking work while stale matches revalidate quietly.',
-  'Freezes STARmeter DOM hydration for the full duration of a held/long-pressed D-pad direction, then resumes only after key release and scroll settle.'
+  'Fixes the physical-TV STARmeter renderer crash by sharply reducing resident artwork memory and title-card pressure while preserving stable person rows.',
+  'Compacts STARmeter so the Top 5 people fit on one TV screen, with smaller portraits, ranks and provider-title cards plus clean spacing between rows.',
+  'Redesigns My SwoopTV with a rotating cinematic Favorites hero and consistent Favorites naming for saved movies, TV shows and channels.',
+  'Redesigns Live TV with a persistent channel header: large logo on the left and a larger native live preview on the right that follows remote focus.',
+  'Adds generous bottom safe space to browsing pages so the final row never ends hard against the bottom of the TV.',
+  'Simplifies What’s New to one close action and removes the redundant My List badge from posters.'
 ];
 let installSeedCache=null,performancePackInfo=null,performancePackPreparing=false;
 async function refreshPerformancePackInfo(){try{performancePackInfo=await performancePackStatus()}catch{}return performancePackInfo}
@@ -230,7 +232,7 @@ let modal=null,continueOptionsTarget=null,toastTimer=null,playerItem=null,player
 let profilePickerOpen=true,profileEditId='',pendingProfileId='',profilePinError='';
 let playbackMonitorTimer=null,lastPlaybackPersist=0,playerStartedAt=0,upNextTimer=null,upNextSeconds=0,upNextItem=null;
 let liveMiniGuideToken=0,channelNumberBuffer='',channelNumberTimer=null;
-let heroRotationIndex=0,heroRotationTimer=null;
+let heroRotationIndex=0,heroRotationTimer=null,mySwoopHeroIndex=0,mySwoopHeroTimer=null,mySwoopHeroSwapToken=0;
 const HERO_ROTATION_MS=8000;
 const LARGE_LIBRARY_THRESHOLD=12000;
 const HOME_EAGER_ROWS=5;
@@ -447,7 +449,7 @@ let guideLimit=48,guideCategory='',liveCategory='',providerFilter='all',pageCate
 const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=24,LONG_RAIL_RENDER_CHUNK=24,LONG_RAIL_PREFETCH_THRESHOLD=24;
 const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=3;
 const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=6;
-const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=3,STARMETER_PREFETCH_AHEAD=18,STARMETER_TITLE_RENDER_LIMIT=24;
+const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=2,STARMETER_PREFETCH_AHEAD=6,STARMETER_TITLE_RENDER_LIMIT=8;
 let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
@@ -568,6 +570,7 @@ let libraryRestored=Boolean(state.catalog.length&&!tvHomeSnapshotActive);
 let libraryRestorePromise=null;
 const artworkCache=new Map();
 const artworkPrewarmPool=new Map();
+const ARTWORK_PREWARM_MEMORY_LIMIT=NATIVE_ANDROID?48:260;
 const artworkRelayQueue=[]; let artworkRelayActive=0;
 let artworkObserver=null;
 let detailReturnScroll=0,detailScrollTop=0;
@@ -586,6 +589,7 @@ function cacheCurrentPageView(){
   const prior=persistentPageViews.get(state.page);if(prior?.main&&prior.main!==main)prior.main.remove?.();
   persistentPageViews.set(state.page,{main,scrollY:window.scrollY||document.documentElement.scrollTop||0,savedAt:Date.now()});
   if(state.page==='home'&&heroRotationTimer){clearInterval(heroRotationTimer);heroRotationTimer=null}
+  if(state.page==='myswoop'&&mySwoopHeroTimer){clearInterval(mySwoopHeroTimer);mySwoopHeroTimer=null}
   lazyHomeObserver?.disconnect?.();lazyHomeObserver=null;artworkObserver?.disconnect?.();artworkObserver=null;visibleMetadataObserver?.disconnect?.();visibleMetadataObserver=null;
   main.remove();return true;
 }
@@ -595,6 +599,7 @@ function updateCachedNavState(page=state.page){
 function resumePageWork(page,root=document){
   hydrateArtwork(root);hydrateVisibleImdbRatings(root);bindRailStability(root);
   if(page==='home'){mountLazyHomeRows(root);scheduleHeroRotation();if(nativeCatalogMode)setTimeout(primeNativeHomeRows,80);if(!androidFastHomeMode())setTimeout(()=>refreshDiscoveryRows(false),1800);}
+  else if(page==='myswoop')scheduleMySwoopHeroRotation();
   else if(page==='live')setTimeout(()=>{primeLiveCategoryRails();setupLiveCategoryAutoLoad()},40);
   else if(page==='movies')setTimeout(()=>primeMediaCategoryRails('movie'),40);
   else if(page==='series')setTimeout(()=>primeMediaCategoryRails('series'),40);
@@ -632,9 +637,12 @@ function artworkWarmEntry(url,size='w342'){
   const raw=String(url||'').trim();if(!raw)return'';
   return /image\.tmdb\.org\/t\/p\//i.test(raw)?raw.replace(/\/t\/p\/(?:original|w\d+)\//i,`/t/p/${size}/`):raw;
 }
+function trimArtworkPrewarmPool(){
+  while(artworkPrewarmPool.size>ARTWORK_PREWARM_MEMORY_LIMIT){const key=artworkPrewarmPool.keys().next().value,hit=artworkPrewarmPool.get(key);try{if(hit?.img){hit.img.onload=null;hit.img.onerror=null;hit.img.removeAttribute?.('src')}}catch{}artworkPrewarmPool.delete(key)}
+}
 function rememberArtworkPrewarm(url){
   if(!url||artworkPrewarmPool.has(url))return;
-  try{const img=new Image();img.decoding='async';img.onload=img.onerror=()=>{const hit=artworkPrewarmPool.get(url);if(hit)hit.loadedAt=Date.now()};img.src=url;artworkPrewarmPool.set(url,{img,loadedAt:0});while(artworkPrewarmPool.size>260)artworkPrewarmPool.delete(artworkPrewarmPool.keys().next().value)}catch{}
+  try{const img=new Image();img.decoding='async';img.onload=img.onerror=()=>{const hit=artworkPrewarmPool.get(url);if(hit)hit.loadedAt=Date.now()};img.src=url;artworkPrewarmPool.set(url,{img,loadedAt:0});trimArtworkPrewarmPool()}catch{}
 }
 function prewarmArtworkUrls(items=[],limit=28){
   const urls=[];for(const raw of items){const item=visualItem(raw||{});for(const [value,size] of [[item?.logo,'w342'],[item?.backdrop,'w1280'],[item?.titleLogo,'w500']]){const url=artworkWarmEntry(value,size);if(url&&!urls.includes(url))urls.push(url);if(urls.length>=limit)break}if(urls.length>=limit)break}
@@ -643,7 +651,7 @@ function prewarmArtworkUrls(items=[],limit=28){
 async function preloadCriticalArtwork(items=[],limit=36,timeoutMs=4200){
   const urls=[];for(const raw of items){const item=visualItem(raw||{});for(const [value,size] of [[item?.backdrop,'w1280'],[item?.logo,'w342'],[item?.titleLogo,'w500']]){const url=artworkWarmEntry(value,size);if(url&&!urls.includes(url))urls.push(url);if(urls.length>=limit)break}if(urls.length>=limit)break}
   if(!urls.length)return;
-  let timer=null;const all=Promise.all(urls.map(url=>new Promise(resolve=>{try{if(artworkPrewarmPool.has(url)){resolve();return}const img=new Image();let done=false;const finish=()=>{if(done)return;done=true;artworkPrewarmPool.set(url,{img,loadedAt:Date.now()});resolve()};img.onload=()=>{if(typeof img.decode==='function')img.decode().then(finish).catch(finish);else finish()};img.onerror=finish;img.decoding='async';img.src=url;if(img.complete)finish();setTimeout(finish,timeoutMs)}catch{resolve()}})));
+  let timer=null;const all=Promise.all(urls.map(url=>new Promise(resolve=>{try{if(artworkPrewarmPool.has(url)){resolve();return}const img=new Image();let done=false;const finish=()=>{if(done)return;done=true;artworkPrewarmPool.set(url,{img,loadedAt:Date.now()});trimArtworkPrewarmPool();resolve()};img.onload=()=>{if(typeof img.decode==='function')img.decode().then(finish).catch(finish);else finish()};img.onerror=finish;img.decoding='async';img.src=url;if(img.complete)finish();setTimeout(finish,timeoutMs)}catch{resolve()}})));
   await Promise.race([all,new Promise(resolve=>{timer=setTimeout(resolve,timeoutMs)})]);if(timer)clearTimeout(timer);
 }
 async function prewarmAndroidEntryArtwork(timeoutMs=1800){
@@ -757,7 +765,7 @@ function logicalItemIds(item){
   ].filter(Boolean).map(String))];
 }
 function isLiveFavourite(item){return Boolean(item?.id&&state.liveFavourites.includes(item.id))}
-function toggleLiveFavourite(item){if(!item?.id||item.kind!=='live')return;const on=isLiveFavourite(item);state.liveFavourites=on?state.liveFavourites.filter(id=>id!==item.id):[item.id,...state.liveFavourites.filter(id=>id!==item.id)].slice(0,120);persist();toast(on?'Removed from Favourite Channels':'Added to Favourite Channels');render()}
+function toggleLiveFavourite(item){if(!item?.id||item.kind!=='live')return;const on=isLiveFavourite(item);state.liveFavourites=on?state.liveFavourites.filter(id=>id!==item.id):[item.id,...state.liveFavourites.filter(id=>id!==item.id)].slice(0,120);persist();toast(on?'Removed from Favorite Channels':'Added to Favorite Channels');render()}
 function savedMovieSourcePreference(item){return item?.id?String(state.settings.movieSourcePreferences?.[item.id]||''):''}
 function rememberMovieSourcePreference(item,sourceId){if(!item?.id||!sourceId)return;state.settings.movieSourcePreferences={...(state.settings.movieSourcePreferences||{}),[item.id]:sourceId};persist()}
 function orderedMovieSources(item){if(!item||!Array.isArray(item.sources))return[];const preferred=savedMovieSourcePreference(item)||continueEntry(item.id)?.selectedSourceId||'';return rankSources(item.sources,preferred)}
@@ -907,7 +915,7 @@ const HOME_ROW_DEFS=[
   {id:'recently-watched',label:'Recently Watched',group:'Your Swoop TV',poster:true},
   {id:'recommended',label:'Recommended For You',group:'For You',poster:true},
   {id:'recent-live',label:'Recent Channels',group:'Your Swoop TV',poster:false,page:'live'},
-  {id:'mylist',label:'My List',group:'Your Swoop TV',poster:true,page:'mylist'},
+  {id:'mylist',label:'Favorites',group:'Your Swoop TV',poster:true,page:'mylist'},
   {id:'top20-movies',label:'Top 100 Movies',group:'Discover',poster:true,web:true,ranked:true,description:'What is hot and trending right now, matched to your library'},
   {id:'top20-shows',label:'Top 100 TV Shows',group:'Discover',poster:true,web:true,ranked:true,description:'What is hot and trending right now, matched to your library'},
   {id:'trending-movies',label:'Trending Now — Movies',group:'Discover',poster:true,web:true,description:'Titles gaining momentum right now'},
@@ -1055,7 +1063,7 @@ function ratingNumber(item){const meta=state.metadataCache?.[item?.id]||{},trust
 function displayRating(item){const meta=state.metadataCache?.[item?.id]||{};return tenPointRating(meta.rating)}
 function displayImdbRating(item){const meta=state.metadataCache?.[item?.id]||{};return tenPointRating(meta.imdbRating)}
 function stableDailyOrder(list,key=''){const day=Math.floor(Date.now()/86400000);return [...list].sort((a,b)=>Math.abs(hash(`${day}|${key}|${a.id}`))-Math.abs(hash(`${day}|${key}|${b.id}`)))}
-function watchHistoryItems(){const out=[],seen=new Set();for(const x of [...state.watchHistory].sort((a,b)=>(b.lastPlayed||0)-(a.lastPlayed||0))){const item=savedItem(x.id)||x.item;if(item&&!seen.has(item.id)){seen.add(item.id);out.push(item)}}return out}
+function watchHistoryItems(){const out=[],seen=new Set();for(const x of [...state.watchHistory].sort((a,b)=>(b.lastPlayed||0)-(a.lastPlayed||0))){const raw=savedItem(x.id)||x.item,item=continueDisplayItem(raw),key=String(item?.parentSeriesId||item?.id||'');if(item&&key&&!seen.has(key)){seen.add(key);out.push(item)}}return out}
 function recentLiveItems(){return state.recentLive.map(savedItem).filter(Boolean)}
 function mediaGenres(item){
   const meta=state.metadataCache?.[item?.id]||{};
@@ -1351,8 +1359,7 @@ function card(item,poster=false,opts={}){
   const liveBadge=item.kind==='live'?`<div class="badge"><span class="live-dot"></span>LIVE</div>`:'';
   const action=item.kind==='live'||item.kind==='episode'?'data-play':'data-detail';
   const hoverAction=item.kind==='live'?'Play channel':item.kind==='episode'?'Play episode':'More info';
-  const saved=isInMyList(item)?'<span class="card-saved">✓ MY LIST</span>':'';
-  const liveFav=item.kind==='live'&&isLiveFavourite(item)?'<span class="card-live-fav">★ FAVOURITE</span>':'';
+  const liveFav=item.kind==='live'&&isLiveFavourite(item)?'<span class="card-live-fav">★ FAVORITE</span>':'';
   const liveQuality=item.kind==='live'?qualityLabel(item):'';
   const qualityBadge=liveQuality?`<span class="card-quality">${esc(liveQuality)}</span>`:'';
   const sources=Number(item.sourceCount||item.sources?.length||0)>1?`<span class="card-sources">${Number(item.sourceCount||item.sources.length)} SOURCES</span>`:'';
@@ -1362,7 +1369,7 @@ function card(item,poster=false,opts={}){
   const rankBadge=rank?`<div class="rank-badge ${rank>=100?'rank-three-digit':rank>=10?'rank-two-digit':'rank-one-digit'}"><span>${rank}</span></div>`:'';
   const imdbHydrationAttr=poster&&['movie','series'].includes(item.kind)?` data-imdb-item="${esc(item.id)}"`:'';
   return `<button class="card ${poster?'poster':'landscape'} ${posterOwnsTitle?'poster-art-title':''} ${item.kind==='live'?'live-card':''} ${rank?'ranked-card':''}" ${action}="${esc(item.id)}"${imdbHydrationAttr} style="--card-bg:${fallback}" aria-label="${esc(displayTitle)}">
-    <div class="card-bg"></div>${art}<div class="card-shade"></div>${rankBadge}${liveBadge}${saved}${liveFav}${qualityBadge}${sources}${watched}${imdbBadge}
+    <div class="card-bg"></div>${art}<div class="card-shade"></div>${rankBadge}${liveBadge}${liveFav}${qualityBadge}${sources}${watched}${imdbBadge}
     <div class="card-copy">${titleHtml}${subHtml}<div class="card-hover"><span class="card-hover-icon">${item.kind==='live'||item.kind==='episode'?'▶':'ⓘ'}</span><span>${hoverAction}</span></div></div>
     ${progress!==null?`<div class="progress"><i style="width:${progress}%"></i></div>`:''}</button>`;
 }
@@ -1373,7 +1380,7 @@ function profileAvatarHtml(profile,cls=''){
 }
 function profilePickerPage(){
   const profiles=state.profiles||[];
-  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favourite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div>${NATIVE_ANDROID?`<div class="profile-starmeter-prep ${starmeterBackgroundReady?'ready':''}" data-profile-starmeter-prep><span>${starmeterBackgroundReady?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`}</span><strong>${esc(starmeterBackgroundReady?'STARmeter Top 100 ready':starmeterBackgroundStatus)}</strong></div>`:''}<div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
+  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favorite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div>${NATIVE_ANDROID?`<div class="profile-starmeter-prep ${starmeterBackgroundReady?'ready':''}" data-profile-starmeter-prep><span>${starmeterBackgroundReady?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`}</span><strong>${esc(starmeterBackgroundReady?'STARmeter Top 100 ready':starmeterBackgroundStatus)}</strong></div>`:''}<div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
 }
 function focusDefaultProfileChoice(){
   if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select]');if(!first)return false;
@@ -1575,10 +1582,11 @@ function heroTitleLogoState(item={}){
 function hero(feature,providerName,rotation={}){
   if(!feature)return'';
   feature=visualItem(feature);
+  const context=rotation.context==='myswoop'?'myswoop':'home',isMySwoop=context==='myswoop';
   const isLive=feature.kind==='live',isSeries=feature.kind==='series';
   const displayTitle=cleanDisplayTitle({name:feature.title||feature.name});
   const titleState=heroTitleLogoState(feature),titleLogo=feature.titleLogo||titleState.logo||'';
-  const typeLabel=feature._heroFeed?`${feature._heroFeed}${feature._heroRank?` · #${feature._heroRank}`:''}`:isLive?'LIVE TV':feature.kind==='movie'?'FEATURED MOVIE':'FEATURED SERIES';
+  const typeLabel=isMySwoop?(isSeries?'FAVORITE TV SHOW':'FAVORITE MOVIE'):(feature._heroFeed?`${feature._heroFeed}${feature._heroRank?` · #${feature._heroRank}`:''}`:isLive?'LIVE TV':feature.kind==='movie'?'FEATURED MOVIE':'FEATURED SERIES');
   const heroRating=displayRating(feature),meta=[feature.year,heroRating?`★ ${heroRating}`:'',feature.sourceCount>1?`${feature.sourceCount} sources`:'',feature.group].filter(Boolean);
   const backdrop=feature.backdrop||feature.logo;
   const artClass=feature.backdrop?'hero-backdrop hero-backdrop-clean':'hero-backdrop hero-backdrop-poster';
@@ -1589,12 +1597,23 @@ function hero(feature,providerName,rotation={}){
   const rotationControls=total>1?`<div class="hero-rotation-controls" aria-hidden="true"><div class="hero-rotation-dots">${Array.from({length:total},(_,i)=>`<i class="${i===current?'active':''}"></i>`).join('')}</div></div>`:'';
   const titleMarkup=`<div class="hero-title-slot ${titleLogo?'has-logo':''} ${titleState.pending?'logo-pending':''} ${titleState.settled&&!titleLogo?'logo-unavailable':''}" data-hero-title data-hero-item="${esc(feature.id)}"><h1 class="hero-title-text">${esc(displayTitle)}</h1><span class="hero-title-wait" aria-hidden="true"></span>${titleLogo?`<img class="hero-title-logo" data-swoop-art="${esc(titleLogo)}" alt="${esc(displayTitle)}">`:''}</div>`;
   const description=feature.plot?esc(feature.plot):isLive?`Watch ${esc(displayTitle)} live from your connected TV provider.`:`Discover ${esc(displayTitle)} in your connected ${esc(providerName)} library.`;
-  return `<section class="hero hero-rotating" data-home-hero data-hero-item="${esc(feature.id)}"><div class="hero-media">${art}${poster}<div class="hero-fallback" style="--hero-fallback:${feature.demoColor||'linear-gradient(135deg,#1d2a44,#080a0e)'}"></div></div><div class="hero-vignette"></div>
+  return `<section class="hero hero-rotating ${isMySwoop?'myswoop-cinematic-hero':''}" ${isMySwoop?'data-myswoop-hero':'data-home-hero'} data-hero-item="${esc(feature.id)}"><div class="hero-media">${art}${poster}<div class="hero-fallback" style="--hero-fallback:${feature.demoColor||'linear-gradient(135deg,#1d2a44,#080a0e)'}"></div></div><div class="hero-vignette"></div>
     <div class="hero-content"><div class="hero-brandline"><span class="swoop-mini">S</span><span>${esc(typeLabel)}</span></div>${titleMarkup}<div class="hero-meta">${meta.map(x=>`<span>${esc(x)}</span>`).join('')}<span class="hero-source">${esc(providerName)}</span></div><p>${description}</p><div class="cta-row hero-actions">${mainAction}${!isLive?`<button class="btn secondary hero-secondary" data-detail="${esc(feature.id)}"><span>ⓘ</span> More Info</button>`:`<button class="btn secondary hero-secondary" data-page="guide"><span>▤</span> TV Guide</button>`}</div></div>${rotationControls}
   </section>`;
 }
 
 function listItems(){const out=[],seen=new Set();for(const id of state.myList){const item=savedItem(id);if(item&&!seen.has(item.id)){seen.add(item.id);out.push(item)}}return out}
+function mySwoopHeroCandidates(){return listItems().filter(item=>item&&['movie','series'].includes(item.kind)).slice(0,12)}
+async function replaceMySwoopHero(){
+  if(state.page!=='myswoop'||modal||detailItem||playerItem)return;const current=document.querySelector('[data-myswoop-hero]'),pool=mySwoopHeroCandidates();if(!current||!pool.length)return;
+  mySwoopHeroIndex=((mySwoopHeroIndex%pool.length)+pool.length)%pool.length;const index=mySwoopHeroIndex,item=pool[index],token=++mySwoopHeroSwapToken;await preloadCriticalArtwork([item],3,NATIVE_ANDROID?850:1400);if(token!==mySwoopHeroSwapToken||state.page!=='myswoop'||modal||detailItem||playerItem)return;
+  const liveCurrent=document.querySelector('[data-myswoop-hero]');if(!liveCurrent)return;const wrap=document.createElement('div');wrap.innerHTML=hero(item,providerSummaryName(),{total:pool.length,index,context:'myswoop'});const next=wrap.firstElementChild;if(!next)return;liveCurrent.replaceWith(next);hydrateArtwork(next);bindDynamicCards(next);bindHeroControls(next);
+}
+function scheduleMySwoopHeroRotation(){
+  if(mySwoopHeroTimer){clearInterval(mySwoopHeroTimer);mySwoopHeroTimer=null}
+  if(state.page!=='myswoop'||mySwoopHeroCandidates().length<2)return;
+  mySwoopHeroTimer=setInterval(()=>{if(document.hidden||state.page!=='myswoop'||modal||detailItem||playerItem)return;const pool=mySwoopHeroCandidates();if(pool.length<2)return;mySwoopHeroIndex=(mySwoopHeroIndex+1)%pool.length;replaceMySwoopHero()},HERO_ROTATION_MS);
+}
 function removeFromContinueWatching(id,explicitSeriesId=''){
   const wantedId=String(id||''),directEntry=state.continueWatching.find(x=>String(x?.id||'')===wantedId)||null;
   const target=directEntry?.item||savedItem(wantedId)||null;
@@ -1614,7 +1633,7 @@ function removeFromContinueWatching(id,explicitSeriesId=''){
 function continueDisplayItem(item){
   if(!item||item.kind!=='episode'||!item.parentSeriesId)return item;
   const parent=savedItem(item.parentSeriesId);
-  const seasonPoster=item.seasonPoster||item.seriesPoster||parent?.logo||'';
+  const seasonPoster=item.seriesPoster||parent?.logo||item.seasonPoster||'';
   if(!seasonPoster)return item;
   return {...item,logo:seasonPoster,backdrop:item.seriesBackdrop||parent?.backdrop||item.backdrop||seasonPoster,_continueSeriesPoster:true,_continueSeriesTitle:item.seriesTitle||parent?.name||item.group||item.name};
 }
@@ -1845,9 +1864,9 @@ async function primeLiveCategoryRails(){
   let cursor=0;async function worker(){while(cursor<pending.length){const name=pending[cursor++];try{await ensureLiveCategoryRail(name);patchLiveCategoryRail(name)}catch{liveRailCache.set(liveRailKey(name),{items:[],total:0,loadedAt:Date.now()});patchLiveCategoryRail(name)}}}await Promise.all(Array.from({length:Math.min(NATIVE_ANDROID?1:3,pending.length||1)},worker));
 }
 function patchLiveHeroFocusedChannel(item){
-  if(state.page!=='live'||!item)return false;const hero=document.querySelector('.live-hub-hero'),copy=hero?.querySelector('.live-hub-copy'),brand=hero?.querySelector('.live-hub-brand-panel');if(!hero||!copy||!brand)return false;
-  const title=copy.querySelector('h1');if(title)title.textContent=item.name||'Live TV';const watch=copy.querySelector('[data-play]');if(watch)watch.dataset.play=item.id||'';const fav=copy.querySelector('[data-live-favourite]');if(fav){fav.dataset.liveFavourite=item.id||'';fav.textContent=isLiveFavourite(item)?'★ Favourite':'☆ Add Favourite'}
-  const visual=visualItem(item),logo=String(visual?.logo||'');let img=brand.querySelector('.live-hub-art');if(logo){if(!img){img=document.createElement('img');img.className='live-hub-art';img.alt='';brand.prepend(img)}if(img.dataset.swoopArt!==logo){img.dataset.swoopArt=logo;img.dataset.swoopLoaded='';img.removeAttribute('src');loadArtwork(img,{priority:'high'})}}else img?.remove();return true;
+  if(state.page!=='live'||!item)return false;const hero=document.querySelector('.live-hub-hero'),brand=hero?.querySelector('.live-hub-brand-panel');if(!hero||!brand)return false;
+  hero.dataset.liveHeroItem=item.id||'';hero.setAttribute('aria-label',item.name||'Live TV');const watch=brand.querySelector('[data-play]');if(watch)watch.dataset.play=item.id||'';const fav=brand.querySelector('[data-live-favourite]');if(fav){fav.dataset.liveFavourite=item.id||'';fav.textContent=isLiveFavourite(item)?'★ Favorite':'☆ Add Favorite'}
+  const meta=brand.querySelector('[data-live-hero-meta]');if(meta)meta.textContent=item.group||'Live TV';const visual=visualItem(item),logo=String(visual?.logo||'');let img=brand.querySelector('.live-hub-art'),fallback=brand.querySelector('.live-brand-fallback');if(logo){fallback?.remove();if(!img){img=document.createElement('img');img.className='live-hub-art';img.alt='';brand.prepend(img)}if(img.dataset.swoopArt!==logo){img.dataset.swoopArt=logo;img.dataset.swoopLoaded='';img.removeAttribute('src');loadArtwork(img,{priority:'high'})}}else{img?.remove();if(!fallback){fallback=document.createElement('div');fallback.className='live-brand-fallback';brand.prepend(fallback)}fallback.textContent=item.name||'LIVE'}return true;
 }
 function stopLiveHeroPreview(){
   if(livePreviewTimer){clearTimeout(livePreviewTimer);livePreviewTimer=null}livePreviewItemId='';document.querySelector('.live-hub-preview-panel')?.classList.remove('preview-active');
@@ -1869,20 +1888,17 @@ function liveSimpleRail(title,data=[],meta=''){
 function livePage(){
   const nativeCache=nativePageCache.live,all=nativeCatalogMode?(nativeCache.items?.length?nativeCache.items:providerFiltered(items('live'))):providerFiltered(items('live')),total=nativeCatalogMode?Number(nativeTotal('live')):all.length,providerName=providerSummaryName(),providerPills=providerFilterOptions();
   const byId=new Map(all.map(x=>[x.id,x]));
-  const favourites=state.liveFavourites.map(id=>savedItem(id)||byId.get(id)).filter(Boolean);
+  const favorites=state.liveFavourites.map(id=>savedItem(id)||byId.get(id)).filter(Boolean);
   const recent=state.recentLive.map(id=>savedItem(id)||byId.get(id)).filter(Boolean).slice(0,16);
   const categories=liveRailCategories(),shownCategories=categories.slice(0,liveRailCategoryLimit);
-  const lead=favourites[0]||recent[0]||all[0];
-  const leadVisual=visualItem(lead);
-  const art=leadVisual?.logo?`<img class="live-hub-art" data-swoop-art="${esc(leadVisual.logo)}" alt="">`:'';
-  const leadFav=lead?isLiveFavourite(lead):false;
+  const lead=favorites[0]||recent[0]||all[0],leadVisual=visualItem(lead),leadFav=lead?isLiveFavourite(lead):false;
+  const art=leadVisual?.logo?`<img class="live-hub-art" data-swoop-art="${esc(leadVisual.logo)}" alt="${esc(lead?.name||'Live TV')}">`:`<div class="live-brand-fallback">${esc(lead?.name||'LIVE')}</div>`;
   const loading=nativeCatalogMode&&nativeCache.loading&&!all.length?`<div class="native-query-loading"><div><span class="provider-spinner"></span><strong>Loading Live TV…</strong><div class="activity-progress indeterminate"><b></b></div><small>Loading your library…</small></div></div>`:'';
   const categoryRows=shownCategories.map(liveCategoryRailMarkup).join('');
-  return `<main class="page live-hub-page"><section class="live-hub-hero ${art?'has-brand-art':''}"><div class="live-hub-shade"></div><div class="live-hub-copy"><div class="eyebrow">LIVE TV · ${esc(providerName)}</div><h1>${lead?esc(lead.name):'Live TV'}</h1><p>${lead?`Jump straight back into ${esc(lead.name)}, browse favourites, or swipe through your provider’s channel categories.`:'Connect a TV provider to populate Live TV.'}</p><div class="cta-row">${lead?`<button class="btn play-btn" data-play="${esc(lead.id)}">▶ Watch Live</button><button class="btn secondary" data-live-favourite="${esc(lead.id)}">${leadFav?'★ Favourite':'☆ Add Favourite'}</button>`:''}<button class="btn secondary" data-page="guide">▤ TV Guide</button></div></div><div class="live-hub-preview-panel" aria-label="Muted live preview"><div class="live-preview-anchor"></div></div><div class="live-hub-brand-panel">${art||'<div class="live-brand-fallback">LIVE</div>'}<div class="live-hub-stat"><strong>${total.toLocaleString()}</strong><span>LIVE STREAMS</span><small>${state.liveFavourites.length} favourites · ${state.recentLive.length} recent</small></div></div></section>
-  <div class="page-content live-hub-content"><div class="provider-filter-pills live-provider-filter"><button class="${providerFilter==='all'?'active':''}" data-provider-filter="all">All Providers</button>${providerPills.map(p=>`<button class="${providerFilter===p.id?'active':''}" data-provider-filter="${esc(p.id)}">${esc(p.name)}</button>`).join('')}</div>${favourites.length?liveSimpleRail('Favourite Channels',favourites.slice(0,100),`${favourites.length} saved`):''}${recent.length?liveSimpleRail('Recent Channels',recent,'Your most recently watched channels'):''}
+  return `<main class="page live-hub-page"><section class="live-hub-hero ${leadVisual?.logo?'has-brand-art':''}" data-live-hero-item="${esc(lead?.id||'')}" aria-label="${esc(lead?.name||'Live TV')}"><div class="live-hub-shade"></div><div class="live-hub-brand-panel">${art}<div class="live-hub-brand-copy"><div class="eyebrow">LIVE TV · ${esc(providerName)}</div><span data-live-hero-meta>${esc(lead?.group||'Live TV')}</span></div><div class="cta-row live-hub-actions">${lead?`<button class="btn play-btn" data-play="${esc(lead.id)}">▶ Watch Live</button><button class="btn secondary" data-live-favourite="${esc(lead.id)}">${leadFav?'★ Favorite':'☆ Add Favorite'}</button>`:''}<button class="btn secondary" data-page="guide">▤ TV Guide</button></div></div><div class="live-hub-preview-panel" aria-label="Muted live preview"><div class="live-preview-anchor"></div></div></section>
+  <div class="page-content live-hub-content"><div class="provider-filter-pills live-provider-filter"><button class="${providerFilter==='all'?'active':''}" data-provider-filter="all">All Providers</button>${providerPills.map(p=>`<button class="${providerFilter===p.id?'active':''}" data-provider-filter="${esc(p.id)}">${esc(p.name)}</button>`).join('')}</div>${favorites.length?liveSimpleRail('Favorite Channels',favorites.slice(0,100),`${favorites.length} saved`):''}${recent.length?liveSimpleRail('Recent Channels',recent,'Your most recently watched channels'):''}
   <section class="live-category-browser"><div class="section-head live-browser-head"><div><h2>Browse Live TV</h2><span class="section-meta">Swipe across each provider category</span></div><button class="btn secondary compact-btn" data-page="guide">Open TV Guide</button></div>${loading}${categoryRows||(!loading?empty('No Live TV categories','Refresh or reconnect your TV provider to load its channel groups.'):'')}<div class="live-auto-load-sentinel" data-live-category-sentinel aria-hidden="true"></div></section></div></main>`;
 }
-
 
 function starmeterNormalize(value=''){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim()}
 async function starmeterManifestUrl(){let repo='';try{repo=String(globalThis.SwoopAndroid?.githubRepository?.()||'').trim()}catch{}return repo&&repo.includes('/')?`https://github.com/${repo}/releases/download/${ANDROID_UPDATE_RELEASE_TAG}/swoop-tv-starmeter.json`:''}
@@ -1912,10 +1928,7 @@ function setStarmeterBackgroundProgress(progress,status=''){
 }
 function prewarmPreparedStarmeterArtwork(){
   if(!NATIVE_ANDROID||!starmeterBackgroundReady)return;
-  const portraits=[];for(const entry of starmeterPeople){const person=starmeterPersonCache.get(starmeterNormalize(entry.name))?.person||starmeterPersonSeed(entry),url=artworkWarmEntry(person?.profile,'w185');if(url&&!portraits.includes(url))portraits.push(url)}
-  portraits.slice(0,100).forEach(rememberArtworkPrewarm);
-  const rounds=[];for(let slot=0;slot<3;slot++)for(const entry of starmeterPeople){const cached=starmeterPersonCache.get(starmeterNormalize(entry.name)),item=starmeterPersonTitles(cached)[slot];if(item)rounds.push(item)}
-  prewarmArtworkUrls(rounds,160);
+  const hot=starmeterPeople.slice(0,12);for(const entry of hot){const person=starmeterPersonCache.get(starmeterNormalize(entry.name))?.person||starmeterPersonSeed(entry),portrait=artworkWarmEntry(person?.profile,'w185');if(portrait)rememberArtworkPrewarm(portrait);const cached=starmeterPersonCache.get(starmeterNormalize(entry.name));for(const item of starmeterPersonTitles(cached).slice(0,2)){const poster=artworkWarmEntry(visualItem(item)?.logo,'w185');if(poster)rememberArtworkPrewarm(poster)}}
 }
 function scheduleStarmeterBackgroundRetry(delay=5000){
   if(!NATIVE_ANDROID||starmeterBackgroundComplete||starmeterBackgroundRetryTimer)return;
@@ -1991,7 +2004,7 @@ function starmeterPersonTitles(cached){
 }
 function starmeterPersonSection(entry={}){
   const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached),renderKey=starmeterLibraryRenderKey(entry);
-  const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
+  const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}" loading="lazy">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
   const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><div class="starmeter-loading-copy"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div><div class="starmeter-loading-posters"><i></i><i></i><i></i><i></i></div></div>`);
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column" data-starmeter-render-key="${esc(renderKey)}"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
@@ -2063,7 +2076,7 @@ function appendStarmeterSections(count=STARMETER_APPEND_BATCH){
 }
 function observeStarmeterSections(root=document){
   if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,Math.min(starmeterPeople.length,18)).forEach((entry,i)=>queueStarmeterPerson(entry,{priority:i<6}));return}
-  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=5})}}}}, {root:null,rootMargin:'1700px 0px 1700px 0px',threshold:.01});
+  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=5})}}}}, {root:null,rootMargin:'700px 0px 700px 0px',threshold:.01});
   const nodes=root?.matches?.('.starmeter-person-section')?[root]:[...(root?.querySelectorAll?.('.starmeter-person-section')||[])];nodes.forEach(x=>starmeterObserver.observe(x));
 }
 function setupStarmeterAutoLoad(){starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;starmeterVisibleCount=starmeterPeople.length}
@@ -2081,15 +2094,16 @@ function starmeterPeopleForSearch(term=''){
   return matches.map(p=>{const hot=starmeterHotCache.get(starmeterNormalize(p.name));return hot?.person||starmeterPersonSeed(p)})
 }
 function mySwoopPage(){
-  const continuing=continueItems(),saved=listItems(),recent=watchHistoryItems(),liveSaved=state.liveFavourites.map(id=>savedItem(id)).filter(Boolean);
+  const continuing=continueItems(),saved=listItems(),recent=watchHistoryItems(),liveSaved=state.liveFavourites.map(id=>savedItem(id)).filter(Boolean),heroPool=mySwoopHeroCandidates();
+  if(heroPool.length)mySwoopHeroIndex=((mySwoopHeroIndex%heroPool.length)+heroPool.length)%heroPool.length;const heroItem=heroPool[mySwoopHeroIndex]||null;
   const sections=[
     continuing.length?rail('Continue Watching',continuing.slice(0,100),true,`${continuing.length.toLocaleString()} in progress`,{rowId:'continue',total:continuing.length}):'',
-    saved.length?rail('Saved Movies & TV Shows',saved.slice(0,100),true,`${saved.length.toLocaleString()} saved`,{rowId:'myswoop-saved',total:saved.length}):'',
-    liveSaved.length?liveSimpleRail('Favourite Channels',liveSaved.slice(0,100),`${liveSaved.length.toLocaleString()} saved`):'',
+    saved.length?rail('Favorites',saved.slice(0,100),true,`${saved.length.toLocaleString()} favorites`,{rowId:'myswoop-saved',total:saved.length}):'',
+    liveSaved.length?liveSimpleRail('Favorite Channels',liveSaved.slice(0,100),`${liveSaved.length.toLocaleString()} saved`):'',
     recent.length?rail('Recently Watched',recent.slice(0,100),true,`${recent.length.toLocaleString()} recently watched`,{rowId:'myswoop-recent',total:recent.length}):''
   ].filter(Boolean).join('');
-  const total=continuing.length+saved.length+liveSaved.length+recent.length;
-  return `<main class="page myswoop-page"><section class="collection-hero myswoop-hero"><div class="eyebrow">YOUR SWOOP TV</div><h1>My SwoopTV</h1><p>Pick up where you left off, find everything you saved, jump back into favourite channels and revisit recent watches.</p><div class="collection-count">${total.toLocaleString()} personal items</div></section><div class="page-content myswoop-content">${sections||empty('My SwoopTV is ready','Start watching, save a title or favourite a Live TV channel and it will appear here.')}</div></main>`;
+  const total=continuing.length+saved.length+liveSaved.length+recent.length,header=heroItem?hero(heroItem,providerSummaryName(),{total:heroPool.length,index:mySwoopHeroIndex,context:'myswoop'}):`<section class="collection-hero myswoop-hero"><div class="eyebrow">YOUR SWOOP TV</div><h1>My SwoopTV</h1><p>Your Continue Watching, Favorites, favorite channels and recent watches all live here.</p><div class="collection-count">${total.toLocaleString()} personal items</div></section>`;
+  return `<main class="page myswoop-page">${header}<div class="page-content myswoop-content">${sections||empty('My SwoopTV is ready','Start watching, add a title to Favorites or favorite a Live TV channel and it will appear here.')}</div></main>`;
 }
 function myListPage(){return mySwoopPage()}
 function empty(title,copy){return `<div class="empty"><div class="empty-mark">S</div><h3>${esc(title)}</h3><p>${esc(copy)}</p><button class="btn accent" data-modal="provider">Add TV Provider</button></div>`}
@@ -2099,12 +2113,12 @@ function settingsPage(){
   return `<main class="page settings-page"><div class="settings-hero"><div class="eyebrow">${esc(activeProfile()?.name||'SWOOP TV')} · PROFILE SETTINGS</div><h1>Settings</h1><p>Manage your profile, TV providers, Home screen and playback.</p></div><div class="page-content settings-list">
   <section class="setting-card setting-card-feature"><div class="setting-icon">TV</div><div class="setting-main"><h3>TV Providers</h3><p>${state.providers.length?`${enabledProviders().length} enabled · ${state.providers.length} connected`:'No provider connected'}</p><div class="setting-stats"><span><strong>${counts.live.toLocaleString()}</strong> Live Streams</span><span><strong>${counts.movie.toLocaleString()}</strong> Unique Movies</span><span><strong>${counts.series.toLocaleString()}</strong> Shows</span></div><div class="cta-row"><button class="btn accent" data-modal="provider">Manage Providers</button>${state.providers.length?'<button class="btn secondary" data-provider-refresh-all>Refresh All</button>':''}</div></div></section>
   ${NATIVE_ANDROID&&androidAppUpdateAvailable?`<section class="setting-card app-update-card"><div class="setting-icon">↑</div><div class="setting-main"><h3>Swoop TV update available</h3><p>Version ${esc(androidAppUpdateAvailable.version)} is ready for Google TV.</p><div class="cta-row"><span class="btn secondary">Downloader code 3682231</span></div></div></section>`:''}
-  <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My SwoopTV, recommendations, favourite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favourites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
+  <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My SwoopTV, recommendations, favorite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favorites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
   <section class="setting-card"><div class="setting-icon">NEW</div><div class="setting-main"><h3>What's New</h3><p>See what changed in Swoop TV v${esc(ANDROID_CURRENT_VERSION)} and reopen the latest release notes at any time.</p><div class="cta-row"><button class="btn secondary" data-show-whats-new>Open What's New</button></div></div></section>
   <section class="setting-card performance-setting-card"><div class="setting-icon">⚡</div><div class="setting-main"><h3>Performance</h3><p>${performanceLabel()}. ${esc(performancePackSummary())}</p><div class="cta-row"><button class="btn ${state.settings.performanceMode!=='cinematic'?'accent':'secondary'}" data-performance-mode="auto">Auto / Recommended</button><button class="btn ${state.settings.performanceMode==='cinematic'?'accent':'secondary'}" data-performance-mode="cinematic">Full Cinematic</button>${NATIVE_ANDROID&&state.catalog.length?'<button class="btn secondary" data-performance-pack-optimize>Optimise Library Now</button>':''}</div></div></section>
   ${NATIVE_ANDROID&&tvHardwareTestMode?`<section class="setting-card hardware-test-card"><div class="setting-icon">HW</div><div class="setting-main"><h3>Hardware Test Mode</h3><p>Live focus, rail, DOM, pending-work, key and renderer diagnostics are active. Choose a numbered test before reproducing an issue, then export the session.</p><div class="hardware-test-current"><strong>${esc(tvHardwareCurrentTest||'FREE RUN')}</strong><span>${esc(TV_HARDWARE_TESTS.find(x=>x.id===tvHardwareCurrentTest)?.label||'General hardware diagnostics')}</span></div><div class="hardware-test-list">${TV_HARDWARE_TESTS.map(test=>`<button class="btn ${tvHardwareCurrentTest===test.id?'accent':'secondary'} compact-btn" data-hardware-test="${esc(test.id)}">${esc(test.id)}</button>`).join('')}</div><div class="cta-row"><button class="btn accent" data-hardware-export>Save Diagnostics</button><button class="btn secondary" data-hardware-clear>Clear Log</button><button class="btn secondary" data-hardware-exit>Exit Test Mode</button></div>${tvLastDiagnosticsPath?`<small class="hardware-export-path">Last saved: ${esc(tvLastDiagnosticsPath)}</small>`:''}</div></section>`:''}
   <section class="setting-card"><div class="setting-icon">＋</div><div class="setting-main"><h3>My SwoopTV & Viewing</h3><p>${state.myList.length.toLocaleString()} saved · ${state.continueWatching.length.toLocaleString()} in progress · ${state.watchHistory.length.toLocaleString()} in viewing history.</p><div class="cta-row"><button class="btn secondary" data-page="myswoop">Open My SwoopTV</button>${state.continueWatching.length?'<button class="btn secondary" data-action="clear-history">Clear Continue Watching</button>':''}${state.watchHistory.length?'<button class="btn secondary" data-action="clear-viewing">Reset Recommendations</button>':''}</div></div></section>
-  <section class="setting-card"><div class="setting-icon">▶</div><div class="setting-main"><h3>Playback & Live TV</h3><p>${Object.keys(state.settings.movieSourcePreferences||{}).length.toLocaleString()} remembered source choices · ${state.liveFavourites.length.toLocaleString()} favourite live channels.</p><div class="cta-row"><button class="btn secondary" data-page="live">Open Live TV</button>${Object.keys(state.settings.movieSourcePreferences||{}).length?'<button class="btn secondary" data-action="clear-source-preferences">Reset Source Choices</button>':''}${state.liveFavourites.length?'<button class="btn secondary" data-action="clear-live-favourites">Clear Live Favourites</button>':''}</div></div></section>
+  <section class="setting-card"><div class="setting-icon">▶</div><div class="setting-main"><h3>Playback & Live TV</h3><p>${Object.keys(state.settings.movieSourcePreferences||{}).length.toLocaleString()} remembered source choices · ${state.liveFavourites.length.toLocaleString()} favorite live channels.</p><div class="cta-row"><button class="btn secondary" data-page="live">Open Live TV</button>${Object.keys(state.settings.movieSourcePreferences||{}).length?'<button class="btn secondary" data-action="clear-source-preferences">Reset Source Choices</button>':''}${state.liveFavourites.length?'<button class="btn secondary" data-action="clear-live-favourites">Clear Live Favorites</button>':''}</div></div></section>
   <section class="setting-card"><div class="setting-icon">ROW</div><div class="setting-main"><h3>Home & Discovery</h3><p>${state.settings.homeRows.length} Home rows selected. Choose the sections you want to see on Home.</p><div class="cta-row"><button class="btn accent" data-modal="homeRows">Customize Home</button><button class="btn secondary" data-modal="mdblist">Add Custom MDBList Row</button></div>${state.mdblistRows.length?state.mdblistRows.map((r,i)=>`<div class="kv"><span>${esc(r.name)}</span><span>${r.items.length} matched · ${esc(relativeRefreshTime(r.updatedAt))} · <button class="nav-btn" data-remove-row="${i}">Remove</button></span></div>`).join(''):''}</div></section>
   <section class="setting-card theme-setting-card"><div class="setting-icon">THEME</div><div class="setting-main"><h3>Theme & Cinematic Artwork</h3><p><strong>${esc(currentTheme().name)}</strong> is active for this profile. Themes change the full Swoop TV presentation — Home hero, cards, navigation, buttons, badges, detail screens, Guide and loading states.</p><div class="kv"><span>Theme</span><span>${esc(currentTheme().name)} · ${esc(currentTheme().tagline)}</span></div><div class="kv"><span>Background</span><span>${state.settings.backgroundOverride?esc(validHex(state.settings.backgroundColor)):`${esc(currentTheme().bg)} · theme default`}</span></div><div class="cta-row"><button class="btn accent" data-modal="homeRows">Choose Theme & Home</button></div></div></section>
   ${NATIVE_PLAYBACK?`<section class="setting-card native-ready"><div class="setting-icon">▶</div><div class="setting-main"><h3>Playback</h3><p>Playback is ready.</p></div></section>`:`<section class="setting-card"><div class="setting-icon">↗</div><div class="setting-main"><h3>Connection Helper</h3><p>${state.settings.xtreamRelayUrl?'Configured':'Not configured'}</p></div></section>`}
@@ -2491,7 +2505,7 @@ function render(){
   if(!profilePickerOpen&&!mediaRoute&&playerItem?.kind==='live')setTimeout(()=>{loadPlayerNowNext(playerItem);loadLiveMiniGuide(playerItem)},0);
   if(!profilePickerOpen&&state.catalog.length&&!NATIVE_ANDROID)setTimeout(scheduleMetadataEnrichment,androidFastHomeMode()?5000:(largeLibraryMode()?1800:120));
   if(NATIVE_ANDROID&&tvForceHomeTop&&!profilePickerOpen&&!mediaRoute&&state.page==='home')forceAndroidHomeEntry();
-  if(!mediaRoute)scheduleHeroRotation();
+  if(!mediaRoute){scheduleHeroRotation();scheduleMySwoopHeroRotation();}
 }
 
 function providerModal(){
@@ -2528,7 +2542,7 @@ function continueOptionsModal(){
 }
 function whatsNewModal(){
   const entries=(androidLatestManifest?.changes||[]).slice(0,12);
-  return `<div class="modal-backdrop whats-new-backdrop" data-close-modal><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Hardware consolidation, stability and physical-TV navigation fixes.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster, deterministic D-pad navigation.</li><li>Continuous 100-title browsing with ahead-of-focus loading.</li><li>Compact heroes, persistent navigation and cleaner Live TV/Guide presentation.</li><li>Long-press OK options for Continue Watching.</li><li>Faster actor/person catalogue opening.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
+  return `<div class="modal-backdrop whats-new-backdrop"><div class="modal whats-new-modal" data-modal-card role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle"><div class="modal-head"><div><div class="eyebrow">WHAT'S NEW</div><h2 id="whatsNewTitle">Swoop TV v${esc(ANDROID_CURRENT_VERSION)}</h2><p>Hardware stability, Favorites and TV presentation improvements.</p></div></div><div class="modal-body whats-new-body">${entries.length?`<ul>${entries.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<ul><li>Faster TV navigation and lower renderer memory use.</li><li>Favorites-first My SwoopTV and a persistent Live TV preview header.</li></ul>`}<div class="cta-row"><button class="btn accent" data-whats-new-done autofocus>Got it</button></div></div></div></div>`;
 }
 function modalHtml(){if(modal==='provider')return providerModal();if(modal==='homeRows')return homeRowsModal();if(modal==='profiles')return profilesModal();if(modal==='profileEdit')return profileEditorModal();if(modal==='pin')return pinModal();if(modal==='continueOptions')return continueOptionsModal();if(modal==='whatsNew')return whatsNewModal();return mdblistModal()}
 function setStatus(id,msg,type='info'){const el=document.querySelector(id);if(el)el.innerHTML=`<div class="status ${type}">${esc(msg)}</div>`}
@@ -2747,7 +2761,7 @@ function detailHtml(){
   const sourceProviders=Array.isArray(detailItem.sources)?[...new Set(detailItem.sources.map(x=>providerDisplayName(x)))]:[providerDisplayName(detailItem)];const facts=[['Genre',meta.genre],['Director / Creator',meta.director],['Country',meta.country],['Runtime',meta.duration],['Rating',meta.age],['Providers',sourceProviders.filter(Boolean).join(', ')],['Playback sources',detailItem.sourceCount>1?`${detailItem.sourceCount} available`:'']].filter(([,v])=>v);
   const castBlock=meta.castList.length?`<section class="detail-cast"><div class="detail-section-head"><div><span class="eyebrow">CAST</span><h3>Cast & Characters</h3></div><span class="cast-hint">Select a cast member to browse titles in your library</span></div><div class="cast-rail">${meta.castList.map(person=>`<button class="cast-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-character="${esc(person.character||'')}" aria-label="Browse ${esc(person.name||'cast member')} titles in your Swoop TV library">${person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="">`:`<div class="cast-fallback">${esc((person.name||'?').slice(0,1))}</div>`}<strong>${esc(person.name)}</strong><span>${esc(person.character||'')}</span></button>`).join('')}</div></section>`:'';
   const trailerButton=meta.youtube?`<button class="btn secondary detail-trailer" data-trailer="${esc(meta.youtube)}" data-trailer-title="${esc(meta.trailerName||meta.title)}"><span>▶</span> Trailer</button>`:'';
-  return `<main class="detail-overlay detail-route" aria-label="${esc(meta.title)}"><button class="detail-close" data-detail-close aria-label="Back">←</button><div class="detail-scroll"><section class="detail-hero ${hasCinematicBackdrop?'has-backdrop':'poster-fallback'}"><div class="detail-media"><div class="detail-fallback" style="--detail-fallback:${detailItem.demoColor||'linear-gradient(135deg,#151b2a,#050609)'}"></div>${backdrop?`<img class="detail-backdrop" data-swoop-art="${esc(backdrop)}" alt="">`:''}</div><div class="detail-vignette"></div><div class="detail-copy"><div class="eyebrow">${esc(kindLabel(detailItem).toUpperCase())}</div>${(()=>{const logoState=detailTitleLogoState(detailItem,meta);return `<div class="detail-title-slot ${logoState.pending?'logo-pending':''} ${meta.titleLogo?'has-logo':''}" data-detail-title><h2 class="detail-title-text">${esc(meta.title)}</h2><span class="detail-title-wait" aria-hidden="true"></span>${meta.titleLogo?`<img class="detail-title-logo" data-swoop-art="${esc(meta.titleLogo)}" alt="${esc(meta.title)}">`:''}</div>`})()}<div class="detail-meta">${[meta.year,meta.rating?`★ ${meta.rating}`:'',meta.age,detailItem.group].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('')}</div><p>${esc(meta.plot||`Available from ${providerSummaryName()}.`)}</p><div class="cta-row">${primary}${trailerButton}<button class="btn secondary detail-list ${saved?'saved':''}" data-toggle-list="${esc(detailItem.id)}"><span>${saved?'✓':'＋'}</span> ${saved?'Saved':'Save to My SwoopTV'}</button>${watchedButton}${removeContinueButton}</div></div>${meta.cover&&!hasCinematicBackdrop?`<img class="detail-poster" data-swoop-art="${esc(meta.cover)}" alt="">`:''}</section>
+  return `<main class="detail-overlay detail-route" aria-label="${esc(meta.title)}"><button class="detail-close" data-detail-close aria-label="Back">←</button><div class="detail-scroll"><section class="detail-hero ${hasCinematicBackdrop?'has-backdrop':'poster-fallback'}"><div class="detail-media"><div class="detail-fallback" style="--detail-fallback:${detailItem.demoColor||'linear-gradient(135deg,#151b2a,#050609)'}"></div>${backdrop?`<img class="detail-backdrop" data-swoop-art="${esc(backdrop)}" alt="">`:''}</div><div class="detail-vignette"></div><div class="detail-copy"><div class="eyebrow">${esc(kindLabel(detailItem).toUpperCase())}</div>${(()=>{const logoState=detailTitleLogoState(detailItem,meta);return `<div class="detail-title-slot ${logoState.pending?'logo-pending':''} ${meta.titleLogo?'has-logo':''}" data-detail-title><h2 class="detail-title-text">${esc(meta.title)}</h2><span class="detail-title-wait" aria-hidden="true"></span>${meta.titleLogo?`<img class="detail-title-logo" data-swoop-art="${esc(meta.titleLogo)}" alt="${esc(meta.title)}">`:''}</div>`})()}<div class="detail-meta">${[meta.year,meta.rating?`★ ${meta.rating}`:'',meta.age,detailItem.group].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('')}</div><p>${esc(meta.plot||`Available from ${providerSummaryName()}.`)}</p><div class="cta-row">${primary}${trailerButton}<button class="btn secondary detail-list ${saved?'saved':''}" data-toggle-list="${esc(detailItem.id)}"><span>${saved?'✓':'＋'}</span> ${saved?'Favorite':'Add to Favorites'}</button>${watchedButton}${removeContinueButton}</div></div>${meta.cover&&!hasCinematicBackdrop?`<img class="detail-poster" data-swoop-art="${esc(meta.cover)}" alt="">`:''}</section>
   <div class="detail-body" data-detail-body>${episodeBlock}${castBlock}<section class="detail-info"><div><span class="eyebrow">ABOUT</span><h3>More about ${esc(meta.title)}</h3></div><div class="detail-facts">${facts.length?facts.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join(''):'<div><span>Source</span><strong>Your connected provider</strong></div>'}</div></section>${related.length?`<section class="detail-related">${rail('More Like This',related,detailItem.kind!=='live')}</section>`:''}</div></div></main>`;
 }
 function patchDetailHeroFromState(){
@@ -2880,7 +2894,7 @@ function closeDetail(){
   if(restoreSuspendedBaseView())return;
   render();requestAnimationFrame(()=>window.scrollTo(0,detailReturnScroll||0));
 }
-function toggleMyList(item){if(!item)return;clearPersistentPageViews(['home','myswoop','mylist','movies','series']);const ids=new Set(logicalItemIds(item)),saved=state.myList.some(id=>ids.has(id));if(saved){state.myList=state.myList.filter(id=>!ids.has(id));toast('Removed from My SwoopTV')}else{state.myList.unshift(item.id);toast('Saved to My SwoopTV')}persist();if(detailItem)patchDetailSectionsFromState({controls:true});else render()}
+function toggleMyList(item){if(!item)return;clearPersistentPageViews(['home','myswoop','mylist','movies','series']);const ids=new Set(logicalItemIds(item)),saved=state.myList.some(id=>ids.has(id));if(saved){state.myList=state.myList.filter(id=>!ids.has(id));toast('Removed from Favorites')}else{state.myList.unshift(item.id);toast('Added to Favorites')}persist();if(detailItem)patchDetailSectionsFromState({controls:true});else render()}
 function watchHistoryEntry(itemOrId){
   const item=typeof itemOrId==='string'?savedItem(itemOrId):itemOrId,id=typeof itemOrId==='string'?itemOrId:itemOrId?.id;
   const ids=new Set(item?logicalItemIds(item):[id]);
@@ -3033,7 +3047,7 @@ function playerHtml(){
     const live=playerItem?.kind==='live',ce=continueEntry(playerItem?.id),pct=Math.round(Number(ce?.progress||0));
     if(live){
       const item=visualItem(playerItem),fav=isLiveFavourite(item),q=qualityLabel(item),logo=item.logo?`<img class="native-live-logo" data-swoop-art="${esc(item.logo)}" alt="">`:'<span class="native-live-logo-fallback">TV</span>';
-      return `<div class="player-shell native-player-shell premium-live-player" role="dialog" aria-modal="true" aria-label="${esc(item?.name||'Swoop TV Live TV')}"><div class="premium-live-layout"><section class="native-live-main"><div class="native-live-channel-head">${logo}<div><div class="eyebrow">● LIVE TV ${q?`· ${esc(q)}`:''}</div><h2>${esc(item?.name||'')}</h2><p>${esc(item?.group||'Live TV')}</p></div><button class="live-fav-control ${fav?'active':''}" data-live-favourite="${esc(item.id)}">${fav?'★ Favourite':'☆ Favourite'}</button></div><div id="playerStatus" class="player-status native-live-status">Starting playback…</div><div id="liveNowNext" class="live-now-next premium-now-next"><div class="live-program"><span>GUIDE</span><strong>Loading Now & Next…</strong></div></div><div class="native-channel-controls premium-channel-controls"><button class="btn secondary" data-channel-step="-1">‹ Channel</button><button class="btn play-btn" data-player-guide>▤ Full TV Guide</button><button class="btn secondary" data-channel-step="1">Channel ›</button></div><div id="playerMessage" class="native-player-copy">Playback is open. Use Swoop TV to browse and change channels.</div><div class="live-shortcuts"><span id="liveChannelNumber" class="channel-number-indicator"></span><span><kbd>PgUp</kbd>/<kbd>PgDn</kbd> change channel</span><span><kbd>0–9</kbd> jump to channel number</span><span><kbd>F</kbd> fullscreen</span></div><div class="cta-row"><button class="btn danger" data-native-stop>Stop playback</button><button class="btn secondary" data-close-player>Back to Swoop TV</button></div></section><aside class="live-mini-guide"><div class="live-mini-head"><div><span class="eyebrow">QUICK GUIDE</span><h3>${esc(item.group||'Nearby Channels')}</h3></div><button class="icon-btn" data-player-guide aria-label="Open full guide">▤</button></div><div class="live-mini-list">${liveMiniGuideRowsHtml(item)}</div></aside></div></div>`;
+      return `<div class="player-shell native-player-shell premium-live-player" role="dialog" aria-modal="true" aria-label="${esc(item?.name||'Swoop TV Live TV')}"><div class="premium-live-layout"><section class="native-live-main"><div class="native-live-channel-head">${logo}<div><div class="eyebrow">● LIVE TV ${q?`· ${esc(q)}`:''}</div><h2>${esc(item?.name||'')}</h2><p>${esc(item?.group||'Live TV')}</p></div><button class="live-fav-control ${fav?'active':''}" data-live-favourite="${esc(item.id)}">${fav?'★ Favorite':'☆ Favorite'}</button></div><div id="playerStatus" class="player-status native-live-status">Starting playback…</div><div id="liveNowNext" class="live-now-next premium-now-next"><div class="live-program"><span>GUIDE</span><strong>Loading Now & Next…</strong></div></div><div class="native-channel-controls premium-channel-controls"><button class="btn secondary" data-channel-step="-1">‹ Channel</button><button class="btn play-btn" data-player-guide>▤ Full TV Guide</button><button class="btn secondary" data-channel-step="1">Channel ›</button></div><div id="playerMessage" class="native-player-copy">Playback is open. Use Swoop TV to browse and change channels.</div><div class="live-shortcuts"><span id="liveChannelNumber" class="channel-number-indicator"></span><span><kbd>PgUp</kbd>/<kbd>PgDn</kbd> change channel</span><span><kbd>0–9</kbd> jump to channel number</span><span><kbd>F</kbd> fullscreen</span></div><div class="cta-row"><button class="btn danger" data-native-stop>Stop playback</button><button class="btn secondary" data-close-player>Back to Swoop TV</button></div></section><aside class="live-mini-guide"><div class="live-mini-head"><div><span class="eyebrow">QUICK GUIDE</span><h3>${esc(item.group||'Nearby Channels')}</h3></div><button class="icon-btn" data-player-guide aria-label="Open full guide">▤</button></div><div class="live-mini-list">${liveMiniGuideRowsHtml(item)}</div></aside></div></div>`;
     }
     const sourceInfo=playerItem?sourceTechSummary(playerItem):'';
     return `<div class="player-shell native-player-shell" role="dialog" aria-modal="true" aria-label="${esc(playerItem?.name||'Swoop TV Player')}"><div class="native-player-card"><div class="eyebrow">SWOOP TV PLAYER</div><h2>${esc(playerItem?.name||'')}</h2>${playerItem?`<div class="native-source-strip"><span>${esc(playerItem._selectedSourceLabel||playerItem.group||'Provider source')}</span><b>${esc(sourceInfo)}</b></div>`:''}<div id="playerStatus" class="player-status">Starting playback…</div><div class="native-progress"><div><span>${pct>1?`Resume ${pct}%`:'Playback progress'}</span><strong id="nativeProgressTime">0:00</strong></div><i><b id="nativeProgressBar" style="width:${pct}%"></b></i></div><div class="native-transport"><button class="mini-control" data-native-control="seek" data-native-value="-10">−10s</button><button class="mini-control" data-native-control="toggle-pause">Pause / Resume</button><button class="mini-control" data-native-control="seek" data-native-value="10">+10s</button></div><div id="nativePlaybackTech" class="native-playback-tech">Starting stream…</div><div id="playerMessage" class="native-player-copy">Your playback position is saved automatically.</div><div class="cta-row"><button class="btn danger" data-native-stop>Stop playback</button><button class="btn secondary" data-close-player>Back to Swoop TV</button></div></div></div>`;
@@ -3268,10 +3282,10 @@ function bind(){
   document.querySelector('[data-action="clear-history"]')?.addEventListener('click',()=>{state.continueWatching=[];persist();render();toast('Continue Watching cleared')});
   document.querySelector('[data-action="clear-viewing"]')?.addEventListener('click',()=>{state.watchHistory=[];persist();render();toast('Recommendation history reset')});
   document.querySelector('[data-action="clear-source-preferences"]')?.addEventListener('click',()=>{state.settings.movieSourcePreferences={};persist();render();toast('Remembered movie source choices cleared')});
-  document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
+  document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favorite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:836,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:837,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});

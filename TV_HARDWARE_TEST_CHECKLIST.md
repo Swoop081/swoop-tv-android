@@ -1,9 +1,31 @@
-# Swoop TV v0.8.35 — Google TV Hardware Test Checklist
+# Swoop TV v0.8.37 — Google TV Hardware Test Checklist
 
-Current test build: **v0.8.35 / versionCode 835**
+Current test build: **v0.8.37 / versionCode 837**
 
 Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five times within four seconds**. Select the numbered test before reproducing it, then choose **Save Diagnostics**.
 
+
+## v0.8.37 Performance Pack / incremental-cache gates
+
+- **PACK-001 — first optimisation:** after connecting a fresh provider, allow the one-time **Optimising Swoop TV** step to finish. Confirm the provider setup does not return to Settings until the local snapshot and priority artwork pass have completed or safely failed-open.
+- **PACK-002 — warm restart:** fully exit and reopen Swoop TV. Existing provider data/Home should restore from durable local state before any provider network refresh; previously warmed artwork should appear without a fresh all-placeholder sweep.
+- **PACK-003 — unchanged refresh:** refresh the same provider without changing its library. Performance status should report approximately `0 added · 0 changed · 0 removed`; the app must not perform another full artwork warm.
+- **PACK-004 — small delta:** after the provider adds/removes a small number of titles, refresh again. Only the changed/new artwork set should be warmed and the rest of the library should remain immediately available.
+- **PACK-005 — retained update:** install the next APK over v0.8.37 without uninstalling. Provider snapshots, metadata/artwork cache and STARmeter retained rows must survive the APK update.
+- **STAR-RETAIN-001:** reopen STARmeter after a restart. Existing Top 100 people should populate from the Performance Pack immediately. Rank movement must not trigger a full person rematch; genuinely new entrants may hydrate in the background.
+- **STAR-HOLD-001:** press and hold Down from #1 through at least #30. While the key repeats, no rank/name/portrait/title DOM should repaint underneath the scroll. Release Down, wait briefly, and verify deferred title hydration resumes with no ghost/duplicate rows.
+
+
+### STAR-PAINT-001 — no duplicated/ghost rows
+1. Enter STARmeter immediately after profile selection.
+2. Hold/tap Down quickly from #1 through at least #20, then reverse direction.
+3. Verify every rank, portrait and name is painted exactly once and no previous row remains ghosted above/below the focused row.
+4. Pause on several rows while provider titles finish matching; the focused person identity must remain visually stable.
+
+### STAR-PATCH-001 — stable async hydration
+1. Enter STARmeter before all background matching is complete.
+2. Move focus continuously while rows hydrate.
+3. Verify provider-title rails can fill in only after focus settles, without jumping the page, duplicating identities or losing focus.
 ## Critical navigation / stability
 
 - **NAV-001 — Top 100 Movies 1 → 100:** hold/tap Right through the entire ranked rail. It must reach #100, never stall around #25–27, and never drop into another row.
@@ -40,4 +62,4 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 
 After reproducing a failure, save the JSON and upload it with the phone video. Diagnostic exports are written to the app Documents directory with a filename beginning:
 
-`Swoop-TV-v0.8.35-Diagnostics-`
+`Swoop-TV-v0.8.37-Diagnostics-`
