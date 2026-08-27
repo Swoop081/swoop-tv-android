@@ -1,28 +1,66 @@
 import {execFileSync} from 'node:child_process';
-import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+import {readFileSync,writeFileSync,unlinkSync,existsSync} from 'node:fs';
 import {inflateSync} from 'node:zlib';
 const run=(c,a=[],o={})=>execFileSync(c,a,{stdio:'inherit',...o});
+const out=(c,a=[])=>execFileSync(c,a,{encoding:'utf8'});
 const chunks=Array.from({length:6},(_,i)=>`scripts/.v0836-patch-${i}.b64`);
 const packed=chunks.map(p=>readFileSync(p,'utf8').trim()).join('');
-const patch=inflateSync(Buffer.from(packed,'base64')).toString('utf8');
-writeFileSync('/tmp/swoop-v0836.patch',patch);
-run('git',['apply','--check','--whitespace=nowarn','/tmp/swoop-v0836.patch']);
-run('git',['apply','--whitespace=nowarn','/tmp/swoop-v0836.patch']);
-const finalRefresh=inflateSync(Buffer.from('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','base64')).toString('utf8');
-writeFileSync('scripts/refresh-seed-cache.mjs',finalRefresh);
+const fullPatch=inflateSync(Buffer.from(packed,'base64')).toString('utf8');
+const allowed=new Set([
+  'app/build.gradle','app/src/main/assets/app.js','app/src/main/assets/src/storage.js','app/src/main/assets/sw.js',
+  'app/src/main/java/tv/swoop/player/MainActivity.java','scripts/refresh-seed-cache.mjs','app/src/main/assets/src/performancePack.js'
+]);
+const sections=fullPatch.split(/(?=^--- )/m).filter(Boolean);
+const selected=[];
+for(const section of sections){
+  const m=section.match(/^--- (?:a\/([^\n]+)|\/dev\/null)\n\+\+\+ (?:b\/([^\n]+)|\/dev\/null)/);
+  const path=m?.[2]||m?.[1]||'';
+  if(allowed.has(path))selected.push(section);
+}
+if(selected.length!==allowed.size)throw new Error(`Expected ${allowed.size} runtime patch sections, found ${selected.length}`);
+writeFileSync('/tmp/swoop-v0836-runtime.patch',selected.join(''));
+// The current main staging commit temporarily replaced the real seed refresher with this runner.
+// Restore the exact verified v0.8.35 refresher before applying its one-line v0.8.36 version change.
+run('git',['fetch','--no-tags','--depth=1','origin','39afc7c34cc79a04cb4ba5baba9be857054364bc']);
+writeFileSync('scripts/refresh-seed-cache.mjs',out('git',['show','39afc7c34cc79a04cb4ba5baba9be857054364bc:scripts/refresh-seed-cache.mjs']));
+// Normalize the only known formatting-only drift between the verified local v0.8.35 source and current GitHub main.
+let baseApp=readFileSync('app/src/main/assets/app.js','utf8');
+baseApp=baseApp.replace("function scheduleStarmeterPatchFlush(delay=180){if(starmeterPatchTimer||state.page!=='starmeter')return;starmeterPatchTimer=setTimeout(flushStarmeterDeferredPatches,Math.max(80,Number(delay||180)))}","function scheduleStarmeterPatchFlush(delay=180){\n  if(starmeterPatchTimer||state.page!=='starmeter')return;starmeterPatchTimer=setTimeout(flushStarmeterDeferredPatches,Math.max(80,Number(delay||180)));\n}");
+baseApp=baseApp.replace("if(performance.now()-starmeterLastFocusMoveAt<180){scheduleStarmeterPatchFlush(180);return}const activeRank=","if(performance.now()-starmeterLastFocusMoveAt<180){scheduleStarmeterPatchFlush(180);return}\n  const activeRank=");
+writeFileSync('app/src/main/assets/app.js',baseApp);
+console.log('Applying the v0.8.36 runtime patch with formatting-tolerant context matching…');
+run('patch',['--dry-run','--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
+run('patch',['--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
+// Bring the live GitHub regression suite forward without depending on historical doc/test formatting.
+let test=readFileSync('tests/tv-ui-runtime-smoke.mjs','utf8');
+test=test.replaceAll('0.8.35','0.8.36');
+test=test.replace("!appSource.includes('performance.now()-starmeterLastFocusMoveAt<180')","!appSource.includes('function starmeterMutationBlocked()')");
+if(!test.includes("performancePackSource =")){
+  test=test.replace("const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');",`const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');\nconst performancePackSource = fs.readFileSync(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url), 'utf8');\nconst storageSource = fs.readFileSync(new URL('../app/src/main/assets/src/storage.js', import.meta.url), 'utf8');\nconst {performancePackProviderDelta} = await import(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url));`);
+}
+if(!test.includes('// v0.8.36 Performance Pack'))test+=`\n\n// v0.8.36 Performance Pack + held-D-pad regressions.\nif(!appSource.includes("from './src/performancePack.js'"))throw new Error('v0.8.36 Performance Pack runtime wiring missing');\nif(!appSource.includes('starmeterHeldDirectional')||!appSource.includes('starmeterHeldKeys'))throw new Error('v0.8.36 held-D-pad mutation freeze missing');\nif(!performancePackSource.includes('PERFORMANCE_PACK_SCHEMA')||!performancePackSource.includes('savePerformancePackStarmeter'))throw new Error('v0.8.36 persistent Performance Pack/STARmeter storage missing');\nif(!storageSource.includes('catalogChunkFingerprints'))throw new Error('v0.8.36 incremental catalogue chunk fingerprints missing');\nconst delta=performancePackProviderDelta([{id:'a',kind:'movie',name:'A'},{id:'b',kind:'movie',name:'B'}],[{id:'a',kind:'movie',name:'A'},{id:'b',kind:'movie',name:'B2'},{id:'c',kind:'movie',name:'C'}]);\nif(delta.added.length!==1||delta.changed.length!==1||delta.removed.length!==0)throw new Error('v0.8.36 provider delta classification failed');\n`;
+writeFileSync('tests/tv-ui-runtime-smoke.mjs',test);
+// Keep the canonical changelog current even though old GitHub docs had harmless formatting drift.
+let notes=readFileSync('RELEASE_NOTES.md','utf8');
+if(!notes.includes('## v0.8.36 — Performance Pack + Incremental Library Cache')){
+  const section=`## v0.8.36 — Performance Pack + Incremental Library Cache\n\n- Adds a persistent Performance Pack so installer seed data, provider fingerprints, metadata knowledge and artwork cache state survive normal launches and APK upgrades.\n- Provider refreshes calculate catalogue deltas and prioritise only added/changed titles instead of repeating expensive preparation for unchanged content.\n- STARmeter person/library matches persist for 90 days independently of rank, so rank movement does not trigger rematching; new/stale people are handled incrementally.\n- Freezes STARmeter asynchronous DOM hydration throughout a held/long-pressed D-pad direction and resumes only after key release plus scroll settle.\n\n`;
+  notes=notes.startsWith('# Swoop TV Release Notes\n\n')?notes.replace('# Swoop TV Release Notes\n\n','# Swoop TV Release Notes\n\n'+section):section+notes;
+  writeFileSync('RELEASE_NOTES.md',notes);
+}
 for(const p of chunks)try{unlinkSync(p)}catch{}
-const app=readFileSync('app/src/main/assets/app.js','utf8');
-const gradle=readFileSync('app/build.gradle','utf8');
-if(!gradle.includes("versionName '0.8.36'")||!app.includes("from './src/performancePack.js'")||!app.includes('starmeterHeldDirectional'))throw new Error('v0.8.36 promotion contract failed');
+const app=readFileSync('app/src/main/assets/app.js','utf8'),gradle=readFileSync('app/build.gradle','utf8');
+if(!gradle.includes("versionName '0.8.36'")||!gradle.includes('versionCode 836'))throw new Error('Gradle did not promote to v0.8.36/836');
+if(!app.includes("const ANDROID_CURRENT_VERSION='0.8.36';")||!app.includes("from './src/performancePack.js'")||!app.includes('starmeterHeldDirectional'))throw new Error('v0.8.36 app promotion contract failed');
+console.log('Runtime source promoted. Refreshing installer seed and running the full validation gate…');
 run(process.execPath,['scripts/refresh-seed-cache.mjs']);
 run(process.execPath,['scripts/generate-build-metadata.mjs']);
-run(process.execPath,['--check','app/src/main/assets/app.js']);
-run(process.execPath,['--check','app/src/main/assets/src/performancePack.js']);
+for(const p of ['app/src/main/assets/app.js','app/src/main/assets/src/performancePack.js','app/src/main/assets/src/storage.js','scripts/refresh-seed-cache.mjs'])run(process.execPath,['--check',p]);
 run(process.execPath,['tests/card-runtime-smoke.mjs']);
 run(process.execPath,['tests/tv-ui-runtime-smoke.mjs']);
-run('git',['config','user.name','github-actions[bot]']);
-run('git',['config','user.email','41898282+github-actions[bot]@users.noreply.github.com']);
+run('python',['-m','json.tool','app/src/main/assets/seed-cache.json'],{stdio:'ignore'});
+run('python',['-m','json.tool','swoop-tv-seed-cache.json'],{stdio:'ignore'});
+run('git',['config','user.name','github-actions[bot]']);run('git',['config','user.email','41898282+github-actions[bot]@users.noreply.github.com']);
 run('git',['add','-A']);
-const status=execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();
+const status=out('git',['status','--porcelain']).trim();
 if(status){run('git',['commit','-m','Promote v0.8.36 Performance Pack and incremental library cache']);run('git',['push','origin','HEAD:main']);}
-console.log('v0.8.36 promoted; continuing current APK build.');
+console.log('v0.8.36 source promotion complete; continuing the current APK build and Downloader publication.');
