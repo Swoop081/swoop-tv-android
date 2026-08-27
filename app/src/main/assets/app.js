@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.29';
+const ANDROID_CURRENT_VERSION='0.8.30';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,16 +36,14 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Fixes the Home Top 100 hard stop by separating the 100-item logical ranking from the small rendered card window, preloading ahead of focus and guaranteeing a full 1–100 provider-backed rail when the library has enough titles.',
-  'Home now keeps Recently Added Movies and Recently Added TV Shows directly under the two Top 100 rows, while the featured backdrop fills the masthead width with face-safer positioning instead of black side bars.',
-  'Live TV renders fewer off-screen channels, keeps Recent Channels sizing throughout category rows, updates channel identity immediately and only starts a muted preview after focus settles; the native preview stays hidden until video is ready.',
-  'STARmeter is rebuilt around three visible people at a time, one-at-a-time catalogue hydration, large circular cast-style portraits, prominent ranks and large mixed movie/TV poster rails sorted by popularity.',
-  'Who’s watching now opens with the first profile already focused and uses a much larger, playful animal-avatar presentation for couch distance.',
-  'Movie/person detail pages receive compact premium actions, larger cast portraits, persistent Back controls, richer metadata and deliberate bottom safe spacing.',
-  'TV-series details restore left-aligned season controls, focusable episode navigation, larger 16:9 episode artwork, air dates, runtimes and synopses with staged metadata enrichment.',
-  'Primary-tab navigation now destroys stale person/detail route state before entering the destination, preventing an old actor page from resurfacing over Home or Live TV.',
-  'Guide diagnostics now report category/channel/program focus explicitly and cached EPG rows stay visible while background refreshes patch cells in place.',
-  'Retains the v0.8.28 whole-app warm-start seed cache and v0.8.27 hardware-test diagnostics.'
+  'Introduces My SwoopTV as the personal destination for Continue Watching, saved movies and shows, favourite channels and recently watched content; Home is now discovery-first.',
+  'Mounts all 100 Top 100 Movie and TV Show focus targets on Google TV so the ranked rails can no longer hard-stop at the old 25–27 card render boundary.',
+  'Rebuilds STARmeter matching around one provider availability index with hard timeouts, clean failure states, cancellation on exit and deterministic escape back to the persistent header.',
+  'Makes STARmeter person identity cards stable vertical navigation anchors while only hydrating visible people and a tiny look-ahead queue.',
+  'Uses the approved Recent Channels component dimensions and spacing for every Browse Live TV channel card to eliminate stacked/overlapping tiny tiles.',
+  'Adds a dedicated Live TV/date/time banner above All Channels in Guide while preserving the approved category sidebar and two-hour EPG layout.',
+  'Expands the approved Home hero information block to use the available height for a fuller synopsis without changing its accepted geometry.',
+  'Retains the v0.8.29 profile, detail/episode, route-lifecycle, warm-start seed and Hardware Test Mode stability work.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -122,20 +120,20 @@ async function ensureNativePage(kind,{force=false}={}){
   try{const result=await nativeCatalogQuery({kind,providerId:providerFilter,providerIds:providerFilter==='all'?nativeEnabledProviderIds():[],group,limit,offset:0,sort:kind==='live'?'name':'recent'});cache.key=key;cache.items=cacheNativeItems(result?.items||[]);cache.total=Number(result?.total||cache.items.length);return cache}finally{cache.loading=false}
 }
 function scheduleNativePage(kind,force=false){if(!nativeCatalogMode)return;const cache=nativePageCache[kind],group=kind==='live'?liveCategory:(pageCategory[kind]||''),want=`${providerFilter}|${group}|${viewLimits[kind]||(kind==='live'?96:72)}`;if(!force&&cache.key===want&&cache.items.length)return;setTimeout(async()=>{const before=cache.key;await ensureNativePage(kind,{force});if((before!==cache.key||force)&&((state.page==='movies'&&kind==='movie')||(state.page==='series'&&kind==='series')||(state.page==='live'&&kind==='live')))render()},0)}
-const PINNED_HOME_ROWS=['continue','top20-movies','top20-shows'];
+const PINNED_HOME_ROWS=['top20-movies','top20-shows'];
 const PRIMARY_HOME_ROWS=['new-movies','new-shows'];
 const CURATED_SNOAK_HOME_ORDER=[
   'snoak-latest-netflix-shows','snoak-latest-amazon-prime-shows','snoak-latest-apple-tv-shows','snoak-latest-hbo-max-shows-a','snoak-latest-disney-shows','snoak-latest-hbo-max-shows-b','snoak-latest-miniseries-shows','snoak-popular-kdrama-shows','snoak-trending-anime-shows',
   'snoak-popular-action-movies','snoak-popular-action-shows','snoak-popular-animated-movies','snoak-popular-animated-shows','snoak-popular-comedy-movies','snoak-popular-comedy-shows','snoak-popular-documentary-movies','snoak-popular-documentary-shows','snoak-popular-drama-movies','snoak-popular-drama-shows','snoak-popular-horror-movies','snoak-popular-horror-shows','snoak-popular-reality-shows','snoak-popular-romance-movies','snoak-popular-romance-shows','snoak-popular-scifi-movies','snoak-popular-scifi-shows','snoak-popular-thriller-movies','snoak-popular-thriller-shows'
 ];
-const BOTTOM_HOME_ROWS=['recommended','mylist'];
-const HOME_REMOVED_ROWS=new Set(['recently-watched','recent-live','trending-movies','trending-shows','live-now','top-rated-movies','top-rated-shows','action-movies','comedy-movies','drama-shows','new-hot-movies','new-hot-shows']);
+const BOTTOM_HOME_ROWS=['recommended'];
+const HOME_REMOVED_ROWS=new Set(['continue','mylist','recently-watched','recent-live','trending-movies','trending-shows','live-now','top-rated-movies','top-rated-shows','action-movies','comedy-movies','drama-shows','new-hot-movies','new-hot-shows']);
 function normalizeHomeRows(rows=[]){const source=Array.isArray(rows)?rows:[],rest=[];for(const id of source){if(!id||id==='because-you-watched'||PINNED_HOME_ROWS.includes(id)||rest.includes(id))continue;rest.push(id)}return [...PINNED_HOME_ROWS,...rest]}
 function reconcileCuratedHomeRows(rows=[]){
   const source=normalizeHomeRows(rows),locked=new Set([...PINNED_HOME_ROWS,...PRIMARY_HOME_ROWS,...CURATED_SNOAK_HOME_ORDER,...BOTTOM_HOME_ROWS]);
   const retained=source.filter(id=>!HOME_REMOVED_ROWS.has(id)&&!locked.has(id));
   // The curated Home contract is authoritative: always restore every agreed core/Snoak row,
-  // preserve any unrelated optional/custom rows, and keep Recommended/My List at the bottom.
+  // preserve unrelated optional/custom rows and keep Recommended at the bottom; personal rows live in My SwoopTV.
   return normalizeHomeRows([...PRIMARY_HOME_ROWS,...CURATED_SNOAK_HOME_ORDER,...retained,...BOTTOM_HOME_ROWS]);
 }
 const migrateCuratedHomeRows=reconcileCuratedHomeRows;
@@ -169,7 +167,7 @@ syncLegacyProvider();
 if(!Array.isArray(state.settings.homeRows)||!state.settings.homeRows.length)state.settings.homeRows=[...DEFAULT_HOME_ROWS];
 state.settings.homeRows=normalizeHomeRows(state.settings.homeRows);
 if(Number(state.settings.personalizationSchemaVersion||0)<2){for(const id of ['recommended','recently-watched','recent-live'])if(!state.settings.homeRows.includes(id))state.settings.homeRows.push(id);state.settings.homeRows=normalizeHomeRows(state.settings.homeRows);state.settings.personalizationSchemaVersion=2;}
-const HOME_LAYOUT_SCHEMA=6;
+const HOME_LAYOUT_SCHEMA=7;
 if(Number(state.settings.homeLayoutSchemaVersion||0)<HOME_LAYOUT_SCHEMA){
   state.settings.homeRows=migrateCuratedHomeRows(state.settings.homeRows);
   if(Array.isArray(state.profiles))state.profiles=state.profiles.map(p=>({...p,profileSettings:{...(p?.profileSettings||{}),homeRows:migrateCuratedHomeRows(p?.profileSettings?.homeRows||DEFAULT_HOME_ROWS)}}));
@@ -428,12 +426,14 @@ const discoveryBundleMemory=new Map();
 let detailItem=null,detailPayload=null,detailLoading=false,detailError='',detailSeason='';
 let personView=null,personLoading=false,personError='',personMovies=[],personShows=[],personProgress=0,personStatus='',personScrollTop=0,personOpenToken=0;
 let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
-const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map();
-const starmeterHydrateQueue=[];let starmeterHydrateBusy=false;
+const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map(),starmeterRetryCounts=new Map();
+const starmeterHydrateQueue=[];let starmeterHydrateBusy=false,starmeterGeneration=0;
+function withTimeout(promise,ms=6000,label='Operation timed out'){return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))])}
+function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=false;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
 let suspendedBaseView=null,suspendedDetailView=null,suspendedPersonView=null;
 const persistentPageViews=new Map();
-const PERSISTENT_PAGE_IDS=new Set(['home','live','guide','starmeter','movies','series','mylist','search','settings']);
+const PERSISTENT_PAGE_IDS=new Set(['home','myswoop','live','guide','starmeter','movies','series','mylist','search','settings']);
 const ANDROID_HEAVY_NONPERSISTENT_PAGES=new Set(['live','starmeter','movies','series']);
 let browseWarmupTimer=null,browseWarmupRunning=false;
 const detailCache=new Map();
@@ -459,8 +459,9 @@ const TV_HARDWARE_TESTS=[
   {id:'NAV-002',label:'Top 100 TV Shows · Right 1 → 100'},
   {id:'NAV-003',label:'Down preserves visual column'},
   {id:'PERF-001',label:'Rapid Up / Down remote stress'},
-  {id:'LIVE-001',label:'Live TV category scroll + preview'},
-  {id:'STAR-001',label:'STARmeter #1 → #30 hydration + stability'},
+  {id:'LIVE-001',label:'Live TV Recent-size cards + preview'},
+  {id:'STAR-001',label:'STARmeter #1 → #30 indexed hydration + escape'},
+  {id:'MYSWOOP-001',label:'My SwoopTV personal rails + navigation'},
   {id:'PROFILE-001',label:'Who’s Watching · first profile focused'},
   {id:'DETAIL-001',label:'Series · seasons + episode focus path'},
   {id:'ROUTE-001',label:'Person detail teardown across primary tabs'},
@@ -614,8 +615,8 @@ function discardTransientMediaRoutes(){
   suspendedBaseView=null;suspendedDetailView=null;suspendedPersonView=null;sourceChoiceItem=null;tvVerticalQueue=0;if(tvVerticalFrame){cancelAnimationFrame(tvVerticalFrame);tvVerticalFrame=0}
 }
 function navigatePage(nextPage){
-  nextPage=String(nextPage||'home');if(NATIVE_ANDROID)tvDiagRecord('route',{from:state.page,to:nextPage,detail:Boolean(detailItem),person:Boolean(personView)});
-  if(nextPage!=='starmeter'){starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
+  nextPage=String(nextPage||'home');if(nextPage==='mylist')nextPage='myswoop';if(NATIVE_ANDROID)tvDiagRecord('route',{from:state.page,to:nextPage,detail:Boolean(detailItem),person:Boolean(personView)});
+  if(nextPage!=='starmeter'){cancelStarmeterWork();}
   if(NATIVE_ANDROID&&nextPage!=='live')stopLiveHeroPreview();
   if(nextPage===state.page&&!detailItem&&!personView)return;
   if(detailItem||personView)discardTransientMediaRoutes();
@@ -1000,7 +1001,7 @@ function homeRowDef(id){
   if(String(id).startsWith('cat:')){const parts=String(id).split(':');const kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));return {id,label:name,group:kind==='movie'?'Provider Movie Categories':'Provider TV Categories',poster:true,category:true,description:`${items(kind).filter(x=>x.group===name).length.toLocaleString()} titles from your provider`};}
   return HOME_ROW_MAP.get(id)||null;
 }
-function allHomeRowDefs(){return [...HOME_ROW_DEFS,...providerCategoryDefs(),...state.mdblistRows.map(r=>homeRowDef(`custom:${r.uid}`)).filter(Boolean)]}
+function allHomeRowDefs(){return [...HOME_ROW_DEFS.filter(x=>!HOME_REMOVED_ROWS.has(x.id)),...providerCategoryDefs(),...state.mdblistRows.map(r=>homeRowDef(`custom:${r.uid}`)).filter(Boolean)]}
 function selectedHomeRows(){
   const normalized=normalizeHomeRows(state.settings.homeRows);
   const defs=normalized.map(homeRowDef).filter(Boolean),byId=new Map(defs.map(x=>[x.id,x]));
@@ -1346,7 +1347,7 @@ function profileAvatarHtml(profile,cls=''){
 }
 function profilePickerPage(){
   const profiles=state.profiles||[];
-  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My List and favourite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div><div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
+  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favourite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div><div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
 }
 function focusDefaultProfileChoice(){
   if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select]');if(!first)return false;
@@ -1414,8 +1415,8 @@ async function switchProfile(id,{skipPin=false}={}){
   await persist();render();if(NATIVE_ANDROID)forceAndroidHomeEntry();toast(changed?`Switched to ${target.name}`:`Welcome, ${target.name}`);if(NATIVE_ANDROID)setTimeout(maybeShowWhatsNewOnLogin,120);
 }
 function nav(){
-  const desktop=[['home','Home'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies'],['series','TV Shows'],['mylist','My List']];
-  const mobile=[['home','⌂','Home'],['live','◉','Live'],['guide','▤','Guide'],['starmeter','★','Stars'],['movies','▰','Movies'],['series','▦','Shows']];
+  const desktop=[['home','Home'],['myswoop','My SwoopTV'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies'],['series','TV Shows']];
+  const mobile=[['home','⌂','Home'],['myswoop','♥','My SwoopTV'],['live','◉','Live'],['guide','▤','Guide'],['starmeter','★','Stars'],['movies','▰','Movies'],['series','▦','Shows']];
   return `<header class="topbar"><button class="brand brand-logo-button" data-page="home" aria-label="Swoop TV Home"><img class="swoop-brand-logo" src="./assets/swoop-tv-logo.jpg" alt="Swoop TV" /></button>
   <nav class="desktop-nav">${desktop.map(([p,label])=>`<button class="nav-btn ${state.page===p?'active':''}" data-page="${p}">${label}</button>`).join('')}</nav>
   <div class="top-actions"><button class="icon-btn search-action" data-page="search" aria-label="Search">⌕</button><button class="top-provider" data-modal="provider">☰ Providers <span class="top-provider-count">${state.providers.length||''}</span></button><button class="icon-btn settings-action ${state.page==='settings'?'active':''}" data-page="settings" aria-label="Settings" title="Settings">⚙</button><button class="profile-btn profile-switch-btn" data-profile-picker aria-label="Switch profile">${profileAvatarHtml(activeProfile(),'profile-avatar-nav')}<span>${esc(activeProfile()?.name||'Profile')}</span></button></div></header>
@@ -1438,7 +1439,7 @@ function homeRowMarkup(def,dataOverride=null){
     if(def.web&&(!NATIVE_ANDROID||androidTrendingPending))return `<section class="section swoop-render-section ${def.poster?'poster-section':'landscape-section'} ${def.ranked?'ranked-section':''} ${PINNED_HOME_ROWS.includes(def.id)?'home-priority-row':''} ${androidTrendingPending?'android-home-row-pending':''}" data-home-row-mounted="${esc(def.id)}"${androidTrendingPending?' data-home-row-pending="1"':''}><div class="section-head"><div><h2>${esc(def.label)}</h2>${androidTrendingPending?'':`<span class="section-meta">${esc(discoveryMeta(def.id,data))}</span>`}</div><span class="rail-arrow">›</span></div><div class="lazy-row-skeleton poster-skeleton">${Array.from({length:6},()=>'<i></i>').join('')}</div></section>`;
     return'';
   }
-  const limit=NATIVE_ANDROID?Math.min(data.length,ANDROID_TV_HOME_INITIAL_RENDER):(String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT);
+  const limit=NATIVE_ANDROID?(def.ranked?Math.min(data.length,HOME_RANKED_ROW_LIMIT):Math.min(data.length,ANDROID_TV_HOME_INITIAL_RENDER)):(String(def.id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT);
   return rail(def.label,data.slice(0,limit),def.poster,discoveryMeta(def.id,data),{page:def.page,ranked:def.ranked,rowId:def.id,priority:PINNED_HOME_ROWS.includes(def.id),total:data.length});
 }
 function androidInitialHomeRowsMarkup(rows=[],targetPopulated=ANDROID_TV_HOME_EAGER_ROWS){
@@ -1879,7 +1880,7 @@ function starmeterPersonTitles(cached){
 function starmeterPersonSection(entry={}){
   const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached);
   const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
-  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">No connected-provider titles found.</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div>`);
+  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,100).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div>`);
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
@@ -1893,19 +1894,21 @@ async function hydrateStarmeterIdentity(entry={}){
 }
 async function hydrateStarmeterPerson(entry={}){
   const key=starmeterNormalize(entry.name);if(!key)return null;if(starmeterPersonCache.has(key))return starmeterPersonCache.get(key);if(starmeterHydratePending.has(key))return starmeterHydratePending.get(key);
+  const generation=starmeterGeneration;
   const task=(async()=>{try{
-    const seed=await hydrateStarmeterIdentity(entry)||starmeterPersonSeed(entry),preseed=starmeterHotCache.get(key),preseedCredits=Array.isArray(preseed?.credits)?preseed.credits:[];
-    const ready=NATIVE_ANDROID?await loadAndroidPersonData(seed,{credits:preseedCredits}):(async()=>{if(preseedCredits.length){const matched=await matchPersonCreditsToLibrary(preseedCredits);return {person:preseed?.person||seed,...matched}}const remote=await fetchPersonCredits({settings:state.settings,personId:seed.id,name:seed.name});if(!remote)return {person:seed,movies:[],shows:[]};const matched=await matchPersonCreditsToLibrary(remote.credits||[]);return {person:{...seed,...remote,profile:remote.profile||seed.profile},...matched}})();
-    const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterPersonCache.set(key,value);starmeterHotCache.set(key,value);personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
-  }catch{const seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
+    const seed=await withTimeout(hydrateStarmeterIdentity(entry),3500,'Person identity timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
+    const hot=starmeterHotCache.get(key),preseedCredits=Array.isArray(hot?.credits)?hot.credits:[];
+    const ready=await withTimeout(loadAndroidPersonData(seed,{credits:preseedCredits}),6500,'Provider title matching timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
+    const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterRetryCounts.delete(key);starmeterPersonCache.set(key,value);starmeterHotCache.set(key,{...hot,...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
+  }catch(err){if(generation!==starmeterGeneration||state.page!=='starmeter')return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);if(retryable){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
 function queueStarmeterPerson(entry={}){
   const key=starmeterNormalize(entry.name);if(!key||starmeterPersonCache.has(key)||starmeterHydratePending.has(key)||starmeterHydrateQueue.some(x=>starmeterNormalize(x.name)===key))return;
   starmeterHydrateQueue.push(entry);pumpStarmeterHydration();
 }
 async function pumpStarmeterHydration(){
-  if(starmeterHydrateBusy||state.page!=='starmeter')return;const entry=starmeterHydrateQueue.shift();if(!entry)return;starmeterHydrateBusy=true;
-  try{await hydrateStarmeterPerson(entry)}finally{starmeterHydrateBusy=false;if(state.page==='starmeter'&&starmeterHydrateQueue.length)setTimeout(pumpStarmeterHydration,40)}
+  if(starmeterHydrateBusy||state.page!=='starmeter')return;const entry=starmeterHydrateQueue.shift();if(!entry)return;const generation=starmeterGeneration;starmeterHydrateBusy=true;
+  try{await hydrateStarmeterPerson(entry)}finally{if(generation===starmeterGeneration)starmeterHydrateBusy=false;if(generation===starmeterGeneration&&state.page==='starmeter'&&starmeterHydrateQueue.length)setTimeout(pumpStarmeterHydration,30)}
 }
 function patchStarmeterIdentity(rank,person={}){if(state.page!=='starmeter')return false;const section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!section)return false;const cardEl=section.querySelector('.starmeter-person-card');if(!cardEl)return false;cardEl.dataset.personId=person.id||'';cardEl.dataset.personProfile=person.profile||'';cardEl.dataset.personDepartment=person.knownForDepartment||'Person';const old=cardEl.querySelector('img,.starmeter-person-fallback'),fresh=person.profile?Object.assign(document.createElement('img'),{alt:person.name||''}):document.createElement('div');if(person.profile){fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true}
 function patchStarmeterPerson(rank){
@@ -1935,13 +1938,21 @@ function starmeterPeopleForSearch(term=''){
   // first couple of matching people while the user is typing so a likely selection
   // can already have portrait/identity/library data without hammering the metadata
   // service or slowing remote navigation.
-  matches.slice(0,2).forEach(entry=>{const key=starmeterNormalize(entry.name);if(!starmeterPersonCache.has(key)&&!starmeterHydratePending.has(key))setTimeout(()=>hydrateStarmeterPerson(entry),0)});
+  matches.slice(0,4).forEach(entry=>{const key=starmeterNormalize(entry.name);if(!starmeterHotCache.get(key)?.person?.profile)setTimeout(()=>hydrateStarmeterIdentity(entry),0)});
   return matches.map(p=>{const hot=starmeterHotCache.get(starmeterNormalize(p.name));return hot?.person||starmeterPersonSeed(p)})
 }
-function myListPage(){
-  const arr=listItems();
-  return `<main class="page mylist-page"><section class="collection-hero"><div class="eyebrow">YOUR COLLECTION</div><h1>My List</h1><p>Everything you saved for later, in one place.</p><div class="collection-count">${arr.length.toLocaleString()} ${arr.length===1?'title':'titles'}</div></section><div class="page-content">${arr.length?`<div class="content-grid poster-content-grid">${arr.map(x=>card(x,x.kind!=='live')).join('')}</div>`:empty('Your list is empty','Open a movie or TV show and choose Add to My List.')}</div></main>`;
+function mySwoopPage(){
+  const continuing=continueItems(),saved=listItems(),recent=watchHistoryItems(),liveSaved=state.liveFavourites.map(id=>savedItem(id)).filter(Boolean);
+  const sections=[
+    continuing.length?rail('Continue Watching',continuing.slice(0,100),true,`${continuing.length.toLocaleString()} in progress`,{rowId:'continue',total:continuing.length}):'',
+    saved.length?rail('Saved Movies & TV Shows',saved.slice(0,100),true,`${saved.length.toLocaleString()} saved`,{rowId:'myswoop-saved',total:saved.length}):'',
+    liveSaved.length?liveSimpleRail('Favourite Channels',liveSaved.slice(0,100),`${liveSaved.length.toLocaleString()} saved`):'',
+    recent.length?rail('Recently Watched',recent.slice(0,100),true,`${recent.length.toLocaleString()} recently watched`,{rowId:'myswoop-recent',total:recent.length}):''
+  ].filter(Boolean).join('');
+  const total=continuing.length+saved.length+liveSaved.length+recent.length;
+  return `<main class="page myswoop-page"><section class="collection-hero myswoop-hero"><div class="eyebrow">YOUR SWOOP TV</div><h1>My SwoopTV</h1><p>Pick up where you left off, find everything you saved, jump back into favourite channels and revisit recent watches.</p><div class="collection-count">${total.toLocaleString()} personal items</div></section><div class="page-content myswoop-content">${sections||empty('My SwoopTV is ready','Start watching, save a title or favourite a Live TV channel and it will appear here.')}</div></main>`;
 }
+function myListPage(){return mySwoopPage()}
 function empty(title,copy){return `<div class="empty"><div class="empty-mark">S</div><h3>${esc(title)}</h3><p>${esc(copy)}</p><button class="btn accent" data-modal="provider">Add TV Provider</button></div>`}
 function searchPage(){return `<main class="page search-page"><div class="search-hero"><div class="eyebrow">FIND SOMETHING GREAT</div><h1>Search Swoop TV</h1><div class="searchbox searchbox-large"><span>⌕</span><input id="searchInput" autofocus placeholder="Movies, TV shows, live channels, actors, actresses, directors…" /></div></div><div class="page-content"><div id="searchPeople" class="search-people"></div><div id="searchResults" class="content-grid search-results"></div></div></main>`}
 function settingsPage(){
@@ -1949,11 +1960,11 @@ function settingsPage(){
   return `<main class="page settings-page"><div class="settings-hero"><div class="eyebrow">${esc(activeProfile()?.name||'SWOOP TV')} · PROFILE SETTINGS</div><h1>Settings</h1><p>Manage your profile, TV providers, Home screen and playback.</p></div><div class="page-content settings-list">
   <section class="setting-card setting-card-feature"><div class="setting-icon">TV</div><div class="setting-main"><h3>TV Providers</h3><p>${state.providers.length?`${enabledProviders().length} enabled · ${state.providers.length} connected`:'No provider connected'}</p><div class="setting-stats"><span><strong>${counts.live.toLocaleString()}</strong> Live Streams</span><span><strong>${counts.movie.toLocaleString()}</strong> Unique Movies</span><span><strong>${counts.series.toLocaleString()}</strong> Shows</span></div><div class="cta-row"><button class="btn accent" data-modal="provider">Manage Providers</button>${state.providers.length?'<button class="btn secondary" data-provider-refresh-all>Refresh All</button>':''}</div></div></section>
   ${NATIVE_ANDROID&&androidAppUpdateAvailable?`<section class="setting-card app-update-card"><div class="setting-icon">↑</div><div class="setting-main"><h3>Swoop TV update available</h3><p>Version ${esc(androidAppUpdateAvailable.version)} is ready for Google TV.</p><div class="cta-row"><span class="btn secondary">Downloader code 3682231</span></div></div></section>`:''}
-  <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My List, recommendations, favourite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favourites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
+  <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My SwoopTV, recommendations, favourite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favourites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
   <section class="setting-card"><div class="setting-icon">NEW</div><div class="setting-main"><h3>What's New</h3><p>See what changed in Swoop TV v${esc(ANDROID_CURRENT_VERSION)} and reopen the latest release notes at any time.</p><div class="cta-row"><button class="btn secondary" data-show-whats-new>Open What's New</button></div></div></section>
   <section class="setting-card performance-setting-card"><div class="setting-icon">⚡</div><div class="setting-main"><h3>Performance</h3><p>${performanceLabel()}. Choose the balance you prefer between speed and richer visuals.</p><div class="cta-row"><button class="btn ${state.settings.performanceMode!=='cinematic'?'accent':'secondary'}" data-performance-mode="auto">Auto / Recommended</button><button class="btn ${state.settings.performanceMode==='cinematic'?'accent':'secondary'}" data-performance-mode="cinematic">Full Cinematic</button></div></div></section>
   ${NATIVE_ANDROID&&tvHardwareTestMode?`<section class="setting-card hardware-test-card"><div class="setting-icon">HW</div><div class="setting-main"><h3>Hardware Test Mode</h3><p>Live focus, rail, DOM, pending-work, key and renderer diagnostics are active. Choose a numbered test before reproducing an issue, then export the session.</p><div class="hardware-test-current"><strong>${esc(tvHardwareCurrentTest||'FREE RUN')}</strong><span>${esc(TV_HARDWARE_TESTS.find(x=>x.id===tvHardwareCurrentTest)?.label||'General hardware diagnostics')}</span></div><div class="hardware-test-list">${TV_HARDWARE_TESTS.map(test=>`<button class="btn ${tvHardwareCurrentTest===test.id?'accent':'secondary'} compact-btn" data-hardware-test="${esc(test.id)}">${esc(test.id)}</button>`).join('')}</div><div class="cta-row"><button class="btn accent" data-hardware-export>Save Diagnostics</button><button class="btn secondary" data-hardware-clear>Clear Log</button><button class="btn secondary" data-hardware-exit>Exit Test Mode</button></div>${tvLastDiagnosticsPath?`<small class="hardware-export-path">Last saved: ${esc(tvLastDiagnosticsPath)}</small>`:''}</div></section>`:''}
-  <section class="setting-card"><div class="setting-icon">＋</div><div class="setting-main"><h3>My List & Viewing</h3><p>${state.myList.length.toLocaleString()} saved · ${state.continueWatching.length.toLocaleString()} in progress · ${state.watchHistory.length.toLocaleString()} in viewing history.</p><div class="cta-row"><button class="btn secondary" data-page="mylist">Open My List</button>${state.continueWatching.length?'<button class="btn secondary" data-action="clear-history">Clear Continue Watching</button>':''}${state.watchHistory.length?'<button class="btn secondary" data-action="clear-viewing">Reset Recommendations</button>':''}</div></div></section>
+  <section class="setting-card"><div class="setting-icon">＋</div><div class="setting-main"><h3>My SwoopTV & Viewing</h3><p>${state.myList.length.toLocaleString()} saved · ${state.continueWatching.length.toLocaleString()} in progress · ${state.watchHistory.length.toLocaleString()} in viewing history.</p><div class="cta-row"><button class="btn secondary" data-page="myswoop">Open My SwoopTV</button>${state.continueWatching.length?'<button class="btn secondary" data-action="clear-history">Clear Continue Watching</button>':''}${state.watchHistory.length?'<button class="btn secondary" data-action="clear-viewing">Reset Recommendations</button>':''}</div></div></section>
   <section class="setting-card"><div class="setting-icon">▶</div><div class="setting-main"><h3>Playback & Live TV</h3><p>${Object.keys(state.settings.movieSourcePreferences||{}).length.toLocaleString()} remembered source choices · ${state.liveFavourites.length.toLocaleString()} favourite live channels.</p><div class="cta-row"><button class="btn secondary" data-page="live">Open Live TV</button>${Object.keys(state.settings.movieSourcePreferences||{}).length?'<button class="btn secondary" data-action="clear-source-preferences">Reset Source Choices</button>':''}${state.liveFavourites.length?'<button class="btn secondary" data-action="clear-live-favourites">Clear Live Favourites</button>':''}</div></div></section>
   <section class="setting-card"><div class="setting-icon">ROW</div><div class="setting-main"><h3>Home & Discovery</h3><p>${state.settings.homeRows.length} Home rows selected. Choose the sections you want to see on Home.</p><div class="cta-row"><button class="btn accent" data-modal="homeRows">Customize Home</button><button class="btn secondary" data-modal="mdblist">Add Custom MDBList Row</button></div>${state.mdblistRows.length?state.mdblistRows.map((r,i)=>`<div class="kv"><span>${esc(r.name)}</span><span>${r.items.length} matched · ${esc(relativeRefreshTime(r.updatedAt))} · <button class="nav-btn" data-remove-row="${i}">Remove</button></span></div>`).join(''):''}</div></section>
   <section class="setting-card theme-setting-card"><div class="setting-icon">THEME</div><div class="setting-main"><h3>Theme & Cinematic Artwork</h3><p><strong>${esc(currentTheme().name)}</strong> is active for this profile. Themes change the full Swoop TV presentation — Home hero, cards, navigation, buttons, badges, detail screens, Guide and loading states.</p><div class="kv"><span>Theme</span><span>${esc(currentTheme().name)} · ${esc(currentTheme().tagline)}</span></div><div class="kv"><span>Background</span><span>${state.settings.backgroundOverride?esc(validHex(state.settings.backgroundColor)):`${esc(currentTheme().bg)} · theme default`}</span></div><div class="cta-row"><button class="btn accent" data-modal="homeRows">Choose Theme & Home</button></div></div></section>
@@ -2015,7 +2026,7 @@ function guidePage(){
   const providerGuide=enabledProviders().length>1?'Unified provider EPG':enabledProviders()[0]?.type==='xtream'?'Xtream EPG':enabledProviders()[0]?.epgUrl?'XMLTV guide':'No EPG source configured';
   const label=guideCategoryLabel(),shown=channels.length,total=Number(snapshot.total||0),waiting=nativeCatalogMode&&!snapshot.ready;
   return `<main class="page guide-page"><div class="guide-shell"><div class="guide-browser"><aside class="guide-categories"><div class="guide-categories-head"><span class="eyebrow">CHANNEL GROUPS</span><h2>Categories</h2><small>${totalAll.toLocaleString()} channels</small></div><div class="guide-category-list">${guideCategoryButtons()}</div></aside>
-  <section class="guide-schedule"><section class="guide-main-header"><div class="guide-main-title"><div class="eyebrow">LIVE TV</div><h1>TV Guide</h1><p>${esc(providerGuide)} · ${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))}</p></div><div class="guide-main-actions"><div class="guide-now"><span>NOW</span><strong>${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</strong></div><button class="btn secondary" data-guide-now>Jump to now</button></div></section>
+  <section class="guide-schedule"><section class="guide-main-header guide-live-banner"><div class="guide-main-title"><div class="eyebrow">TV GUIDE</div><h1>Live TV</h1><p>${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))} · ${esc(providerGuide)}</p></div><div class="guide-main-actions"><div class="guide-now"><span>NOW</span><strong>${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</strong></div><button class="btn secondary" data-guide-now>Jump to now</button></div></section>
   <div class="guide-schedule-head"><div><span class="eyebrow">NOW BROWSING</span><h2>${esc(label)}</h2><small>${waiting?'Loading channels…':`${shown.toLocaleString()} shown${total?` of ${total.toLocaleString()}`:''}`}</small></div><span class="guide-window-label">2 HOURS AHEAD</span></div>
   ${guideError?`<div class="guide-alert">${esc(guideError)}</div>`:''}
   <div class="guide-load-progress" data-guide-load-progress ${(guideLoading||waiting)?'':'hidden'}><div><span data-guide-load-text>${waiting?`Loading ${esc(label)} channels…`:'Loading programme guide…'}</span><strong data-guide-load-percent>${waiting?'…':'0%'}</strong></div><i><b data-guide-load-bar class="${waiting?'indeterminate':''}" style="${waiting?'width:34%':'width:0%'}"></b></i><small>${waiting?'Loading channels…':'Loading programme information…'}</small></div>
@@ -2310,7 +2321,7 @@ function render(){
   else if(state.page==='starmeter')body=starmeterPage();
   else if(state.page==='movies')body=mediaCategoryPage('movie','Movies');
   else if(state.page==='series')body=mediaCategoryPage('series','TV Shows');
-  else if(state.page==='mylist')body=myListPage();
+  else if(state.page==='myswoop'||state.page==='mylist')body=mySwoopPage();
   else if(state.page==='search')body=searchPage();
   else body=settingsPage();
   const shellNav=startupRefreshActive||storageRestoring||profilePickerOpen||mediaRoute?'':nav();
@@ -2364,7 +2375,7 @@ function homeRowsModal(){
   <section class="theme-studio-card"><div class="theme-studio-copy"><span class="eyebrow">PROFILE THEME</span><h3>${esc(theme.name)}</h3><p>${esc(theme.description)}</p></div><div class="theme-picker-grid active-theme-picker">${SWOOP_THEMES.map(t=>`<button type="button" class="theme-choice ${t.id===theme.id?'active':''}" data-active-theme="${esc(t.id)}"><span class="theme-swatch" style="--theme-swatch:${esc(t.swatch)}"><i></i><b>${esc(t.name)}</b></span><span><strong>${esc(t.name)}</strong><small>${esc(t.tagline)}</small></span></button>`).join('')}</div></section>
   <section class="home-look-card theme-preview-${esc(theme.id)}" style="--preview-bg:${esc(bg)}"><div class="home-look-preview">${featureArt?`<img data-swoop-art="${esc(featureArt)}" alt="">`:''}<div class="home-look-shade"></div><div class="home-look-copy"><span class="eyebrow">${esc(theme.name.toUpperCase())} PREVIEW</span><strong>${esc(feature?.name||'Your featured title')}</strong><small>${esc(theme.tagline)} · ${state.settings.backgroundOverride?'Custom background':'Theme background'}</small></div></div><div class="home-look-controls"><span class="eyebrow">ADVANCED APPEARANCE</span><h3>Background colour override</h3><p>Each theme has its own base palette. Turn this on only when you want a custom background behind that theme.</p><label class="remember-row theme-bg-toggle"><input type="checkbox" data-bg-override ${state.settings.backgroundOverride?'checked':''}><span><strong>Use a custom background colour</strong><small>Saved only to ${esc(activeProfile()?.name||'this profile')}.</small></span></label><div class="colour-row ${state.settings.backgroundOverride?'':'disabled'}"><input id="homeBgColor" type="color" value="${esc(bg)}" aria-label="Background colour" ${state.settings.backgroundOverride?'':'disabled'}><input id="homeBgHex" type="text" value="${esc(bg)}" maxlength="7" aria-label="Background hex colour" ${state.settings.backgroundOverride?'':'disabled'}><button type="button" class="btn secondary compact-btn" data-bg-reset>Use ${esc(theme.name)} default</button></div><label class="remember-row smart-home-toggle"><input type="checkbox" data-smart-home-toggle ${state.settings.smartHomeOrder!==false?'checked':''}><span><strong>Smart Home ordering for ${esc(activeProfile()?.name||'this profile')}</strong><small>Let viewing history move relevant rows higher while Continue Watching and both Top 100 rows stay pinned at the top. Your selected rows remain under your control.</small></span></label></div></section>
   <section class="discovery-key-card"><div><span class="eyebrow">SWOOP TV DISCOVERY</span><h3>Discovery</h3><p>Built-in discovery works automatically. Add an MDBList key only if you want to create your own custom list rows.</p></div><form id="homeDiscoveryForm"><div class="field"><label>Custom MDBList API key <span class="optional">Optional</span></label><input name="apiKey" type="password" value="${esc(state.settings.mdblistApiKey||'')}" placeholder="Only needed for your own MDBList rows"></div><div class="discovery-key-actions"><button class="btn accent" type="submit">Save Custom Key</button><button class="btn secondary" type="button" data-refresh-discovery>Refresh discovery now</button></div><small>${discoveryRefreshing?'Updating…':'Ready'}</small></form></section>
-  <div class="home-row-toolbar"><div><strong>${state.settings.homeRows.length} rows selected</strong><span>Continue Watching, Top 100 Movies and Top 100 TV Shows are pinned first. Curated discovery rows keep their default order, while Recommended For You and My List stay at the bottom. ${state.settings.smartHomeOrder!==false?'Smart ordering only personalises any additional optional rows.':'Use ↑ ↓ to control additional optional rows.'}</span></div><div><button class="btn secondary compact-btn" data-modal="mdblist">＋ Custom MDBList Row</button><button class="btn secondary compact-btn" data-reset-home>Reset defaults</button></div></div>
+  <div class="home-row-toolbar"><div><strong>${state.settings.homeRows.length} rows selected</strong><span>Top 100 Movies and Top 100 TV Shows are pinned first. Curated discovery rows keep their default order, while Recommended For You stays at the bottom. Continue Watching and saved titles now live in My SwoopTV. ${state.settings.smartHomeOrder!==false?'Smart ordering only personalises any additional optional rows.':'Use ↑ ↓ to control additional optional rows.'}</span></div><div><button class="btn secondary compact-btn" data-modal="mdblist">＋ Custom MDBList Row</button><button class="btn secondary compact-btn" data-reset-home>Reset defaults</button></div></div>
   <div class="home-row-picker">${groups.map(group=>`<section class="home-row-group"><div class="home-row-group-title"><span>${esc(group)}</span></div>${defs.filter(x=>x.group===group).map(def=>{const pinned=PINNED_HOME_ROWS.includes(def.id),on=pinned||selected.has(def.id),index=state.settings.homeRows.indexOf(def.id),data=homeRowItems(def.id),cache=state.webDiscovery?.[def.id],err=cache?.error||(def.custom?state.mdblistRows.find(r=>`custom:${r.uid}`===def.id)?.error:'');return `<div class="home-row-option ${on?'selected':''} ${pinned?'pinned':''}"><button class="home-row-toggle" ${pinned?'disabled':`data-home-toggle="${esc(def.id)}"`} aria-pressed="${on?'true':'false'}"><span class="home-row-check">${pinned?'PIN':on?'✓':'＋'}</span><span><strong>${esc(def.label)}</strong><small>${pinned?'Pinned at the top of Home · ':''}${esc(def.description||`${data.length.toLocaleString()} items currently available`)}</small>${err?`<em>${esc(err)}</em>`:''}</span></button><div class="home-row-order">${on&&!pinned?`<button data-home-up="${esc(def.id)}" ${index<=PINNED_HOME_ROWS.length?'disabled':''} aria-label="Move ${esc(def.label)} up">↑</button><button data-home-down="${esc(def.id)}" ${index<0||index>=state.settings.homeRows.length-1?'disabled':''} aria-label="Move ${esc(def.label)} down">↓</button>`:''}</div></div>`}).join('')}</section>`).join('')}</div>
   <div class="home-row-footer"><span>Theme, rows and background are stored independently for this profile.</span><button class="btn accent" data-close>Done</button></div>
   </div></div></div>`;
@@ -2460,15 +2471,13 @@ async function loadPersonView(){
 async function loadAndroidPersonData(seed={},options={}){
   const bundledCredits=Array.isArray(options?.credits)?options.credits:[];
   let remote=bundledCredits.length?{...seed,credits:bundledCredits}:null;
-  if(!remote)remote=await fetchPersonCredits({settings:state.settings,personId:seed.id||'',name:seed.name||''});
+  if(!remote)remote=await withTimeout(fetchPersonCredits({settings:state.settings,personId:seed.id||'',name:seed.name||''}),5000,'Filmography lookup timed out');
   if(!remote)throw new Error('Swoop TV could not identify this person on TMDb.');
   const moviePayload=personCreditPayload(remote.credits||[],'movie'),showPayload=personCreditPayload(remote.credits||[],'series');
-  let matched=null;
-  if(tvCatalogWorkerReady)matched=await tvCatalogWorkerRequest('person-match',{moviePayload,showPayload},9000);
-  if(!matched&&NATIVE_ANDROID){for(let i=0;i<8&&!tvCatalogWorkerReady;i++)await new Promise(r=>setTimeout(r,120));if(tvCatalogWorkerReady)matched=await tvCatalogWorkerRequest('person-match',{moviePayload,showPayload},9000);}
-  let movies=[],shows=[];
-  if(matched){movies=Array.isArray(matched.movies)?matched.movies:[];shows=Array.isArray(matched.shows)?matched.shows:[];}
-  else{const catalog=[...items('movie'),...items('series')];movies=matchMDBListToCatalog(moviePayload,catalog,{sourceLimit:800,mediaType:'movie'});await new Promise(r=>setTimeout(r,0));shows=matchMDBListToCatalog(showPayload,catalog,{sourceLimit:800,mediaType:'show'});}
+  if(NATIVE_ANDROID&&!tvCatalogWorkerReady)await ensureTvCatalogWorkerReady(6500).catch(()=>false);
+  let matched=null;if(tvCatalogWorkerReady)matched=await withTimeout(tvCatalogWorkerRequest('person-match',{moviePayload,showPayload},4500),5000,'Provider index match timed out').catch(()=>null);
+  if(!matched)throw new Error('Provider availability index is still preparing. Try again in a moment.');
+  const movies=Array.isArray(matched.movies)?matched.movies:[],shows=Array.isArray(matched.shows)?matched.shows:[];
   return {person:{...seed,...remote,profile:remote.profile||seed.profile||''},movies:sortPersonLibraryItems(movies),shows:sortPersonLibraryItems(shows)};
 }
 function openPerson(person={}){
@@ -2589,7 +2598,7 @@ function detailHtml(){
   const sourceProviders=Array.isArray(detailItem.sources)?[...new Set(detailItem.sources.map(x=>providerDisplayName(x)))]:[providerDisplayName(detailItem)];const facts=[['Genre',meta.genre],['Director / Creator',meta.director],['Country',meta.country],['Runtime',meta.duration],['Rating',meta.age],['Providers',sourceProviders.filter(Boolean).join(', ')],['Playback sources',detailItem.sourceCount>1?`${detailItem.sourceCount} available`:'']].filter(([,v])=>v);
   const castBlock=meta.castList.length?`<section class="detail-cast"><div class="detail-section-head"><div><span class="eyebrow">CAST</span><h3>Cast & Characters</h3></div><span class="cast-hint">Select a cast member to browse titles in your library</span></div><div class="cast-rail">${meta.castList.map(person=>`<button class="cast-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-character="${esc(person.character||'')}" aria-label="Browse ${esc(person.name||'cast member')} titles in your Swoop TV library">${person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="">`:`<div class="cast-fallback">${esc((person.name||'?').slice(0,1))}</div>`}<strong>${esc(person.name)}</strong><span>${esc(person.character||'')}</span></button>`).join('')}</div></section>`:'';
   const trailerButton=meta.youtube?`<button class="btn secondary detail-trailer" data-trailer="${esc(meta.youtube)}" data-trailer-title="${esc(meta.trailerName||meta.title)}"><span>▶</span> Trailer</button>`:'';
-  return `<main class="detail-overlay detail-route" aria-label="${esc(meta.title)}"><button class="detail-close" data-detail-close aria-label="Back">←</button><div class="detail-scroll"><section class="detail-hero ${hasCinematicBackdrop?'has-backdrop':'poster-fallback'}"><div class="detail-media"><div class="detail-fallback" style="--detail-fallback:${detailItem.demoColor||'linear-gradient(135deg,#151b2a,#050609)'}"></div>${backdrop?`<img class="detail-backdrop" data-swoop-art="${esc(backdrop)}" alt="">`:''}</div><div class="detail-vignette"></div><div class="detail-copy"><div class="eyebrow">${esc(kindLabel(detailItem).toUpperCase())}</div>${(()=>{const logoState=detailTitleLogoState(detailItem,meta);return `<div class="detail-title-slot ${logoState.pending?'logo-pending':''} ${meta.titleLogo?'has-logo':''}" data-detail-title><h2 class="detail-title-text">${esc(meta.title)}</h2><span class="detail-title-wait" aria-hidden="true"></span>${meta.titleLogo?`<img class="detail-title-logo" data-swoop-art="${esc(meta.titleLogo)}" alt="${esc(meta.title)}">`:''}</div>`})()}<div class="detail-meta">${[meta.year,meta.rating?`★ ${meta.rating}`:'',meta.age,detailItem.group].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('')}</div><p>${esc(meta.plot||`Available from ${providerSummaryName()}.`)}</p><div class="cta-row">${primary}${trailerButton}<button class="btn secondary detail-list ${saved?'saved':''}" data-toggle-list="${esc(detailItem.id)}"><span>${saved?'✓':'＋'}</span> ${saved?'In My List':'My List'}</button>${watchedButton}${removeContinueButton}</div></div>${meta.cover&&!hasCinematicBackdrop?`<img class="detail-poster" data-swoop-art="${esc(meta.cover)}" alt="">`:''}</section>
+  return `<main class="detail-overlay detail-route" aria-label="${esc(meta.title)}"><button class="detail-close" data-detail-close aria-label="Back">←</button><div class="detail-scroll"><section class="detail-hero ${hasCinematicBackdrop?'has-backdrop':'poster-fallback'}"><div class="detail-media"><div class="detail-fallback" style="--detail-fallback:${detailItem.demoColor||'linear-gradient(135deg,#151b2a,#050609)'}"></div>${backdrop?`<img class="detail-backdrop" data-swoop-art="${esc(backdrop)}" alt="">`:''}</div><div class="detail-vignette"></div><div class="detail-copy"><div class="eyebrow">${esc(kindLabel(detailItem).toUpperCase())}</div>${(()=>{const logoState=detailTitleLogoState(detailItem,meta);return `<div class="detail-title-slot ${logoState.pending?'logo-pending':''} ${meta.titleLogo?'has-logo':''}" data-detail-title><h2 class="detail-title-text">${esc(meta.title)}</h2><span class="detail-title-wait" aria-hidden="true"></span>${meta.titleLogo?`<img class="detail-title-logo" data-swoop-art="${esc(meta.titleLogo)}" alt="${esc(meta.title)}">`:''}</div>`})()}<div class="detail-meta">${[meta.year,meta.rating?`★ ${meta.rating}`:'',meta.age,detailItem.group].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('')}</div><p>${esc(meta.plot||`Available from ${providerSummaryName()}.`)}</p><div class="cta-row">${primary}${trailerButton}<button class="btn secondary detail-list ${saved?'saved':''}" data-toggle-list="${esc(detailItem.id)}"><span>${saved?'✓':'＋'}</span> ${saved?'Saved':'Save to My SwoopTV'}</button>${watchedButton}${removeContinueButton}</div></div>${meta.cover&&!hasCinematicBackdrop?`<img class="detail-poster" data-swoop-art="${esc(meta.cover)}" alt="">`:''}</section>
   <div class="detail-body" data-detail-body>${episodeBlock}${castBlock}<section class="detail-info"><div><span class="eyebrow">ABOUT</span><h3>More about ${esc(meta.title)}</h3></div><div class="detail-facts">${facts.length?facts.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join(''):'<div><span>Source</span><strong>Your connected provider</strong></div>'}</div></section>${related.length?`<section class="detail-related">${rail('More Like This',related,detailItem.kind!=='live')}</section>`:''}</div></div></main>`;
 }
 function patchDetailHeroFromState(){
@@ -2722,7 +2731,7 @@ function closeDetail(){
   if(restoreSuspendedBaseView())return;
   render();requestAnimationFrame(()=>window.scrollTo(0,detailReturnScroll||0));
 }
-function toggleMyList(item){if(!item)return;clearPersistentPageViews(['home','mylist','movies','series']);const ids=new Set(logicalItemIds(item)),saved=state.myList.some(id=>ids.has(id));if(saved){state.myList=state.myList.filter(id=>!ids.has(id));toast('Removed from My List')}else{state.myList.unshift(item.id);toast('Added to My List')}persist();if(detailItem)patchDetailSectionsFromState({controls:true});else render()}
+function toggleMyList(item){if(!item)return;clearPersistentPageViews(['home','myswoop','mylist','movies','series']);const ids=new Set(logicalItemIds(item)),saved=state.myList.some(id=>ids.has(id));if(saved){state.myList=state.myList.filter(id=>!ids.has(id));toast('Removed from My SwoopTV')}else{state.myList.unshift(item.id);toast('Saved to My SwoopTV')}persist();if(detailItem)patchDetailSectionsFromState({controls:true});else render()}
 function watchHistoryEntry(itemOrId){
   const item=typeof itemOrId==='string'?savedItem(itemOrId):itemOrId,id=typeof itemOrId==='string'?itemOrId:itemOrId?.id;
   const ids=new Set(item?logicalItemIds(item):[id]);
@@ -3113,7 +3122,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:829,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:830,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3282,13 +3291,14 @@ function longRailPrefetchForFocus(current){
     const category=track.dataset.longRailCategory||'',snap=liveRailSnapshot(category);if(index>=Math.max(0,snap.items.length-LONG_RAIL_PREFETCH_THRESHOLD))prefetchLiveRail(category);
   }
 }
-function tvRailSection(el){return el?.closest?.('[data-home-row-mounted],.media-category-section,.live-category-section,.live-hub-content>.section,.starmeter-person-section')||null}
+function tvRailSection(el){return el?.closest?.('[data-home-row-mounted],.media-category-section,.live-category-section,.live-hub-content>.section,.myswoop-content>.section,.starmeter-person-section')||null}
 function tvRailCards(section){
   if(!section)return[];return [...section.querySelectorAll('.rail > .card,.rail > .continue-card-shell > .card,.media-category-rail-track > .card,.live-category-rail-track > .live-rail-card,.starmeter-title-rail > .card')].filter(el=>el.offsetParent!==null);
 }
 function tvRailSectionKey(section){return section?.dataset?.homeRowMounted?`home:${section.dataset.homeRowMounted}`:section?.dataset?.mediaRailCategory?`media:${section.dataset.mediaRailKind||''}:${section.dataset.mediaRailCategory}`:section?.dataset?.liveRailCategory?`live:${section.dataset.liveRailCategory}`:`section:${[...document.querySelectorAll('.live-hub-content>.section')].indexOf(section)}`}
 function tvPageRailSections(){
   if(state.page==='home')return tvHomeMountedSectionsWithCards();
+  if(state.page==='myswoop')return [...document.querySelectorAll('.myswoop-content>.section')].filter(x=>x.offsetParent!==null&&tvRailCards(x).length);
   if(state.page==='movies'||state.page==='series')return [...document.querySelectorAll('.media-category-section')].filter(x=>x.offsetParent!==null&&tvRailCards(x).length);
   if(state.page==='live')return [...document.querySelectorAll('.live-hub-content>.section,.live-category-section')].filter((x,i,a)=>x.offsetParent!==null&&tvRailCards(x).length&&a.indexOf(x)===i);
   if(state.page==='starmeter')return [...document.querySelectorAll('.starmeter-person-section')].filter(x=>x.offsetParent!==null&&tvRailCards(x).length);
@@ -3311,11 +3321,12 @@ function tvTopbarDownTarget(current){
   if(!tvIsTopNavigationElement(current))return null;const page=String(current?.dataset?.page||state.page||'');
   if(page==='search')return document.querySelector('#searchInput');
   if(page==='home')return tvHomeHeroAction();
+  if(page==='myswoop')return document.querySelector('.myswoop-content .card,.myswoop-content .live-rail-card');
   if(page==='live')return document.querySelector('.live-hub-copy .btn');
   if(page==='movies'||page==='series')return document.querySelector('.media-category-page .page-hero .btn');
   if(page==='guide')return document.querySelector('.guide-page [data-guide-category],.guide-page button');
   if(page==='starmeter')return document.querySelector('.starmeter-person-card,.starmeter-title-rail .card');
-  if(page==='mylist')return document.querySelector('.mylist-page .card');
+  if(page==='mylist'||page==='myswoop')return document.querySelector('.myswoop-page .card,.myswoop-page .live-rail-card');
   return document.querySelector('main button,main input,main .card');
 }
 function tvGenericRailDirectionalTarget(current,key){
@@ -3367,6 +3378,13 @@ function tvHomeFocus(target,block='nearest'){
   tvFocusMemory=tvFocusSignature(target);return true
 }
 function tvNearestByX(elements=[],from){if(!elements.length)return null;if(!from)return elements[0];const r=from.getBoundingClientRect(),cx=(r.left+r.right)/2;return elements.reduce((best,el)=>{const b=el.getBoundingClientRect(),d=Math.abs(((b.left+b.right)/2)-cx);return !best||d<best.d?{el,d}:best},null)?.el||elements[0]}
+function tvStarmeterDirectionalTarget(current,key){
+  if(state.page!=='starmeter')return null;const section=current?.closest?.('.starmeter-person-section'),person=current?.closest?.('.starmeter-person-card'),card=current?.closest?.('.starmeter-title-rail .card');if(!section)return null;
+  const sections=[...document.querySelectorAll('.starmeter-person-section')].filter(x=>x.offsetParent!==null),idx=sections.indexOf(section),titles=tvRailCards(section),personButton=section.querySelector('.starmeter-person-card');
+  if(person){if(key==='ArrowRight')return titles[0]||null;if(key==='ArrowUp'){if(idx<=0)return document.querySelector('.desktop-nav [data-page="starmeter"]');return sections[idx-1]?.querySelector('.starmeter-person-card')||null}if(key==='ArrowDown'){if(idx===sections.length-1&&starmeterVisibleCount<starmeterPeople.length)appendStarmeterSections(STARMETER_APPEND_BATCH);const fresh=[...document.querySelectorAll('.starmeter-person-section')].filter(x=>x.offsetParent!==null);return fresh[idx+1]?.querySelector('.starmeter-person-card')||null}}
+  if(card){const pos=titles.indexOf(card);if(key==='ArrowLeft'&&pos<=0)return personButton;if(key==='ArrowUp'||key==='ArrowDown'){const delta=key==='ArrowDown'?1:-1;if(key==='ArrowDown'&&idx===sections.length-1&&starmeterVisibleCount<starmeterPeople.length)appendStarmeterSections(STARMETER_APPEND_BATCH);const fresh=[...document.querySelectorAll('.starmeter-person-section')].filter(x=>x.offsetParent!==null),target=fresh[idx+delta];if(!target)return key==='ArrowUp'&&idx===0?document.querySelector('.desktop-nav [data-page="starmeter"]'):null;const targetTitles=tvRailCards(target);return tvNearestByX(targetTitles,card)||target.querySelector('.starmeter-person-card')}}
+  return null;
+}
 function tvDetailDirectionalTarget(current,key){
   const detail=current?.closest?.('.detail-route'),person=current?.closest?.('.person-route');if(!detail&&!person)return null;
   if(person){const close=person.querySelector('[data-person-close]'),cards=[...person.querySelectorAll('.person-results .card')].filter(x=>x.offsetParent!==null);if(key==='ArrowUp'&&cards.includes(current.closest?.('.card'))){const firstY=Math.min(...cards.map(x=>x.getBoundingClientRect().top));if(current.getBoundingClientRect().top<=firstY+8)return close}if(key==='ArrowDown'&&current===close)return cards[0]||null;return null}
@@ -3387,6 +3405,9 @@ function tvMoveFocus(key){
   if(NATIVE_ANDROID&&(detailItem||personView)){
     const routeTarget=tvDetailDirectionalTarget(current,key);if(routeTarget)return tvHomeFocus(routeTarget,key==='ArrowUp'?'start':'nearest');
   }
+  if(NATIVE_ANDROID&&state.page==='starmeter'){
+    const starTarget=tvStarmeterDirectionalTarget(current,key);if(starTarget)return tvHomeFocus(starTarget,key==='ArrowUp'?'start':'nearest');
+  }
   if(NATIVE_ANDROID&&state.page==='home'){
     const heroAction=tvHomeHeroAction(),firstSection=tvHomeFirstMountedSection(),currentSection=current.closest?.('[data-home-row-mounted]');
     if(key==='ArrowUp'&&firstSection&&currentSection===firstSection&&heroAction)return tvHomeFocus(heroAction,'start');
@@ -3395,7 +3416,7 @@ function tvMoveFocus(key){
     const railTarget=tvHomeRailDirectionalTarget(current,key);if(railTarget)return tvHomeFocus(railTarget,'nearest');
     if((key==='ArrowLeft'||key==='ArrowRight')&&currentSection)return true;
   }
-  if(NATIVE_ANDROID&&['movies','series','live','starmeter'].includes(state.page)){
+  if(NATIVE_ANDROID&&['myswoop','movies','series','live','starmeter'].includes(state.page)){
     const railTarget=tvGenericRailDirectionalTarget(current,key);if(railTarget)return tvHomeFocus(railTarget,'nearest');
     if(key==='ArrowRight'&&tvRailSection(current)){tvAdvanceLongRailRight(current);return true}
     if((key==='ArrowLeft'||key==='ArrowRight')&&tvRailSection(current))return true;

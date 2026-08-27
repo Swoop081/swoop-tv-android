@@ -1,14 +1,12 @@
-# Swoop TV v0.8.29 — Google TV test build
+# Swoop TV v0.8.30 — Google TV test build
 
-The authoritative APK build path is `.github/workflows/android-tv-apk.yml`.
+The included GitHub Actions workflow is the authoritative APK build path.
 
-The workflow now performs these steps in order:
-
-1. Set up JDK 17 / Android SDK 36 / Gradle 9.5.0.
-2. Refresh the provider-neutral whole-app install seed with `scripts/refresh-seed-cache.mjs`.
-3. Generate v0.8.29 release/update metadata from `app/build.gradle` and `RELEASE_NOTES.md`.
-4. Run JavaScript syntax, card runtime, Google TV UI and seed-cache integrity checks.
+1. Install JDK 17, Android SDK 36 and Gradle 9.5.0.
+2. Refresh the packaged provider-neutral warm-start seed.
+3. Generate v0.8.30 release/update metadata from `app/build.gradle` and `RELEASE_NOTES.md`.
+4. Run JavaScript syntax and runtime regression checks.
 5. Build `:app:assembleDebug`.
-6. Publish `Swoop-TV-v0.8.29-Google-TV-Test.apk` and overwrite the stable `Swoop-TV-v0.8.1-Google-TV-Test.apk` asset.
+6. Publish `Swoop-TV-v0.8.30-Google-TV-Test.apk` and overwrite the stable `Swoop-TV-v0.8.1-Google-TV-Test.apk` asset.
 
-The stable release path preserves **Downloader code 3682231**. The installed application reports **0.8.29 / versionCode 829**.
+The stable release path preserves **Downloader code 3682231**. The installed application reports **0.8.30 / versionCode 830**.

@@ -2418,3 +2418,55 @@ html.android-tv .guide-channel img{object-fit:contain!important;padding:2px!impo
 /* Smaller supporting IMDb badge, tucked tightly into the corner. */
 html.android-tv .card-imdb-rating,
 html.android-tv .ranked-card .card-imdb-rating{right:5px!important;bottom:5px!important;padding:3px 5px!important;font-size:8px!important;border-radius:4px!important;gap:3px!important}
+
+
+/* ========================================================================== */
+/* v0.8.30 — My SwoopTV + STARmeter stability consolidation.                  */
+/* ========================================================================== */
+
+/* Approved Home hero geometry stays unchanged; the copy now deliberately uses
+   the available left-side height for useful metadata and a fuller synopsis. */
+html.android-tv .hero-content{justify-content:center!important;padding-bottom:18px!important}
+html.android-tv .hero p{display:-webkit-box!important;font-size:13px!important;line-height:1.38!important;max-width:60ch!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:4!important;overflow:hidden!important;margin:7px 0 10px!important}
+html.android-tv[data-tv-density="tight"] .hero p{display:-webkit-box!important;font-size:11px!important;-webkit-line-clamp:3!important}
+
+/* My SwoopTV is the one personal destination; rails use the same proven TV
+   geometry and safe inset as the rest of the product. */
+html.android-tv .myswoop-hero{padding-top:86px!important;min-height:210px!important}
+html.android-tv .myswoop-content{padding-bottom:90px!important}
+html.android-tv .myswoop-content>.section{margin-bottom:30px!important}
+html.android-tv .myswoop-content .rail{padding-left:var(--tv-safe-x)!important}
+
+/* Recent Channels is the canonical Live TV channel component. Every category
+   below Browse Live TV uses exactly the same footprint and spacing. */
+html.android-tv .live-clean-section .live-category-rail-track,
+html.android-tv .live-category-section .live-category-rail-track{
+  grid-auto-columns:190px!important;gap:14px!important;align-items:start!important;
+  padding-bottom:18px!important;overflow-y:visible!important;
+}
+html.android-tv .live-clean-section .live-rail-card,
+html.android-tv .live-category-section .live-rail-card{
+  width:190px!important;min-width:190px!important;height:120px!important;display:block!important;overflow:visible!important;
+}
+html.android-tv .live-clean-section .live-rail-logo,
+html.android-tv .live-category-section .live-rail-logo{
+  width:190px!important;height:120px!important;aspect-ratio:auto!important;border-radius:12px!important;overflow:hidden!important;
+}
+html.android-tv .live-clean-section .live-rail-logo img,
+html.android-tv .live-category-section .live-rail-logo img{width:100%!important;height:100%!important;padding:9%!important;object-fit:contain!important}
+html.android-tv .live-clean-section,
+html.android-tv .live-category-section{margin-bottom:32px!important;min-height:154px!important;overflow:visible!important}
+
+/* Guide left column stays exactly as approved. The right pane gets a deliberate
+   Live TV/date/time banner before All Channels and the EPG begin. */
+html.android-tv .guide-live-banner{min-height:132px!important;height:132px!important;padding:20px 22px!important;box-sizing:border-box!important;align-items:center!important}
+html.android-tv .guide-live-banner .guide-main-title h1{font-size:31px!important;line-height:1!important;margin:3px 0 7px!important}
+html.android-tv .guide-live-banner .guide-main-title p{font-size:11px!important}
+html.android-tv .guide-schedule-head{margin-top:0!important;min-height:72px!important;padding-top:12px!important}
+
+/* STARmeter loading can never block the page: stable person anchors, clean
+   timeout/failure state, and a portrait centred in a poster-width identity bay. */
+html.android-tv .starmeter-person-column{width:255px!important;display:grid!important;place-items:center!important}
+html.android-tv .starmeter-person-card{justify-self:center!important}
+html.android-tv .starmeter-empty-row{height:255px!important;display:flex!important;align-items:center!important;color:#989ca5!important;font-size:13px!important;padding:0 18px!important;border:1px solid rgba(255,255,255,.07)!important;border-radius:10px!important;background:rgba(255,255,255,.02)!important}
+html.android-tv .starmeter-row-loading{pointer-events:none!important}

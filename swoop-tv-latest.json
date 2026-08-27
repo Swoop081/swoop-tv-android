@@ -1,15 +1,15 @@
 {
-  "version": "0.8.29",
-  "versionCode": 829,
+  "version": "0.8.30",
+  "versionCode": 830,
   "updateUrl": "https://github.com/OWNER/REPOSITORY/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk",
   "changes": [
-    "Fixes the recurring Top 100 25–27 item hard-stop with a true 100-item logical rail and bounded render windows.",
-    "Adds Recently Added Movies and Recently Added TV Shows directly beneath Top 100 on Home.",
-    "Makes Home / Movies / TV Shows featured artwork full-width with top-biased face-safe framing.",
-    "Rebuilds STARmeter for stable three-person progressive hydration, large circular portraits, prominent rank and large mixed title rails.",
-    "Makes Who’s Watching larger and focuses the first profile automatically.",
-    "Reduces Live TV DOM pressure and hides native preview until video is ready.",
-    "Improves title/person detail navigation, metadata, cast sizing, Back behaviour and bottom safe spacing.",
-    "Restores TV episode D-pad navigation, left-aligned season controls, thumbnails, air date, runtime and synopsis."
+    "Adds My SwoopTV directly after Home and retires My List as a standalone primary tab. Continue Watching, saved movies/TV shows, favourite Live TV channels and Recently Watched now live together in the personal hub.",
+    "Removes Continue Watching and My List from Home so Home is discovery-first: featured hero, Top 100 Movies, Top 100 TV Shows, Recently Added Movies and Recently Added TV Shows lead the experience.",
+    "Eliminates the recurring Top 100 25–27-card hard stop by mounting the full 100 ranked focus targets on Google TV while keeping poster artwork lazy-loaded.",
+    "Rebuilds STARmeter provider matching around a one-time indexed provider availability map, replacing repeated whole-library scans for each person. Adds bounded timeouts, clean no-match states, cancellation on exit and deterministic D-pad escape.",
+    "Keeps STARmeter people-first presentation with large centred circular cast portraits, prominent rank numbers and large mixed provider-available movie/TV rails.",
+    "Makes Recent Channels the canonical Live TV card component and applies its exact size, spacing, logo containment and focus treatment to Browse Live TV and every category below it.",
+    "Adds a dedicated Live TV/date/time banner above All Channels and the EPG without changing the approved Guide category sidebar or two-hour horizon.",
+    "Expands the approved Home hero text area to show a fuller synopsis while preserving the accepted hero dimensions."
   ]
 }

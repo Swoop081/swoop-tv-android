@@ -1,5 +1,18 @@
 # Swoop TV Release Notes
 
+## v0.8.30 — Google TV My SwoopTV + STARmeter Stability Consolidation
+
+- Adds **My SwoopTV** directly after Home and retires My List as a standalone primary tab. Continue Watching, saved movies/TV shows, favourite Live TV channels and Recently Watched now live together in the personal hub.
+- Removes Continue Watching and My List from Home so Home is discovery-first: featured hero, Top 100 Movies, Top 100 TV Shows, Recently Added Movies and Recently Added TV Shows lead the experience.
+- Eliminates the recurring Top 100 25–27-card hard stop by mounting the full 100 ranked focus targets on Google TV while keeping poster artwork lazy-loaded.
+- Rebuilds STARmeter provider matching around a one-time indexed provider availability map, replacing repeated whole-library scans for each person. Adds bounded timeouts, clean no-match states, cancellation on exit and deterministic D-pad escape.
+- Keeps STARmeter people-first presentation with large centred circular cast portraits, prominent rank numbers and large mixed provider-available movie/TV rails.
+- Makes Recent Channels the canonical Live TV card component and applies its exact size, spacing, logo containment and focus treatment to Browse Live TV and every category below it.
+- Adds a dedicated Live TV/date/time banner above All Channels and the EPG without changing the approved Guide category sidebar or two-hour horizon.
+- Expands the approved Home hero text area to show a fuller synopsis while preserving the accepted hero dimensions.
+- Retains v0.8.29 profile default focus/scale, title and episode detail fixes, stale-route teardown, v0.8.28 warm-start seed cache and v0.8.27 Hardware Test Mode.
+- Android versionName is **0.8.30** and versionCode is **830**.
+
 ## v0.8.29 — Google TV Hardware Consolidation + Stability Pass
 
 - Fixes the recurring Top 100 25–27 item hard-stop with a true 100-item logical rail and bounded render windows.

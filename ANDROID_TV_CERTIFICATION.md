@@ -1,6 +1,6 @@
-# Swoop TV v0.8.29 — Google TV hardware test checklist
+# Swoop TV v0.8.30 — Google TV hardware test checklist
 
-## v0.8.29 diagnostic workflow
+## v0.8.30 diagnostic workflow
 
 Before reproducing a hardware issue, enable **Hardware Test Mode** by focusing the Settings cog and pressing OK five times within four seconds. Select the matching NAV/PERF/LIVE/STAR/STAB test ID, reproduce the problem, photograph/video the HUD, then use **Settings → Hardware Test Mode → Save Diagnostics**. See `TV_HARDWARE_TEST_CHECKLIST.md` for the numbered procedure.
 
