@@ -1,15 +1,15 @@
 {
-  "version": "0.8.30",
-  "versionCode": 830,
+  "version": "0.8.31",
+  "versionCode": 831,
   "updateUrl": "https://github.com/OWNER/REPOSITORY/releases/download/google-tv-test-v0.8.1/Swoop-TV-v0.8.1-Google-TV-Test.apk",
   "changes": [
-    "Adds My SwoopTV directly after Home and retires My List as a standalone primary tab. Continue Watching, saved movies/TV shows, favourite Live TV channels and Recently Watched now live together in the personal hub.",
-    "Removes Continue Watching and My List from Home so Home is discovery-first: featured hero, Top 100 Movies, Top 100 TV Shows, Recently Added Movies and Recently Added TV Shows lead the experience.",
-    "Eliminates the recurring Top 100 25–27-card hard stop by mounting the full 100 ranked focus targets on Google TV while keeping poster artwork lazy-loaded.",
-    "Rebuilds STARmeter provider matching around a one-time indexed provider availability map, replacing repeated whole-library scans for each person. Adds bounded timeouts, clean no-match states, cancellation on exit and deterministic D-pad escape.",
-    "Keeps STARmeter people-first presentation with large centred circular cast portraits, prominent rank numbers and large mixed provider-available movie/TV rails.",
-    "Makes Recent Channels the canonical Live TV card component and applies its exact size, spacing, logo containment and focus treatment to Browse Live TV and every category below it.",
-    "Adds a dedicated Live TV/date/time banner above All Channels and the EPG without changing the approved Guide category sidebar or two-hour horizon.",
-    "Expands the approved Home hero text area to show a fuller synopsis while preserving the accepted hero dimensions."
+    "Fixes STARmeter false 0 titles results by expanding the one-time provider availability index to use TMDb/IMDb IDs, IPTV-cleaned title aliases, ±1-year matching and a bounded same-bucket fuzzy fallback without rescanning the whole provider library for every actor.",
+    "Prevents STARmeter from treating the small cached Android Home snapshot as the full provider catalogue; person matching waits for the durable provider library before building its availability index when necessary.",
+    "Makes the availability worker usable with smaller provider libraries as well as very large ones.",
+    "GitHub seed generation now preloads filmography credits for the full STARmeter Top 100 by default and preserves original-title/original-name aliases for stronger local matching.",
+    "Prewarms STARmeter actor identities/portraits substantially farther ahead of the visible scroll position to reduce initial-letter portrait fallbacks.",
+    "Forces Guide tab entry to the true top of the page and makes the requested LIVE TV / TV Guide / date / current-time banner visually explicit above All Channels and the two-hour EPG.",
+    "Retains the complete v0.8.30 My SwoopTV, Top 100, Live TV, profile/detail, warm-start seed and Hardware Test Mode work.",
+    "Android versionName is 0.8.31 and versionCode is 831."
   ]
 }

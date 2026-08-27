@@ -2470,3 +2470,26 @@ html.android-tv .starmeter-person-column{width:255px!important;display:grid!impo
 html.android-tv .starmeter-person-card{justify-self:center!important}
 html.android-tv .starmeter-empty-row{height:255px!important;display:flex!important;align-items:center!important;color:#989ca5!important;font-size:13px!important;padding:0 18px!important;border:1px solid rgba(255,255,255,.07)!important;border-radius:10px!important;background:rgba(255,255,255,.02)!important}
 html.android-tv .starmeter-row-loading{pointer-events:none!important}
+
+/* v0.8.31 — Guide banner visibility + STARmeter portrait/matching hardware pass. */
+html.android-tv .guide-live-banner{
+  position:relative!important;
+  min-height:146px!important;
+  height:146px!important;
+  margin:0 0 10px!important;
+  padding:22px 24px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:12px!important;
+  background:
+    radial-gradient(circle at 76% 42%,color-mix(in srgb,var(--accent) 30%,transparent),transparent 42%),
+    linear-gradient(105deg,rgba(16,18,27,.98),rgba(24,18,40,.92))!important;
+  overflow:hidden!important;
+}
+html.android-tv .guide-live-banner .guide-main-title .eyebrow{font-size:11px!important;letter-spacing:.16em!important}
+html.android-tv .guide-live-banner .guide-main-title h1{font-size:38px!important;margin:5px 0 8px!important}
+html.android-tv .guide-live-banner .guide-main-title p{font-size:12px!important;color:#c4c7d0!important}
+html.android-tv .guide-live-banner .guide-now{display:grid!important;justify-items:end!important;gap:2px!important}
+html.android-tv .guide-live-banner .guide-now span{font-size:10px!important}
+html.android-tv .guide-live-banner .guide-now strong{font-size:28px!important}
+html.android-tv .guide-schedule-head{min-height:74px!important;padding:12px 3px 10px!important}
+html.android-tv .starmeter-person-card img{object-fit:cover!important;object-position:center 24%!important}

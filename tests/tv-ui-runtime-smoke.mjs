@@ -105,7 +105,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.30';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.31';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -138,14 +138,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.30-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.31-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.30') throw new Error('Install seed source version is not v0.8.30');
+if (String(installSeed.sourceVersion||'') !== '0.8.31') throw new Error('Install seed source version is not v0.8.31');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -173,7 +173,7 @@ if (!cssSource.includes('.episode-card') || !cssSource.includes('grid-template-c
 
 
 
-// v0.8.30 My SwoopTV + STARmeter stability consolidation.
+// v0.8.31 STARmeter provider matching + Guide banner hardware hotfix.
 if (!appSource.includes("const PINNED_HOME_ROWS=['top20-movies','top20-shows'];")) throw new Error('Home is not discovery-first after My SwoopTV migration');
 if (!appSource.includes('function mySwoopPage()') || !appSource.includes("['myswoop','My SwoopTV']")) throw new Error('My SwoopTV primary personal hub missing');
 if (!appSource.includes("else if(state.page==='myswoop'||state.page==='mylist')body=mySwoopPage()")) throw new Error('Legacy My List route does not resolve to My SwoopTV');
@@ -186,5 +186,12 @@ if (!workerSource.includes('function buildAvailabilityIndex(active=[])') || !wor
 if (!cssSource.includes('grid-auto-columns:190px!important') || !cssSource.includes('width:190px!important;height:120px!important')) throw new Error('Live TV Recent Channels component parity missing');
 if (!appSource.includes('guide-main-header guide-live-banner') || !cssSource.includes('.guide-live-banner{min-height:132px!important')) throw new Error('Guide Live TV/date/time banner missing');
 if (!cssSource.includes('-webkit-line-clamp:4!important')) throw new Error('Expanded Home hero synopsis treatment missing');
+
+if (!workerSource.includes('normalizeMediaTitle') || !workerSource.includes('availability.bucket') || !workerSource.includes('year-1') || !workerSource.includes('fuzzyScore')) throw new Error('Expanded indexed STARmeter title/year/fuzzy matching missing');
+if (!appSource.includes("tvHomeSnapshotActive)await withTimeout(ensureDurableLibraryRestored()")) throw new Error('STARmeter does not wait for full durable Android provider catalogue');
+if (!appSource.includes("clearPersistentPageViews('guide')") || !appSource.includes('<div class="eyebrow">LIVE TV</div><h1>TV Guide</h1>')) throw new Error('Guide true-top/date-time banner entry guard missing');
+if (!cssSource.includes('.guide-live-banner{') || !cssSource.includes('height:146px!important')) throw new Error('Guide hardware banner visual height missing');
+const seedScriptSource = fs.readFileSync(new URL('../scripts/refresh-seed-cache.mjs', import.meta.url), 'utf8');
+if (!seedScriptSource.includes('SWOOP_SEED_CREDIT_PEOPLE||100') || !seedScriptSource.includes('original_title') || !seedScriptSource.includes('original_name')) throw new Error('Full Top 100 filmography seed generation/aliases missing');
 
 console.log('Google TV UI runtime smoke passed');

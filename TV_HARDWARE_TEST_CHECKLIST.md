@@ -1,6 +1,6 @@
-# Swoop TV v0.8.30 — Google TV Hardware Test Checklist
+# Swoop TV v0.8.31 — Google TV Hardware Test Checklist
 
-Current test build: **v0.8.30 / versionCode 830**
+Current test build: **v0.8.31 / versionCode 831**
 
 Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five times within four seconds**. Select the numbered test before reproducing it, then choose **Save Diagnostics**.
 
@@ -24,7 +24,7 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 
 ## STARmeter
 
-- **STAR-001:** enter STARmeter, browse at least #1 → #30. Large centred circular portraits remain stable. Visible people resolve provider titles via the local index; no row remains “Finding titles…” indefinitely. Up from #1 reaches the STARmeter header/nav and Android Back always exits.
+- **STAR-001:** enter STARmeter, browse at least #1 → #30. Large centred circular portraits remain stable and are prefetched ahead of focus so initials are only a genuine no-photo fallback. Visible people resolve provider titles via the full durable-library index; known available credits should not falsely report 0 titles, and no row remains “Finding titles…” indefinitely. Up from #1 reaches the STARmeter header/nav and Android Back always exits.
 - Rapidly leave STARmeter while matching is active; late work must be cancelled and must not reappear over the destination page.
 
 ## Details / route lifecycle
@@ -36,4 +36,4 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 
 After reproducing a failure, save the JSON and upload it with the phone video. Diagnostic exports are written to the app Documents directory with a filename beginning:
 
-`Swoop-TV-v0.8.30-Diagnostics-`
+`Swoop-TV-v0.8.31-Diagnostics-`

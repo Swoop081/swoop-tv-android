@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.30';
+const ANDROID_CURRENT_VERSION='0.8.31';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,14 +36,10 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Introduces My SwoopTV as the personal destination for Continue Watching, saved movies and shows, favourite channels and recently watched content; Home is now discovery-first.',
-  'Mounts all 100 Top 100 Movie and TV Show focus targets on Google TV so the ranked rails can no longer hard-stop at the old 25–27 card render boundary.',
-  'Rebuilds STARmeter matching around one provider availability index with hard timeouts, clean failure states, cancellation on exit and deterministic escape back to the persistent header.',
-  'Makes STARmeter person identity cards stable vertical navigation anchors while only hydrating visible people and a tiny look-ahead queue.',
-  'Uses the approved Recent Channels component dimensions and spacing for every Browse Live TV channel card to eliminate stacked/overlapping tiny tiles.',
-  'Adds a dedicated Live TV/date/time banner above All Channels in Guide while preserving the approved category sidebar and two-hour EPG layout.',
-  'Expands the approved Home hero information block to use the available height for a fuller synopsis without changing its accepted geometry.',
-  'Retains the v0.8.29 profile, detail/episode, route-lifecycle, warm-start seed and Hardware Test Mode stability work.'
+  'Expands STARmeter provider matching with TMDb/IMDb IDs, normalized title and year aliases, controlled fuzzy fallback and a one-time provider index so real available titles are not falsely reported as zero.',
+  'Seeds filmographies for the full STARmeter Top 100 during GitHub APK builds and prewarms portraits much farther ahead of the current scroll position.',
+  'Forces Guide to enter at the true top of the screen and makes the Live TV / TV Guide date-and-time banner visually explicit above All Channels and the two-hour EPG.',
+  'Retains My SwoopTV, 100-card Top 100 focus rails, Live TV card parity, profile/detail stability, whole-app warm-start cache and Hardware Test Mode from v0.8.30.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -369,7 +365,7 @@ function stopTvCatalogWorker(){
   for(const pending of tvCatalogWorkerPending.values()){clearTimeout(pending.timer);pending.resolve(null)}tvCatalogWorkerPending.clear();
 }
 function startTvMovieStackWorker(immediate=false,onInitProgress=null){
-  if(!NATIVE_ANDROID||tvHomeSnapshotActive||tvMovieStackWorker||state.catalog.length<2000)return;
+  if(!NATIVE_ANDROID||tvMovieStackWorker||!state.catalog.length)return;
   const run=()=>{try{
     const worker=new Worker(new URL('./src/catalog-index-worker.js',import.meta.url),{type:'module'});tvMovieStackWorker=worker;tvCatalogWorkerReady=false;
     worker.onmessage=e=>{const data=e.data||{};
@@ -385,7 +381,7 @@ function startTvMovieStackWorker(immediate=false,onInitProgress=null){
   if(immediate)run();else if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:5000});else setTimeout(run,1800);
 }
 async function ensureTvCatalogWorkerReady(timeout=30000,onProgress=null){
-  if(!NATIVE_ANDROID||state.catalog.length<2000)return false;
+  if(!NATIVE_ANDROID||!state.catalog.length)return false;
   if(tvCatalogWorkerReady)return true;
   startTvMovieStackWorker(true,onProgress);
   const started=Date.now();
@@ -621,8 +617,9 @@ function navigatePage(nextPage){
   if(nextPage===state.page&&!detailItem&&!personView)return;
   if(detailItem||personView)discardTransientMediaRoutes();
   if(profilePickerOpen||startupRefreshActive||storageRestoring){state.page=nextPage;if(nextPage==='guide')guideStart=Math.floor(Date.now()/1800000)*1800000;render();return}
-  cacheCurrentPageView();state.page=nextPage;if(nextPage==='guide')guideStart=Math.floor(Date.now()/1800000)*1800000;
+  cacheCurrentPageView();state.page=nextPage;if(nextPage==='guide'){guideStart=Math.floor(Date.now()/1800000)*1800000;clearPersistentPageViews('guide')}
   if(restorePersistentPageView(nextPage))return;render();
+  if(NATIVE_ANDROID&&nextPage==='guide')requestAnimationFrame(()=>{window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;requestAnimationFrame(()=>window.scrollTo(0,0))});
 }
 function prewarmArtworkUrls(items=[],limit=28){
   const urls=[];for(const item of items){for(const url of [item?.logo,item?.backdrop]){const value=String(url||'').trim();if(value&&!urls.includes(value))urls.push(value);if(urls.length>=limit)break}if(urls.length>=limit)break}
@@ -1898,7 +1895,7 @@ async function hydrateStarmeterPerson(entry={}){
   const task=(async()=>{try{
     const seed=await withTimeout(hydrateStarmeterIdentity(entry),3500,'Person identity timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
     const hot=starmeterHotCache.get(key),preseedCredits=Array.isArray(hot?.credits)?hot.credits:[];
-    const ready=await withTimeout(loadAndroidPersonData(seed,{credits:preseedCredits}),6500,'Provider title matching timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
+    const ready=await withTimeout(loadAndroidPersonData(seed,{credits:preseedCredits}),9000,'Provider title matching timed out');if(generation!==starmeterGeneration||state.page!=='starmeter')return null;
     const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterRetryCounts.delete(key);starmeterPersonCache.set(key,value);starmeterHotCache.set(key,{...hot,...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
   }catch(err){if(generation!==starmeterGeneration||state.page!=='starmeter')return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);if(retryable){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
@@ -1924,12 +1921,12 @@ function appendStarmeterSections(count=STARMETER_APPEND_BATCH){
 }
 function observeStarmeterSections(root=document){
   if(state.page!=='starmeter')return;if(!('IntersectionObserver'in globalThis)){starmeterPeople.slice(0,Math.min(starmeterVisibleCount,6)).forEach(hydrateStarmeterPerson);return}
-  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx]);if(idx+1<starmeterPeople.length)hydrateStarmeterIdentity(starmeterPeople[idx+1]);}}}, {root:null,rootMargin:'360px 0px 360px 0px',threshold:.01});
+  if(!starmeterObserver)starmeterObserver=new IntersectionObserver(entries=>{for(const e of entries){if(!e.isIntersecting)continue;const rank=Number(e.target.dataset.starmeterRank||0),idx=starmeterPeople.findIndex(x=>Number(x.rank)===rank);if(idx>=0){queueStarmeterPerson(starmeterPeople[idx]);for(let ahead=1;ahead<=8;ahead++){const next=starmeterPeople[idx+ahead];if(next)setTimeout(()=>hydrateStarmeterIdentity(next),ahead*45)}}}}, {root:null,rootMargin:'700px 0px 700px 0px',threshold:.01});
   const nodes=root?.matches?.('.starmeter-person-section')?[root]:[...(root?.querySelectorAll?.('.starmeter-person-section')||[])];nodes.forEach(x=>starmeterObserver.observe(x));
 }
 function setupStarmeterAutoLoad(){if(state.page!=='starmeter')return;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;const sentinel=document.querySelector('[data-starmeter-sentinel]');if(!sentinel)return;if(!('IntersectionObserver'in globalThis))return;if(starmeterVisibleCount>=starmeterPeople.length){sentinel.remove();return}starmeterAutoLoadObserver=new IntersectionObserver(entries=>{if(!entries.some(e=>e.isIntersecting))return;if(appendStarmeterSections(STARMETER_APPEND_BATCH)&&starmeterVisibleCount<starmeterPeople.length)setupStarmeterAutoLoad()},{root:null,rootMargin:'700px 0px',threshold:.01});starmeterAutoLoadObserver.observe(sentinel)}
 function prewarmStarmeterHotCache(limit=100){
-  clearTimeout(starmeterPrewarmTimer);let index=0,max=Math.min(Number(limit||100),starmeterPeople.length);const step=async()=>{if(index>=max)return;if(state.page==='starmeter'||Date.now()-Number(tvLastActivationAt||0)<2200){starmeterPrewarmTimer=setTimeout(step,2200);return}const entry=starmeterPeople[index++];await hydrateStarmeterIdentity(entry);starmeterPrewarmTimer=setTimeout(step,index<12?900:2200)};starmeterPrewarmTimer=setTimeout(step,1200)
+  clearTimeout(starmeterPrewarmTimer);let index=0,max=Math.min(Number(limit||100),starmeterPeople.length);const step=async()=>{if(index>=max)return;if(Date.now()-Number(tvLastActivationAt||0)<900){starmeterPrewarmTimer=setTimeout(step,900);return}const entry=starmeterPeople[index++];await hydrateStarmeterIdentity(entry);starmeterPrewarmTimer=setTimeout(step,index<18?260:900)};starmeterPrewarmTimer=setTimeout(step,500)
 }
 function starmeterPeopleForSearch(term=''){
   const q=starmeterNormalize(term);if(q.length<2)return[];
@@ -2026,7 +2023,7 @@ function guidePage(){
   const providerGuide=enabledProviders().length>1?'Unified provider EPG':enabledProviders()[0]?.type==='xtream'?'Xtream EPG':enabledProviders()[0]?.epgUrl?'XMLTV guide':'No EPG source configured';
   const label=guideCategoryLabel(),shown=channels.length,total=Number(snapshot.total||0),waiting=nativeCatalogMode&&!snapshot.ready;
   return `<main class="page guide-page"><div class="guide-shell"><div class="guide-browser"><aside class="guide-categories"><div class="guide-categories-head"><span class="eyebrow">CHANNEL GROUPS</span><h2>Categories</h2><small>${totalAll.toLocaleString()} channels</small></div><div class="guide-category-list">${guideCategoryButtons()}</div></aside>
-  <section class="guide-schedule"><section class="guide-main-header guide-live-banner"><div class="guide-main-title"><div class="eyebrow">TV GUIDE</div><h1>Live TV</h1><p>${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))} · ${esc(providerGuide)}</p></div><div class="guide-main-actions"><div class="guide-now"><span>NOW</span><strong>${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</strong></div><button class="btn secondary" data-guide-now>Jump to now</button></div></section>
+  <section class="guide-schedule"><section class="guide-main-header guide-live-banner"><div class="guide-main-title"><div class="eyebrow">LIVE TV</div><h1>TV Guide</h1><p>${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))} · ${esc(providerGuide)}</p></div><div class="guide-main-actions"><div class="guide-now"><span>NOW</span><strong>${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</strong></div><button class="btn secondary" data-guide-now>Jump to now</button></div></section>
   <div class="guide-schedule-head"><div><span class="eyebrow">NOW BROWSING</span><h2>${esc(label)}</h2><small>${waiting?'Loading channels…':`${shown.toLocaleString()} shown${total?` of ${total.toLocaleString()}`:''}`}</small></div><span class="guide-window-label">2 HOURS AHEAD</span></div>
   ${guideError?`<div class="guide-alert">${esc(guideError)}</div>`:''}
   <div class="guide-load-progress" data-guide-load-progress ${(guideLoading||waiting)?'':'hidden'}><div><span data-guide-load-text>${waiting?`Loading ${esc(label)} channels…`:'Loading programme guide…'}</span><strong data-guide-load-percent>${waiting?'…':'0%'}</strong></div><i><b data-guide-load-bar class="${waiting?'indeterminate':''}" style="${waiting?'width:34%':'width:0%'}"></b></i><small>${waiting?'Loading channels…':'Loading programme information…'}</small></div>
@@ -2426,7 +2423,12 @@ function patchProviderRefreshCard(p){
   if(!p)return;const card=[...document.querySelectorAll('[data-provider-card]')].find(x=>x.dataset.providerCard===p.id);if(!card)return;const progress=card.querySelector('[data-provider-inline-progress]'),bar=card.querySelector('[data-provider-progress-bar]'),percent=card.querySelector('[data-provider-progress-percent]'),detail=card.querySelector('[data-provider-progress-detail]'),status=card.querySelector('[data-provider-status-copy]'),health=card.querySelector('[data-provider-health]'),refresh=card.querySelector('[data-provider-refresh]');const pct=Math.max(0,Math.min(100,Number(p.refreshProgress||0)));if(progress)progress.hidden=p.status!=='refreshing';if(bar)bar.style.width=`${pct}%`;if(percent)percent.textContent=`${Math.round(pct)}%`;if(detail)detail.textContent=p.refreshDetail||'Updating your library…';if(status)status.textContent=providerStatusCopy(p);if(health){health.textContent=p.status==='error'?'Needs attention':p.status==='refreshing'?'Refreshing…':p.enabled===false?'Disabled':'Connected';health.className=`provider-health ${p.status==='error'?'error':p.enabled===false?'off':'ok'}`;}if(refresh){refresh.disabled=p.status==='refreshing';refresh.textContent=p.status==='refreshing'?'↻ Refreshing…':'↻ Refresh';}}
 
 function personCreditPayload(credits=[],type='movie'){
-  const wanted=type==='series'?'tv':'movie';return {items:(Array.isArray(credits)?credits:[]).filter(x=>x?.media_type===wanted)};
+  const wanted=type==='series'?'series':'movie';
+  return {items:(Array.isArray(credits)?credits:[]).filter(raw=>{
+    const mt=String(raw?.media_type||raw?.mediaType||raw?.kind||raw?.type||'').toLowerCase();
+    if(wanted==='series')return mt==='tv'||mt==='series'||mt==='show'||(!mt&&!raw?.title&&Boolean(raw?.name||raw?.original_name));
+    return mt==='movie'||(!mt&&Boolean(raw?.title||raw?.original_title));
+  })};
 }
 function sortPersonLibraryItems(list=[]){return [...list].sort((a,b)=>(yearNumber(b)-yearNumber(a))||cleanDisplayTitle(a).localeCompare(cleanDisplayTitle(b)))}
 function personResultsHtml(){
@@ -2474,8 +2476,12 @@ async function loadAndroidPersonData(seed={},options={}){
   if(!remote)remote=await withTimeout(fetchPersonCredits({settings:state.settings,personId:seed.id||'',name:seed.name||''}),5000,'Filmography lookup timed out');
   if(!remote)throw new Error('Swoop TV could not identify this person on TMDb.');
   const moviePayload=personCreditPayload(remote.credits||[],'movie'),showPayload=personCreditPayload(remote.credits||[],'series');
-  if(NATIVE_ANDROID&&!tvCatalogWorkerReady)await ensureTvCatalogWorkerReady(6500).catch(()=>false);
-  let matched=null;if(tvCatalogWorkerReady)matched=await withTimeout(tvCatalogWorkerRequest('person-match',{moviePayload,showPayload},4500),5000,'Provider index match timed out').catch(()=>null);
+  // STARmeter can be entered while Android is still showing the tiny Home snapshot.
+  // Finish restoring the real provider catalogue before creating the person index so
+  // a partial 760-item snapshot can never be mistaken for the user's full library.
+  if(NATIVE_ANDROID&&tvHomeSnapshotActive)await withTimeout(ensureDurableLibraryRestored(),9000,'Provider library restore timed out').catch(()=>false);
+  if(NATIVE_ANDROID&&!tvCatalogWorkerReady)await ensureTvCatalogWorkerReady(9000).catch(()=>false);
+  let matched=null;if(tvCatalogWorkerReady)matched=await withTimeout(tvCatalogWorkerRequest('person-match',{moviePayload,showPayload},7500),8000,'Provider index match timed out').catch(()=>null);
   if(!matched)throw new Error('Provider availability index is still preparing. Try again in a moment.');
   const movies=Array.isArray(matched.movies)?matched.movies:[],shows=Array.isArray(matched.shows)?matched.shows:[];
   return {person:{...seed,...remote,profile:remote.profile||seed.profile||''},movies:sortPersonLibraryItems(movies),shows:sortPersonLibraryItems(shows)};
@@ -3122,7 +3128,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:830,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:831,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});

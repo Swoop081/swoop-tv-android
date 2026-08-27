@@ -2,7 +2,7 @@
 
 ## Current build under test
 
-**v0.8.30 — Google TV My SwoopTV + STARmeter Stability Consolidation**
+**v0.8.31 — Google TV STARmeter Matching + Guide Banner Hotfix**
 
 ## Implemented — needs physical-TV verification
 
@@ -12,8 +12,8 @@
 - [ ] **MYSWOOP-001:** My SwoopTV appears directly after Home and contains Continue Watching, saved titles, Favourite Channels and Recently Watched; Home no longer contains Continue Watching/My List.
 - [ ] Home keeps the approved hero size and presents a fuller 3–4-line featured synopsis.
 - [ ] **LIVE-001:** Every Browse Live TV/category tile has the exact same usable size/spacing as Recent Channels; logo updates immediately and preview follows after focus settles.
-- [ ] **GUIDE-001:** approved left category sidebar is unchanged; Live TV/date/time banner sits above All Channels + the two-hour EPG.
-- [ ] **STAR-001:** STARmeter uses the provider availability index, resolves visible people without indefinite “Finding titles…”, can browse past #20 and Up/Back always escapes.
+- [ ] **GUIDE-001:** approved left category sidebar is unchanged; Guide opens at the true top with a clearly visible LIVE TV / TV Guide date/time banner above All Channels + the two-hour EPG.
+- [ ] **STAR-001:** STARmeter resolves real provider-available titles using the full durable library, expanded ID/title/year matching, and can browse #1–#100 without trapping focus.
 - [ ] STARmeter transient matching failures retry automatically, then become a stable clean state rather than trapping focus.
 - [ ] **PROFILE-001:** Who’s Watching opens with first profile focused and large animal avatars.
 - [ ] **DETAIL-001:** seasons/episodes/cast/detail pages remain reachable in both directions and preserve episode metadata/artwork.
