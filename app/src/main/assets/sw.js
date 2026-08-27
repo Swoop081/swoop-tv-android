@@ -1,4 +1,4 @@
-const CACHE='swoop-tv-v0833-shell';
+const CACHE='swoop-tv-v0835-shell';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./assets/icon.svg','./assets/swoop-tv-logo.jpg','./assets/swoop-tv-icon.png','./assets/avatar-lion.jpeg','./assets/avatar-elephant.jpeg','./assets/avatar-giraffe.jpeg','./assets/avatar-zebra.jpeg','./assets/avatar-rhino.jpeg','./assets/avatar-turtle.jpeg','./assets/avatar-monkey.jpeg','./assets/avatar-meerkat.jpeg','./assets/avatar-parrot.jpeg','./assets/avatar-tiger.jpeg','./src/m3u.js','./src/xtream.js','./src/mdblist.js','./src/sourceStack.js','./src/liveStack.js','./src/profiles.js','./src/themes.js','./src/tmdb.js','./src/discovery.js','./src/seedCache.js','./seed-cache.json','./src/storage.js','./src/storage-worker.js','./src/native.js','./src/nativeCatalog.js','./src/xmltv.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));

@@ -2613,3 +2613,10 @@ html.android-tv .starmeter-library-column{height:394px!important;min-height:394p
 html.android-tv .starmeter-title-rail{grid-auto-columns:minmax(0,196px)!important;min-height:318px!important;max-height:328px!important;overflow-x:auto!important;overflow-y:visible!important;padding-bottom:28px!important}
 html.android-tv .starmeter-row-loading,html.android-tv .starmeter-empty-row{height:318px!important;min-height:318px!important}
 html.android-tv .starmeter-full-prepare{min-height:480px!important;align-content:center!important;margin-top:20px!important}
+
+
+/* v0.8.35 — STARmeter stable-row paint + deferred hydration hotfix. */
+html.android-tv .starmeter-person-section{contain:layout paint style!important;overflow:hidden!important;isolation:isolate!important;background:#050505!important}
+html.android-tv .starmeter-person-column,html.android-tv .starmeter-library-column{contain:layout paint!important;overflow:hidden!important}
+html.android-tv .starmeter-title-rail{contain:layout paint!important;overflow-x:auto!important;overflow-y:hidden!important}
+html.android-tv .starmeter-person-card{transition:none!important}

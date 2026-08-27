@@ -1,11 +1,11 @@
-Swoop TV Google TV hardware-test channel — current v0.8.34.
+Swoop TV Google TV hardware-test channel — current v0.8.35.
 
-- Fixes the physical-TV STARmeter startup failure captured at 28% where the v0.8.33 all-100 provider-match request could exceed its 24-second worker deadline and leave the whole page permanently blocked behind “STARmeter batch match did not complete.”
-- Replaces the single 100-person request with 12-person indexed worker batches. Each completed batch is committed immediately to the in-memory STARmeter/provider cache instead of discarding all progress if a later batch is slow.
-- Makes profile selection non-blocking: Who’s Watching still starts STARmeter preparation before login, but selecting a profile never waits for STARmeter matching to finish.
-- Makes the STARmeter route fail-open. The fixed 100-person surface remains navigable even if background preparation is incomplete; unmatched rows use the existing bounded visible-row hydration path and fill in without replacing/reflowing the page.
-- A timed-out/partial pre-match now reports a usable background state, schedules an automatic retry, and can never strand the viewer on a full-page loading/error gate.
-- Retains v0.8.33 route-top restoration and permanent non-overlapping STARmeter row geometry.
-- Android versionName is 0.8.34 and versionCode is 834.
+- Fixes the physical-TV STARmeter duplicate/ghost rendering where ranks, portraits, names and provider-title content could be painted multiple times during rapid D-pad scrolling.
+- Keeps every STARmeter rank/portrait/name identity column permanently mounted after the Top 100 page is created.
+- Defers async STARmeter hydration until D-pad focus settles for 180 ms and never mutates the currently focused person row.
+- Restricts async row updates to the provider-title library column and removes background full-page rerenders.
+- Adds Android WebView paint containment, isolation and vertical clipping to prevent stale compositor layers bleeding into adjacent people.
+- Retains v0.8.34 fail-open 12-person indexed matching, automatic retry and non-blocking profile selection.
+- Android versionName is 0.8.35 and versionCode is 835.
 
 Test-only signing identity; not a production release.

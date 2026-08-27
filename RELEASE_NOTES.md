@@ -1,5 +1,15 @@
 # Swoop TV Release Notes
 
+## v0.8.35 — STARmeter Stable Row Rendering Hotfix
+
+- Fixes the physical-TV STARmeter duplicate/ghost rendering where ranks, portraits, names and provider-title content could be painted multiple times during rapid D-pad scrolling.
+- Keeps every STARmeter rank/portrait/name identity column permanently mounted after the Top 100 page is created.
+- Defers async STARmeter hydration until D-pad focus settles for 180 ms and never mutates the currently focused person row.
+- Restricts async row updates to the provider-title library column and removes background full-page rerenders.
+- Adds Android WebView paint containment, isolation and vertical clipping to prevent stale compositor layers bleeding into adjacent people.
+- Retains v0.8.34 fail-open 12-person indexed matching, automatic retry and non-blocking profile selection.
+- Android versionName is **0.8.35** and versionCode is **835**.
+
 ## v0.8.34 — STARmeter Fail-Open Batch Recovery Hotfix
 
 - Fixes the physical-TV STARmeter startup failure captured at **28%** where the v0.8.33 all-100 provider-match request could exceed its 24-second worker deadline and leave the whole page permanently blocked behind “STARmeter batch match did not complete.”

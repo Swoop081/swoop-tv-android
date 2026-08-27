@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.34';
+const ANDROID_CURRENT_VERSION='0.8.35';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,10 +36,10 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Fixes the STARmeter 28% startup failure by splitting provider matching into smaller indexed worker batches instead of one all-100 request.',
-  'STARmeter preparation is now best-effort and fail-open: profile login and the STARmeter page can never be trapped behind a failed background batch.',
-  'Completed STARmeter people are cached incrementally, while unfinished people continue matching from visible-row hydration and scheduled background retries.',
-  'Retains v0.8.33 route-top restoration, permanent STARmeter row geometry and pre-login portrait/artwork warming.'
+  'Fixes the physical-TV STARmeter duplicate/ghost row rendering seen while rapidly navigating the Top 100.',
+  'Keeps each STARmeter person identity column permanently mounted and only updates provider-title content after D-pad focus has settled.',
+  'Defers async STARmeter row/portrait patches while a row is focused and removes full-page rerenders when background matching finishes or retries.',
+  'Adds paint containment and vertical clipping to stop Android WebView compositor trails while retaining v0.8.34 fail-open matching.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -424,10 +424,11 @@ let personView=null,personLoading=false,personError='',personMovies=[],personSho
 let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
 const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map(),starmeterRetryCounts=new Map();
 const starmeterHydrateQueue=[];let starmeterHydrateBusy=0,starmeterGeneration=0;
+const starmeterDeferredPatches=new Set(),starmeterDeferredIdentityPatches=new Map();let starmeterPatchTimer=null,starmeterLastFocusMoveAt=0;
 let starmeterBackgroundPreparePromise=null,starmeterBackgroundReady=false,starmeterBackgroundComplete=false,starmeterBackgroundProgress=0,starmeterBackgroundStatus='Preparing STARmeter…',starmeterPreparedProviderSignature='',starmeterBackgroundRetryTimer=null;
 const STARMETER_PRELOGIN_BATCH_SIZE=12;
 function withTimeout(promise,ms=6000,label='Operation timed out'){return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))])}
-function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
+function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null;starmeterDeferredPatches.clear();starmeterDeferredIdentityPatches.clear();}
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
 let suspendedBaseView=null,suspendedDetailView=null,suspendedPersonView=null;
 const persistentPageViews=new Map();
@@ -1905,7 +1906,7 @@ function scheduleStarmeterBackgroundRetry(delay=5000){
 }
 function applyPreparedStarmeterResults(people=[],results=[]){
   const byKey=new Map(people.map(row=>[row.key,row]));let applied=0;
-  for(const row of results){const source=byKey.get(row?.key);if(!source)continue;const value={person:source.person,movies:Array.isArray(row.movies)?sortPersonLibraryItems(row.movies):[],shows:Array.isArray(row.shows)?sortPersonLibraryItems(row.shows):[],loadedAt:Date.now(),prelogin:true};starmeterPersonCache.set(row.key,value);starmeterHotCache.set(row.key,{...(starmeterHotCache.get(row.key)||{}),...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||'').toLowerCase()}`,value);applied++}
+  for(const row of results){const source=byKey.get(row?.key);if(!source)continue;const value={person:source.person,movies:Array.isArray(row.movies)?sortPersonLibraryItems(row.movies):[],shows:Array.isArray(row.shows)?sortPersonLibraryItems(row.shows):[],loadedAt:Date.now(),prelogin:true};starmeterPersonCache.set(row.key,value);starmeterHotCache.set(row.key,{...(starmeterHotCache.get(row.key)||{}),...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||'').toLowerCase()}`,value);if(state.page==='starmeter')scheduleStarmeterPersonPatch(source.rank);applied++}
   return applied;
 }
 async function prepareStarmeterBeforeLogin(){
@@ -1934,12 +1935,12 @@ async function prepareStarmeterBeforeLogin(){
         await new Promise(resolve=>setTimeout(resolve,0));
       }
       starmeterBackgroundComplete=true;starmeterPreparedProviderSignature=starmeterProviderSignature();setStarmeterBackgroundProgress(100,'STARmeter Top 100 ready');prewarmPreparedStarmeterArtwork();
-      if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();return true;
+      return true;
     }catch(err){
       starmeterBackgroundReady=true;starmeterBackgroundComplete=false;starmeterPreparedProviderSignature='';
       const count=Math.max(matched,[...starmeterPeople].filter(entry=>starmeterPersonCache.has(starmeterNormalize(entry.name))).length),denom=Math.max(1,total||starmeterPeople.length||100);
       setStarmeterBackgroundProgress(Math.max(starmeterBackgroundProgress,28+(count/denom)*62),count?`STARmeter is usable now · ${count} of ${denom} pre-matched; finishing in background.`:'STARmeter is usable now · provider matching will retry in the background.');
-      if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();scheduleStarmeterBackgroundRetry(5000);return false;
+      scheduleStarmeterBackgroundRetry(5000);return false;
     }finally{starmeterBackgroundPreparePromise=null}
   })();
   return starmeterBackgroundPreparePromise;
@@ -1952,10 +1953,10 @@ function starmeterPersonTitles(cached){
   return all.sort((a,b)=>starmeterPopularityValue(b)-starmeterPopularityValue(a)||yearNumber(b)-yearNumber(a)||String(a?.name||'').localeCompare(String(b?.name||'')));
 }
 function starmeterPersonSection(entry={}){
-  const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached);
+  const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached),renderKey=starmeterLibraryRenderKey(entry);
   const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
   const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><div class="starmeter-loading-copy"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div><div class="starmeter-loading-posters"><i></i><i></i><i></i><i></i></div></div>`);
-  return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
+  return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column" data-starmeter-render-key="${esc(renderKey)}"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
   const visible=starmeterPeople.slice(0,100);
@@ -1973,8 +1974,8 @@ async function hydrateStarmeterPerson(entry={},options={}){
     const seed=await withTimeout(hydrateStarmeterIdentity(entry),3500,'Person identity timed out');if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;
     const hot=starmeterHotCache.get(key),preseedCredits=Array.isArray(hot?.credits)?hot.credits:[];
     const ready=await withTimeout(loadAndroidPersonData(seed,{credits:preseedCredits}),9000,'Provider title matching timed out');if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;
-    const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterRetryCounts.delete(key);starmeterPersonCache.set(key,value);starmeterHotCache.set(key,{...hot,...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);patchStarmeterPerson(entry.rank);return value;
-  }catch(err){if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);patchStarmeterPerson(entry.rank);if(retryable&&!background){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
+    const value={person:ready.person||seed,movies:ready.movies||[],shows:ready.shows||[],loadedAt:Date.now()};starmeterRetryCounts.delete(key);starmeterPersonCache.set(key,value);starmeterHotCache.set(key,{...hot,...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||entry.name).toLowerCase()}`,value);scheduleStarmeterPersonPatch(entry.rank);return value;
+  }catch(err){if(!background&&(generation!==starmeterGeneration||state.page!=='starmeter'))return null;const message=err?.message||'No provider matches',retryable=/timed out|index is still preparing/i.test(message),seed=starmeterPersonSeed(entry),value={person:seed,movies:[],shows:[],loadedAt:Date.now(),failed:true,retryable,error:message};starmeterPersonCache.set(key,value);scheduleStarmeterPersonPatch(entry.rank);if(retryable&&!background){const tries=Number(starmeterRetryCounts.get(key)||0);if(tries<2){starmeterRetryCounts.set(key,tries+1);setTimeout(()=>{if(generation!==starmeterGeneration||state.page!=='starmeter')return;starmeterPersonCache.delete(key);queueStarmeterPerson(entry)},2200)}}return value}finally{starmeterHydratePending.delete(key)}})();starmeterHydratePending.set(key,task);return task;
 }
 function queueStarmeterPerson(entry={},options={}){
   const key=starmeterNormalize(entry.name);if(!key||starmeterPersonCache.has(key)||starmeterHydratePending.has(key)||starmeterHydrateQueue.some(x=>starmeterNormalize(x.name)===key))return;
@@ -1987,13 +1988,34 @@ function pumpStarmeterHydration(){
     Promise.resolve(hydrateStarmeterPerson(entry)).finally(()=>{if(generation===starmeterGeneration)starmeterHydrateBusy=Math.max(0,starmeterHydrateBusy-1);if(generation===starmeterGeneration&&state.page==='starmeter'&&starmeterHydrateQueue.length)setTimeout(pumpStarmeterHydration,18)});
   }
 }
-function patchStarmeterIdentity(rank,person={}){if(state.page!=='starmeter')return false;const section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!section)return false;const cardEl=section.querySelector('.starmeter-person-card');if(!cardEl)return false;cardEl.dataset.personId=person.id||'';cardEl.dataset.personProfile=person.profile||'';cardEl.dataset.personDepartment=person.knownForDepartment||'Person';const old=cardEl.querySelector('img,.starmeter-person-fallback'),fresh=person.profile?Object.assign(document.createElement('img'),{alt:person.name||''}):document.createElement('div');if(person.profile){fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true}
-function patchStarmeterPerson(rank){
-  if(state.page!=='starmeter'||detailItem||personView)return false;const entry=starmeterPeople.find(x=>Number(x.rank)===Number(rank)),section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!entry||!section)return false;
-  const active=section.contains(document.activeElement)?tvFocusSignature(document.activeElement):null,wrap=document.createElement('div');wrap.innerHTML=starmeterPersonSection(entry);const fresh=wrap.firstElementChild;if(!fresh)return false;
-  const oldPerson=section.querySelector('.starmeter-person-column'),oldLibrary=section.querySelector('.starmeter-library-column'),newPerson=fresh.querySelector('.starmeter-person-column'),newLibrary=fresh.querySelector('.starmeter-library-column');if(oldPerson&&newPerson)oldPerson.replaceWith(newPerson);if(oldLibrary&&newLibrary)oldLibrary.replaceWith(newLibrary);
-  hydrateArtwork(section);hydrateVisibleImdbRatings(section);bindDynamicCards(section);bindPersonLinks(section);if(active)requestAnimationFrame(()=>restoreFocusSignatureIn(section,active));return true;
+function starmeterSectionIsActive(section){return Boolean(section&&document.activeElement&&section.contains(document.activeElement))}
+function patchStarmeterIdentityNow(rank,person={}){
+  if(state.page!=='starmeter')return false;const section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!section||starmeterSectionIsActive(section))return false;const cardEl=section.querySelector('.starmeter-person-card');if(!cardEl)return false;
+  cardEl.dataset.personId=person.id||'';cardEl.dataset.personProfile=person.profile||'';cardEl.dataset.personDepartment=person.knownForDepartment||'Person';const nameEl=cardEl.querySelector('strong');if(nameEl&&person.name)nameEl.textContent=person.name;
+  if(person.profile){const old=cardEl.querySelector('img,.starmeter-person-fallback');if(old?.tagName==='IMG'&&old.dataset.swoopArt===person.profile)return true;const fresh=document.createElement('img');fresh.alt=person.name||'';fresh.dataset.swoopArt=person.profile;old?.replaceWith(fresh);loadArtwork(fresh,{priority:'high'})}return true;
 }
+function patchStarmeterIdentity(rank,person={}){
+  const value=Number(rank||0);if(!value)return false;const section=document.querySelector(`[data-starmeter-rank="${value}"]`);if(state.page!=='starmeter'||starmeterSectionIsActive(section)||performance.now()-starmeterLastFocusMoveAt<180){starmeterDeferredIdentityPatches.set(value,person);scheduleStarmeterPatchFlush();return false}return patchStarmeterIdentityNow(value,person);
+}
+function starmeterLibraryRenderKey(entry={}){
+  const cached=starmeterPersonCache.get(starmeterNormalize(entry.name)),titles=starmeterPersonTitles(cached);return `${cached?'ready':'loading'}|${cached?.retryable?'retry':'done'}|${titles.length}|${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>String(x?.id||x?._nativeSourceId||x?.name||'')).join(',')}`;
+}
+function patchStarmeterPersonNow(rank){
+  if(state.page!=='starmeter'||detailItem||personView)return false;const entry=starmeterPeople.find(x=>Number(x.rank)===Number(rank)),section=document.querySelector(`[data-starmeter-rank="${Number(rank)}"]`);if(!entry||!section||starmeterSectionIsActive(section))return false;
+  const oldLibrary=section.querySelector('.starmeter-library-column');if(!oldLibrary)return false;const renderKey=starmeterLibraryRenderKey(entry);if(oldLibrary.dataset.starmeterRenderKey===renderKey)return true;
+  const wrap=document.createElement('div');wrap.innerHTML=starmeterPersonSection(entry);const newLibrary=wrap.firstElementChild?.querySelector('.starmeter-library-column');if(!newLibrary)return false;
+  oldLibrary.replaceChildren(...[...newLibrary.childNodes]);oldLibrary.dataset.starmeterRenderKey=renderKey;hydrateArtwork(oldLibrary);hydrateVisibleImdbRatings(oldLibrary);bindDynamicCards(oldLibrary);return true;
+}
+function scheduleStarmeterPatchFlush(delay=180){if(starmeterPatchTimer||state.page!=='starmeter')return;starmeterPatchTimer=setTimeout(flushStarmeterDeferredPatches,Math.max(80,Number(delay||180)))}
+function scheduleStarmeterPersonPatch(rank,delay=180){const value=Number(rank||0);if(!value||state.page!=='starmeter')return false;starmeterDeferredPatches.add(value);scheduleStarmeterPatchFlush(delay);return true}
+function flushStarmeterDeferredPatches(){
+  clearTimeout(starmeterPatchTimer);starmeterPatchTimer=null;if(state.page!=='starmeter'||detailItem||personView){starmeterDeferredPatches.clear();starmeterDeferredIdentityPatches.clear();return}
+  if(performance.now()-starmeterLastFocusMoveAt<180){scheduleStarmeterPatchFlush(180);return}const activeRank=Number(document.activeElement?.closest?.('[data-starmeter-rank]')?.dataset?.starmeterRank||0);
+  for(const [rank,person] of [...starmeterDeferredIdentityPatches]){if(rank===activeRank)continue;if(patchStarmeterIdentityNow(rank,person))starmeterDeferredIdentityPatches.delete(rank)}
+  for(const rank of [...starmeterDeferredPatches]){if(rank===activeRank)continue;if(patchStarmeterPersonNow(rank))starmeterDeferredPatches.delete(rank)}
+  if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(220)
+}
+function patchStarmeterPerson(rank){return scheduleStarmeterPersonPatch(rank)}
 function restoreFocusSignatureIn(root,sig){if(!root||!sig)return false;let target=null;if(sig.id)target=root.querySelector(`#${CSS.escape(sig.id)}`);if(!target&&sig.attr)target=[...root.querySelectorAll(`[${sig.attr}]`)].find(x=>x.getAttribute(sig.attr)===sig.value);if(!target&&sig.text)target=[...root.querySelectorAll('button,[tabindex],.card')].find(x=>(x.getAttribute('aria-label')||x.textContent||'').trim().replace(/\s+/g,' ').slice(0,100)===sig.text);if(target){try{target.focus({preventScroll:true})}catch{target.focus()}return true}return false}
 function appendStarmeterSections(count=STARMETER_APPEND_BATCH){
   if(state.page!=='starmeter'||!starmeterPeople.length)return false;const host=document.querySelector('.starmeter-content'),sentinel=host?.querySelector('[data-starmeter-sentinel]');if(!host||!sentinel)return false;const start=Math.max(STARMETER_INITIAL_VISIBLE,starmeterVisibleCount),end=Math.min(starmeterPeople.length,start+Math.max(1,Number(count||STARMETER_APPEND_BATCH)));if(end<=start)return false;
@@ -3209,7 +3231,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:834,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:835,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -3556,7 +3578,7 @@ document.addEventListener('focusin',e=>{
     const section=tvRailSection(el),cards=tvRailCards(section),card=el.closest?.('.card,.live-rail-card');if(section&&card){const index=cards.indexOf(card);if(index>=0)tvRowColumnMemory.set(tvRailSectionKey(section),index);tvPrefetchArtworkWindow(card,state.page==='home'?32:24,4);longRailPrefetchForFocus(card)}
     if((detailItem||personView)&&el.closest?.('[data-detail-close],[data-person-close]')){const scroller=document.querySelector(detailItem?'.detail-scroll':'.person-scroll');if(scroller)scroller.scrollTop=0}
     if(state.page==='live'){const playEl=el.closest?.('[data-play]'),item=playEl?savedItem(playEl.dataset.play):null;if(item?.kind==='live'){patchLiveHeroFocusedChannel(item);scheduleLiveHeroPreview(item,450)}}
-    if(state.page==='starmeter'){const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=6})}}}
+    if(state.page==='starmeter'){starmeterLastFocusMoveAt=performance.now();const personSection=el.closest?.('[data-starmeter-rank]'),rank=Number(personSection?.dataset?.starmeterRank||0),idx=rank?starmeterPeople.findIndex(x=>Number(x.rank)===rank):-1;if(idx>=0){queueStarmeterPerson(starmeterPeople[idx],{priority:true});for(let ahead=1;ahead<=STARMETER_PREFETCH_AHEAD;ahead++){const next=starmeterPeople[idx+ahead];if(next)queueStarmeterPerson(next,{priority:ahead<=6})}}if(starmeterDeferredPatches.size||starmeterDeferredIdentityPatches.size)scheduleStarmeterPatchFlush(220)}
     if(state.page==='guide')maybeAutoLoadGuideFromFocus(el);
   }
 },true);

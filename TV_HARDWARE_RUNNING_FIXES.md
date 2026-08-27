@@ -2,7 +2,7 @@
 
 ## Current build under test
 
-**v0.8.34 — STARmeter Fail-Open Batch Recovery Hotfix**
+**v0.8.35 — STARmeter Stable Row Rendering Hotfix**
 
 ## Implemented — needs physical-TV verification
 

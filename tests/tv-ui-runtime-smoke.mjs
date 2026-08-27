@@ -105,7 +105,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.34';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.35';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -138,14 +138,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.34-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.35-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.34') throw new Error('Install seed source version is not v0.8.34');
+if (String(installSeed.sourceVersion||'') !== '0.8.35') throw new Error('Install seed source version is not v0.8.35');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -225,3 +225,10 @@ if (appSource.includes("tvCatalogWorkerRequest('person-match-batch',{people},240
 if (!appSource.includes('void prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('Profile selection still blocks on STARmeter preparation');
 if (!appSource.includes("STARmeter is usable now · provider matching will retry in the background.")) throw new Error('STARmeter fail-open recovery state missing');
 if (!appSource.includes('const body=visible.length?visible.map(starmeterPersonSection).join')) throw new Error('STARmeter page is still hard-gated by background matching');
+
+// v0.8.35 stable-row guard
+if(!appSource.includes('const starmeterDeferredPatches=new Set(),starmeterDeferredIdentityPatches=new Map()'))throw new Error('v0.8.35 deferred STARmeter patch queues missing');
+if(!appSource.includes('function flushStarmeterDeferredPatches()')||!appSource.includes('performance.now()-starmeterLastFocusMoveAt<180'))throw new Error('v0.8.35 D-pad settle guard missing');
+const v835s=appSource.indexOf('function patchStarmeterPersonNow(rank)'),v835e=appSource.indexOf('function restoreFocusSignatureIn',v835s),v835b=appSource.slice(v835s,v835e);
+if(!v835b.includes("querySelector('.starmeter-library-column')")||!v835b.includes('oldLibrary.replaceChildren')||v835b.includes('oldPerson.replaceWith'))throw new Error('v0.8.35 stable library-only patch path missing');
+if(!cssSource.includes('contain:layout paint style!important')||!cssSource.includes('overflow-y:hidden!important'))throw new Error('v0.8.35 STARmeter paint containment missing');
