@@ -49,6 +49,10 @@ async function idbKeys(){
 
 const yieldToUi=()=>new Promise(resolve=>setTimeout(resolve,0));
 
+function catalogChunkFingerprint(chunk=[]){
+  let h=2166136261;for(const item of chunk){const row=[item?.id,item?.providerId,item?.kind,item?.name,item?.year,item?.group,item?.streamUrl,item?.logo,item?.backdrop,item?.providerAddedAt,item?.streamId,item?.seriesId].map(v=>String(v??'')).join('|');for(let i=0;i<row.length;i++){h^=row.charCodeAt(i);h=Math.imul(h,16777619)}}return `${chunk.length}-${(h>>>0).toString(36)}`;
+}
+
 function compactRows(rows=[]){
   return Array.isArray(rows)?rows.map(r=>({...r,items:[]})):[];
 }
@@ -161,7 +165,7 @@ export function loadState(){
 export async function loadBulkState({onProgress}={}){
   try{
     const manifest=await idbGet(BULK_MANIFEST);
-    if(manifest?.schema===2)return await loadChunkedBulk(manifest,onProgress);
+    if(manifest?.schema===2||manifest?.schema===3)return await loadChunkedBulk(manifest,onProgress);
     try{return await loadLegacyViaWorker(onProgress)}catch{return await idbGet('bulk')}
   }catch{return null}
 }
@@ -210,25 +214,19 @@ export async function saveBulkState(state,{catalog=true}={}){
     const parts=bulkParts(state);
     let manifest=await idbGet(BULK_MANIFEST);
     if(catalog||!manifest?.schema){
-      const chunks=[];
-      for(let i=0;i<parts.catalog.length;i+=CATALOG_CHUNK_SIZE)chunks.push(parts.catalog.slice(i,i+CATALOG_CHUNK_SIZE));
+      const chunks=[],hashes=[];for(let i=0;i<parts.catalog.length;i+=CATALOG_CHUNK_SIZE){const chunk=parts.catalog.slice(i,i+CATALOG_CHUNK_SIZE);chunks.push(chunk);hashes.push(catalogChunkFingerprint(chunk))}
+      const oldHashes=Array.isArray(manifest?.chunkHashes)?manifest.chunkHashes:[];let written=0,unchanged=0;
       for(let i=0;i<chunks.length;i++){
-        await idbPut(`${CATALOG_PREFIX}${i}`,chunks[i]);
+        if(oldHashes[i]===hashes[i])unchanged++;
+        else{await idbPut(`${CATALOG_PREFIX}${i}`,chunks[i]);written++;}
         if(i%2===1)await yieldToUi();
       }
-      manifest={schema:2,catalogChunks:chunks.length,catalogItems:parts.catalog.length,savedAt:Date.now()};
-      await idbPut(BULK_MANIFEST,manifest);
-      await cleanupOldCatalogChunks(chunks.length);
-      await idbDelete('bulk');
+      manifest={schema:3,catalogChunks:chunks.length,catalogItems:parts.catalog.length,chunkHashes:hashes,changedChunks:written,unchangedChunks:unchanged,savedAt:Date.now()};
+      await idbPut(BULK_MANIFEST,manifest);await cleanupOldCatalogChunks(chunks.length);await idbDelete('bulk');
     }else{
-      manifest={...manifest,savedAt:Date.now()};
-      await idbPut(BULK_MANIFEST,manifest);
+      manifest={...manifest,savedAt:Date.now()};await idbPut(BULK_MANIFEST,manifest);
     }
-    await Promise.all([
-      idbPut(WEB_KEY,parts.webDiscovery),
-      idbPut(META_KEY,parts.metadataCache),
-      idbPut(MDB_ROWS_KEY,parts.mdblistRows)
-    ]);
+    await Promise.all([idbPut(WEB_KEY,parts.webDiscovery),idbPut(META_KEY,parts.metadataCache),idbPut(MDB_ROWS_KEY,parts.mdblistRows)]);
     try{localStorage.removeItem(LEGACY_KEY)}catch{}
     return true;
   }catch{return false}

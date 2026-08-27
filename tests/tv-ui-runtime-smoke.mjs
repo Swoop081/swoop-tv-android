@@ -4,6 +4,10 @@ const appSource = fs.readFileSync(new URL('../app/src/main/assets/app.js', impor
 const cssSource = fs.readFileSync(new URL('../app/src/main/assets/styles.css', import.meta.url), 'utf8');
 const nativeSource = fs.readFileSync(new URL('../app/src/main/assets/src/native.js', import.meta.url), 'utf8');
 const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/player/MainActivity.java', import.meta.url), 'utf8');
+const performancePackSource = fs.readFileSync(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url), 'utf8');
+const storageSource = fs.readFileSync(new URL('../app/src/main/assets/src/storage.js', import.meta.url), 'utf8');
+const swSource = fs.readFileSync(new URL('../app/src/main/assets/sw.js', import.meta.url), 'utf8');
+const {performancePackProviderDelta} = await import(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url));
 
 const starmeterManifest = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/starmeter.json', import.meta.url), 'utf8'));
 const starmeterPeople = Array.isArray(starmeterManifest?.people) ? starmeterManifest.people : [];
@@ -105,7 +109,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.35';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.36';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -138,14 +142,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.35-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.36-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.35') throw new Error('Install seed source version is not v0.8.35');
+if (String(installSeed.sourceVersion||'') !== '0.8.36') throw new Error('Install seed source version is not v0.8.36');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -207,13 +211,36 @@ if (!cssSource.includes('.guide-live-banner{') || !cssSource.includes('height:14
 const seedScriptSource = fs.readFileSync(new URL('../scripts/refresh-seed-cache.mjs', import.meta.url), 'utf8');
 if (!seedScriptSource.includes('SWOOP_SEED_CREDIT_PEOPLE||100') || !seedScriptSource.includes('original_title') || !seedScriptSource.includes('original_name')) throw new Error('Full Top 100 filmography seed generation/aliases missing');
 
+
+
+// v0.8.36 functional provider-delta contract.
+const deltaFirst=performancePackProviderDelta([],[{id:'a',kind:'movie',name:'A',year:2025,logo:'https://image/a.jpg'},{id:'b',kind:'series',name:'B',year:2024,logo:'https://image/b.jpg'}]);
+if(deltaFirst.added!==2||deltaFirst.changed!==0||deltaFirst.removed!==0||deltaFirst.nextRows.length!==2)throw new Error('Performance Pack initial provider delta is incorrect');
+const deltaSameReordered=performancePackProviderDelta(deltaFirst.nextRows,[{id:'b',kind:'series',name:'B',year:2024,logo:'https://image/b.jpg'},{id:'a',kind:'movie',name:'A',year:2025,logo:'https://image/a.jpg'}]);
+if(deltaSameReordered.unchanged!==2||deltaSameReordered.added||deltaSameReordered.changed||deltaSameReordered.removed||deltaSameReordered.fingerprint!==deltaFirst.fingerprint)throw new Error('Performance Pack fingerprint must be order-independent and retain unchanged provider items');
+const deltaStreamOnly=performancePackProviderDelta(deltaFirst.nextRows,[{id:'a',kind:'movie',name:'A',year:2025,logo:'https://image/a.jpg',streamUrl:'https://provider/new-session/a'},{id:'b',kind:'series',name:'B',year:2024,logo:'https://image/b.jpg',streamUrl:'https://provider/new-session/b'}]);
+if(deltaStreamOnly.changed!==0||deltaStreamOnly.unchanged!==2)throw new Error('Performance Pack visual/metadata delta must ignore playback URL/session churn');
+const deltaChanged=performancePackProviderDelta(deltaFirst.nextRows,[{id:'a',kind:'movie',name:'A',year:2025,logo:'https://image/a-v2.jpg'},{id:'c',kind:'movie',name:'C',year:2026}]);
+if(deltaChanged.added!==1||deltaChanged.changed!==1||deltaChanged.removed!==1||deltaChanged.changedItems.length!==2)throw new Error('Performance Pack changed/added/removed provider delta is incorrect');
+
+// v0.8.36 Performance Pack + incremental retention architecture.
+if (!appSource.includes("from './src/performancePack.js'")) throw new Error('v0.8.36 Performance Pack runtime module is not wired into app.js');
+if (!performancePackSource.includes("const DB_NAME='swoop-tv-performance-pack'") || !performancePackSource.includes("PERFORMANCE_ARTWORK_CACHE='swoop-tv-artwork-v1'")) throw new Error('Performance Pack persistent storage/artwork cache missing');
+if (!performancePackSource.includes('syncProviderPerformancePack') || !performancePackSource.includes('providerFingerprint(rows=[])')) throw new Error('Provider delta fingerprint engine missing');
+if (!appSource.includes('syncProviderPerformancePack(providerId,result.items') || !appSource.includes('syncProviderPerformancePack(providerId,cat') || !appSource.includes('syncProviderPerformancePack(p.id,resultItems')) throw new Error('Xtream/M3U add and provider refresh do not feed the incremental Performance Pack');
+if (!performancePackSource.includes('STARMETER_RETENTION_MS=90*24*60*60*1000') || !performancePackSource.includes('loadPerformancePackStarmeter') || !performancePackSource.includes('savePerformancePackStarmeter')) throw new Error('Persistent 90-day STARmeter cache missing');
+if (!appSource.includes('const missing=people.filter(row=>!starmeterPersonCache.has(row.key))') || !appSource.includes('applyPersistedStarmeterRows')) throw new Error('STARmeter is not reusing persisted people before matching newcomers');
+if (!appSource.includes('if(e.repeat){starmeterHeldDirectional=true') || !appSource.includes("window.addEventListener('keyup'") || !appSource.includes('starmeterHeldKeys.size>0')) throw new Error('Held D-pad mutation freeze/release handling missing');
+if (!swSource.includes("ARTWORK_CACHE='swoop-tv-artwork-v1'") || !swSource.includes("e.request.destination==='image'")) throw new Error('Service-worker persistent artwork cache path missing');
+if (!appSource.includes("if('serviceWorker'in navigator&&location.protocol.startsWith('http'))")) throw new Error('Android service-worker registration is still disabled by native playback');
+if (!storageSource.includes('schema:3') || !storageSource.includes('chunkHashes') || !storageSource.includes('catalogChunkFingerprint')) throw new Error('Incremental durable catalogue chunk persistence missing');
 console.log('Google TV UI runtime smoke passed');
 
 
 // v0.8.33 route-top restoration + complete pre-login STARmeter preparation.
 if (!appSource.includes('function tvForceRouteTop()') || !appSource.includes("target.closest?.('.topbar')")) throw new Error('v0.8.33 canonical route-top restoration missing');
 if (!appSource.includes('function prepareStarmeterBeforeLogin()') || !appSource.includes("tvCatalogWorkerRequest('person-match-batch'")) throw new Error('v0.8.33 pre-login STARmeter batch preparation missing');
-if (!appSource.includes("if(NATIVE_ANDROID){render();setTimeout(()=>prepareStarmeterBeforeLogin()")) throw new Error('STARmeter preparation does not start on the profile picker');
+if (!appSource.includes("if(NATIVE_ANDROID){render();setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)}")) throw new Error('STARmeter preparation does not start on the profile picker');
 if (!appSource.includes('const routeTab=document.querySelector(`.desktop-nav [data-page=') || !appSource.includes('CSS.escape(state.page)')) throw new Error('First-row Up does not escape to the active route tab');
 if (!cssSource.includes('height:430px!important') || !cssSource.includes('.profile-starmeter-prep')) throw new Error('v0.8.33 STARmeter non-overlap/profile-prewarm CSS missing');
 if (!fs.readFileSync(new URL('../app/src/main/assets/src/catalog-index-worker.js', import.meta.url), 'utf8').includes("msg.type==='person-match-batch'")) throw new Error('STARmeter worker batch-match contract missing');
@@ -226,9 +253,14 @@ if (!appSource.includes('void prepareStarmeterBeforeLogin().catch(()=>false)')) 
 if (!appSource.includes("STARmeter is usable now · provider matching will retry in the background.")) throw new Error('STARmeter fail-open recovery state missing');
 if (!appSource.includes('const body=visible.length?visible.map(starmeterPersonSection).join')) throw new Error('STARmeter page is still hard-gated by background matching');
 
-// v0.8.35 stable-row guard
-if(!appSource.includes('const starmeterDeferredPatches=new Set(),starmeterDeferredIdentityPatches=new Map()'))throw new Error('v0.8.35 deferred STARmeter patch queues missing');
-if(!appSource.includes('function flushStarmeterDeferredPatches()')||!appSource.includes('performance.now()-starmeterLastFocusMoveAt<180'))throw new Error('v0.8.35 D-pad settle guard missing');
-const v835s=appSource.indexOf('function patchStarmeterPersonNow(rank)'),v835e=appSource.indexOf('function restoreFocusSignatureIn',v835s),v835b=appSource.slice(v835s,v835e);
-if(!v835b.includes("querySelector('.starmeter-library-column')")||!v835b.includes('oldLibrary.replaceChildren')||v835b.includes('oldPerson.replaceWith'))throw new Error('v0.8.35 stable library-only patch path missing');
-if(!cssSource.includes('contain:layout paint style!important')||!cssSource.includes('overflow-y:hidden!important'))throw new Error('v0.8.35 STARmeter paint containment missing');
+
+// v0.8.35 STARmeter physical-TV stable-row rendering hotfix.
+if (!appSource.includes('const starmeterDeferredPatches=new Set(),starmeterDeferredIdentityPatches=new Map()')) throw new Error('v0.8.35 deferred STARmeter patch queues missing');
+if (!appSource.includes('function flushStarmeterDeferredPatches()') || !appSource.includes('function starmeterMutationBlocked()') || !appSource.includes('starmeterHeldDirectional')) throw new Error('v0.8.36 held-D-pad STARmeter settle guard missing');
+const patchStart=appSource.indexOf('function patchStarmeterPersonNow(rank)');
+const patchEnd=appSource.indexOf('function restoreFocusSignatureIn',patchStart);
+const patchBlock=patchStart>=0&&patchEnd>patchStart?appSource.slice(patchStart,patchEnd):'';
+if (!patchBlock || patchBlock.includes('oldPerson.replaceWith') || patchBlock.includes("querySelector('.starmeter-person-column'),oldLibrary")) throw new Error('STARmeter person identity column is still being replaced during hydration');
+if (!patchBlock.includes("querySelector('.starmeter-library-column')") || !patchBlock.includes('oldLibrary.replaceChildren')) throw new Error('STARmeter library-only patch path missing');
+if (appSource.includes("if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();return true;") || appSource.includes("if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();scheduleStarmeterBackgroundRetry")) throw new Error('STARmeter background preparation still full-rerenders the active page');
+if (!cssSource.includes('contain:layout paint style!important') || !cssSource.includes('overflow-y:hidden!important') || !/\.starmeter-person-card\s*\{\s*transition\s*:\s*none!important/.test(cssSource)) throw new Error('v0.8.35 STARmeter paint containment/clipping contract missing');

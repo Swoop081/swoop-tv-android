@@ -1,15 +1,12 @@
 {
-  "version": "0.8.35",
-  "versionCode": 835,
-  "versionedApk": "Swoop-TV-v0.8.35-Google-TV-Test.apk",
+  "version": "0.8.36",
+  "versionCode": 836,
+  "versionedApk": "Swoop-TV-v0.8.36-Google-TV-Test.apk",
   "stableApk": "Swoop-TV-v0.8.1-Google-TV-Test.apk",
   "changes": [
-    "Fixes the physical-TV STARmeter duplicate/ghost rendering where ranks, portraits, names and provider-title content could be painted multiple times during rapid D-pad scrolling.",
-    "Keeps every STARmeter rank/portrait/name identity column permanently mounted after the Top 100 page is created.",
-    "Defers async STARmeter hydration until D-pad focus settles for 180 ms and never mutates the currently focused person row.",
-    "Restricts async row updates to the provider-title library column and removes background full-page rerenders.",
-    "Adds Android WebView paint containment, isolation and vertical clipping to prevent stale compositor layers bleeding into adjacent people.",
-    "Retains v0.8.34 fail-open 12-person indexed matching, automatic retry and non-blocking profile selection.",
-    "Android versionName is 0.8.35 and versionCode is 835."
+    "Adds a persistent Performance Pack so installer seed data, provider fingerprints, metadata knowledge and artwork cache state survive normal launches and APK upgrades.",
+    "Provider refreshes calculate catalogue deltas and prioritise only added/changed titles instead of repeating expensive preparation for unchanged content.",
+    "STARmeter person/library matches persist for 90 days independently of rank, so rank movement does not trigger rematching; new/stale people are handled incrementally.",
+    "Freezes STARmeter asynchronous DOM hydration throughout a held/long-pressed D-pad direction and resumes only after key release plus scroll settle."
   ]
 }

@@ -1,5 +1,12 @@
 # Swoop TV Release Notes
 
+## v0.8.36 — Performance Pack + Incremental Library Cache
+
+- Adds a persistent Performance Pack so installer seed data, provider fingerprints, metadata knowledge and artwork cache state survive normal launches and APK upgrades.
+- Provider refreshes calculate catalogue deltas and prioritise only added/changed titles instead of repeating expensive preparation for unchanged content.
+- STARmeter person/library matches persist for 90 days independently of rank, so rank movement does not trigger rematching; new/stale people are handled incrementally.
+- Freezes STARmeter asynchronous DOM hydration throughout a held/long-pressed D-pad direction and resumes only after key release plus scroll settle.
+
 ## v0.8.35 — STARmeter Stable Row Rendering Hotfix
 
 - Fixes the physical-TV STARmeter duplicate/ghost rendering where ranks, portraits, names and provider-title content could be painted multiple times during rapid D-pad scrolling.

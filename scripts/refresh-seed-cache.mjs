@@ -1,64 +1,68 @@
-import {execFileSync} from 'node:child_process';
-import {readFileSync,writeFileSync,unlinkSync,existsSync} from 'node:fs';
-import {inflateSync} from 'node:zlib';
-const run=(c,a=[],o={})=>execFileSync(c,a,{stdio:'inherit',...o});
-const out=(c,a=[])=>execFileSync(c,a,{encoding:'utf8'});
-const chunks=Array.from({length:6},(_,i)=>`scripts/.v0836-patch-${i}.b64`);
-const packed=chunks.map(p=>readFileSync(p,'utf8').trim()).join('');
-const fullPatch=inflateSync(Buffer.from(packed,'base64')).toString('utf8');
-const allowed=new Set([
-  'app/build.gradle','app/src/main/assets/app.js','app/src/main/assets/src/storage.js','app/src/main/assets/sw.js',
-  'app/src/main/java/tv/swoop/player/MainActivity.java','scripts/refresh-seed-cache.mjs','app/src/main/assets/src/performancePack.js'
-]);
-const sections=fullPatch.split(/(?=^--- )/m).filter(Boolean);
-const selected=[];
-for(const section of sections){
-  const m=section.match(/^--- (?:a\/([^\n]+)|\/dev\/null)\n\+\+\+ (?:b\/([^\n]+)|\/dev\/null)/);
-  const path=m?.[2]||m?.[1]||'';
-  if(allowed.has(path))selected.push(section);
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root=process.cwd();
+const service=String(process.env.SWOOP_METADATA_SERVICE||'https://swoop-tv-connection.justinbelot8.workers.dev').replace(/\/+$/,'');
+const sourcePath=path.join(root,'swoop-tv-starmeter.json');
+const assetPath=path.join(root,'app/src/main/assets/seed-cache.json');
+const rootPath=path.join(root,'swoop-tv-seed-cache.json');
+const OFFLINE=String(process.env.SWOOP_SEED_OFFLINE||'').toLowerCase()==='1';
+const CREDIT_PERSON_LIMIT=Math.max(0,Math.min(100,Number(process.env.SWOOP_SEED_CREDIT_PEOPLE||100)));
+const IDENTITY_CONCURRENCY=Math.max(1,Math.min(10,Number(process.env.SWOOP_SEED_IDENTITY_CONCURRENCY||6)));
+const CREDIT_CONCURRENCY=Math.max(1,Math.min(6,Number(process.env.SWOOP_SEED_CREDIT_CONCURRENCY||3)));
+const TITLE_METADATA_PER_KIND=Math.max(0,Math.min(150,Number(process.env.SWOOP_SEED_TITLE_METADATA||60)));
+const TITLE_METADATA_CONCURRENCY=Math.max(1,Math.min(8,Number(process.env.SWOOP_SEED_TITLE_CONCURRENCY||5)));
+const MAX_CREDITS_PER_PERSON=Math.max(20,Math.min(300,Number(process.env.SWOOP_SEED_MAX_CREDITS||160)));
+
+const source=JSON.parse(fs.readFileSync(sourcePath,'utf8'));
+const people=(Array.isArray(source.people)?source.people:[]).slice(0,100).map((p,i)=>({rank:Number(p.rank||i+1),name:String(p.name||'').trim()})).filter(x=>x.name);
+const normalize=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+const compactYear=v=>{const m=String(v||'').match(/(?:19|20)\d{2}/);return m?m[0]:''};
+let previous=null;try{previous=JSON.parse(fs.readFileSync(assetPath,'utf8'))}catch{}
+
+async function post(body,timeoutMs=12000){
+  if(OFFLINE)throw new Error('offline seed generation');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{const res=await fetch(service,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:controller.signal});if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}finally{clearTimeout(timer)}
 }
-if(selected.length!==allowed.size)throw new Error(`Expected ${allowed.size} runtime patch sections, found ${selected.length}`);
-writeFileSync('/tmp/swoop-v0836-runtime.patch',selected.join(''));
-// The current main staging commit temporarily replaced the real seed refresher with this runner.
-// Restore the exact verified v0.8.35 refresher before applying its one-line v0.8.36 version change.
-run('git',['fetch','--no-tags','--depth=1','origin','39afc7c34cc79a04cb4ba5baba9be857054364bc']);
-writeFileSync('scripts/refresh-seed-cache.mjs',out('git',['show','39afc7c34cc79a04cb4ba5baba9be857054364bc:scripts/refresh-seed-cache.mjs']));
-// Normalize the only known formatting-only drift between the verified local v0.8.35 source and current GitHub main.
-let baseApp=readFileSync('app/src/main/assets/app.js','utf8');
-baseApp=baseApp.replace("function scheduleStarmeterPatchFlush(delay=180){if(starmeterPatchTimer||state.page!=='starmeter')return;starmeterPatchTimer=setTimeout(flushStarmeterDeferredPatches,Math.max(80,Number(delay||180)))}","function scheduleStarmeterPatchFlush(delay=180){\n  if(starmeterPatchTimer||state.page!=='starmeter')return;starmeterPatchTimer=setTimeout(flushStarmeterDeferredPatches,Math.max(80,Number(delay||180)));\n}");
-baseApp=baseApp.replace("if(performance.now()-starmeterLastFocusMoveAt<180){scheduleStarmeterPatchFlush(180);return}const activeRank=","if(performance.now()-starmeterLastFocusMoveAt<180){scheduleStarmeterPatchFlush(180);return}\n  const activeRank=");
-writeFileSync('app/src/main/assets/app.js',baseApp);
-console.log('Applying the v0.8.36 runtime patch with formatting-tolerant context matching…');
-run('patch',['--dry-run','--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
-run('patch',['--batch','--forward','--fuzz=3','-p1','-i','/tmp/swoop-v0836-runtime.patch']);
-// Install the exact v0.8.36 regression suite, then make its CSS assertion formatting-insensitive
-// because the live GitHub v0.8.35 stylesheet is minified differently from the local verified snapshot.
-const testBlob='scripts/.v0836-test.b64';
-writeFileSync('tests/tv-ui-runtime-smoke.mjs',inflateSync(Buffer.from(readFileSync(testBlob,'utf8').trim(),'base64')));
-let testSource=readFileSync('tests/tv-ui-runtime-smoke.mjs','utf8');
-testSource=testSource.replace("!cssSource.includes('.starmeter-person-card{\\n  transition:none!important')","!/\\.starmeter-person-card\\s*\\{\\s*transition\\s*:\\s*none!important/.test(cssSource)");
-writeFileSync('tests/tv-ui-runtime-smoke.mjs',testSource);
-// Keep the canonical changelog current even though old GitHub docs had harmless formatting drift.
-let notes=readFileSync('RELEASE_NOTES.md','utf8');
-if(!notes.includes('## v0.8.36 — Performance Pack + Incremental Library Cache')){
-  const section=`## v0.8.36 — Performance Pack + Incremental Library Cache\n\n- Adds a persistent Performance Pack so installer seed data, provider fingerprints, metadata knowledge and artwork cache state survive normal launches and APK upgrades.\n- Provider refreshes calculate catalogue deltas and prioritise only added/changed titles instead of repeating expensive preparation for unchanged content.\n- STARmeter person/library matches persist for 90 days independently of rank, so rank movement does not trigger rematching; new/stale people are handled incrementally.\n- Freezes STARmeter asynchronous DOM hydration throughout a held/long-pressed D-pad direction and resumes only after key release plus scroll settle.\n\n`;
-  notes=notes.startsWith('# Swoop TV Release Notes\n\n')?notes.replace('# Swoop TV Release Notes\n\n','# Swoop TV Release Notes\n\n'+section):section+notes;
-  writeFileSync('RELEASE_NOTES.md',notes);
+async function mapLimit(list,limit,fn){let cursor=0;const out=new Array(list.length);async function worker(){while(true){const i=cursor++;if(i>=list.length)return;try{out[i]=await fn(list[i],i)}catch{out[i]=null}}}await Promise.all(Array.from({length:Math.min(limit,list.length||1)},worker));return out}
+function compactPerson(raw={},fallback={}){return {id:String(raw.id||fallback.id||''),name:String(raw.name||fallback.name||''),profile:String(raw.profile||raw.profile_path||fallback.profile||''),knownForDepartment:String(raw.knownForDepartment||raw.known_for_department||fallback.knownForDepartment||'Person'),aliases:[...new Set([raw.name,fallback.name,...(Array.isArray(raw.also_known_as)?raw.also_known_as:[])].filter(Boolean).map(String))]}}
+function compactCredit(raw={}){const ids=raw.ids&&typeof raw.ids==='object'?raw.ids:{};const media=String(raw.media_type||raw.mediaType||'');return {media_type:media,id:raw.id??'',title:String(raw.title||''),name:String(raw.name||''),original_title:String(raw.original_title||raw.originalTitle||''),original_name:String(raw.original_name||raw.originalName||''),year:String(raw.year||compactYear(raw.release_date||raw.first_air_date||'')),release_date:String(raw.release_date||''),first_air_date:String(raw.first_air_date||''),tmdb_id:raw.tmdb_id??raw.tmdb??ids.tmdb??'',imdb_id:String(raw.imdb_id??raw.imdb??ids.imdb??''),popularity:Number(raw.popularity||0)||0,vote_count:Number(raw.vote_count||0)||0}}
+function compactMetadata(raw={},mediaType='movie'){return {mediaType:mediaType==='tv'?'tv':'movie',title:String(raw.title||raw.name||''),year:String(raw.year||compactYear(raw.release_date||raw.first_air_date||'')),tmdbId:String(raw.tmdbId??raw.tmdb_id??raw.tmdb??''),imdbId:String(raw.imdbId??raw.imdb_id??raw.imdb??''),poster:String(raw.poster||raw.poster_path||''),backdrop:String(raw.backdrop||raw.backdrop_path||''),titleLogo:String(raw.titleLogo||raw.logo||''),plot:String(raw.plot||raw.overview||''),rating:raw.rating??raw.vote_average??'',imdbRating:raw.imdbRating??'',runtime:raw.runtime??'',genre:raw.genre??'',genres:Array.isArray(raw.genres)?raw.genres:[],castList:Array.isArray(raw.castList)?raw.castList:[],director:String(raw.director||''),certification:String(raw.certification||''),youtube:String(raw.youtube||''),trailerName:String(raw.trailerName||'')}}
+
+let discovery={};
+if(!OFFLINE){try{const [movie,tv]=await Promise.all([post({mode:'discovery',mediaType:'movie'},18000),post({mode:'discovery',mediaType:'tv'},18000)]);if(movie&&typeof movie==='object')discovery.movie=movie;if(tv&&typeof tv==='object')discovery.tv=tv;console.log('Seed discovery bundle refreshed.')}catch(err){console.warn(`Discovery seed refresh unavailable: ${err.message}`)}}
+if(!Object.keys(discovery).length&&previous?.discovery&&typeof previous.discovery==='object')discovery=previous.discovery;
+
+const priorPeople=new Map((previous?.starmeter?.people||[]).map(p=>[normalize(p.name||p.person?.name),p]));
+const enriched=await mapLimit(people,IDENTITY_CONCURRENCY,async entry=>{
+  const prior=priorPeople.get(normalize(entry.name));let person=compactPerson(prior?.person||{}, {name:entry.name});
+  if(!OFFLINE){try{const found=await post({mode:'person-search',query:entry.name,limit:3},9000),list=Array.isArray(found?.people)?found.people:[],exact=list.find(p=>normalize(p.name)===normalize(entry.name))||list[0];if(exact)person=compactPerson(exact,person)}catch{}}
+  return {...entry,person,aliases:[...new Set([entry.name,...(person.aliases||[])])],...(Array.isArray(prior?.credits)&&prior.credits.length?{credits:prior.credits}: {})};
+});
+
+if(!OFFLINE&&CREDIT_PERSON_LIMIT){
+  const targets=enriched.slice(0,CREDIT_PERSON_LIMIT);
+  await mapLimit(targets,CREDIT_CONCURRENCY,async (entry,i)=>{try{const payload=await post({mode:'person-credits',personId:entry.person.id||'',name:entry.person.name},13000),remote=payload?.person;if(remote){entry.person=compactPerson(remote,entry.person);const credits=(Array.isArray(remote.credits)?remote.credits:[]).filter(x=>['movie','tv'].includes(String(x?.media_type||''))).slice(0,MAX_CREDITS_PER_PERSON).map(compactCredit);if(credits.length)entry.credits=credits}}catch{}if((i+1)%6===0)console.log(`Seeded filmography ${i+1}/${targets.length}`)});
 }
-for(const p of [...chunks,'scripts/.v0836-test.b64'])try{unlinkSync(p)}catch{}
-const app=readFileSync('app/src/main/assets/app.js','utf8'),gradle=readFileSync('app/build.gradle','utf8');
-if(!gradle.includes("versionName '0.8.36'")||!gradle.includes('versionCode 836'))throw new Error('Gradle did not promote to v0.8.36/836');
-if(!app.includes("const ANDROID_CURRENT_VERSION='0.8.36';")||!app.includes("from './src/performancePack.js'")||!app.includes('starmeterHeldDirectional'))throw new Error('v0.8.36 app promotion contract failed');
-console.log('Runtime source promoted. Refreshing installer seed and running the full validation gate…');
-run(process.execPath,['scripts/refresh-seed-cache.mjs']);
-run(process.execPath,['scripts/generate-build-metadata.mjs']);
-for(const p of ['app/src/main/assets/app.js','app/src/main/assets/src/performancePack.js','app/src/main/assets/src/storage.js','scripts/refresh-seed-cache.mjs'])run(process.execPath,['--check',p]);
-run(process.execPath,['tests/card-runtime-smoke.mjs']);
-run(process.execPath,['tests/tv-ui-runtime-smoke.mjs']);
-run('python',['-m','json.tool','app/src/main/assets/seed-cache.json'],{stdio:'ignore'});
-run('python',['-m','json.tool','swoop-tv-seed-cache.json'],{stdio:'ignore'});
-run('git',['config','user.name','github-actions[bot]']);run('git',['config','user.email','41898282+github-actions[bot]@users.noreply.github.com']);
-run('git',['add','-A']);
-const status=out('git',['status','--porcelain']).trim();
-if(status){run('git',['commit','-m','Promote v0.8.36 Performance Pack and incremental library cache']);run('git',['push','origin','HEAD:main']);}
-console.log('v0.8.36 source promotion complete; continuing the current APK build and Downloader publication.');
+
+function walkCandidates(value,mediaType,out,seen,depth=0){
+  if(depth>5||value==null)return;if(Array.isArray(value)){for(const x of value)walkCandidates(x,mediaType,out,seen,depth+1);return}if(typeof value!=='object')return;
+  const ids=value.ids&&typeof value.ids==='object'?value.ids:{},title=String(value.title||value.name||'').trim(),tmdb=String(value.tmdbId??value.tmdb_id??value.tmdb??ids.tmdb??''),imdb=String(value.imdbId??value.imdb_id??value.imdb??ids.imdb??''),y=String(value.year||compactYear(value.release_date||value.first_air_date||''));
+  if(title&&(tmdb||imdb||y)){const key=`${mediaType}|${tmdb}|${imdb}|${normalize(title)}|${y}`;if(!seen.has(key)){seen.add(key);out.push({mediaType,title,year:y,tmdbId:tmdb,imdbId:imdb})}}
+  for(const [k,v] of Object.entries(value)){if(['metadata','config','request'].includes(k))continue;walkCandidates(v,mediaType,out,seen,depth+1)}
+}
+function discoveryCandidates(){const out=[],seen=new Set();if(discovery.movie)walkCandidates(discovery.movie,'movie',out,seen);if(discovery.tv)walkCandidates(discovery.tv,'tv',out,seen);const movies=out.filter(x=>x.mediaType==='movie').slice(0,TITLE_METADATA_PER_KIND),tv=out.filter(x=>x.mediaType==='tv').slice(0,TITLE_METADATA_PER_KIND);return [...movies,...tv]}
+
+let titleMetadata=Array.isArray(previous?.titleMetadata)?previous.titleMetadata:[];
+const candidates=discoveryCandidates();
+if(!OFFLINE&&candidates.length){
+  const rows=await mapLimit(candidates,TITLE_METADATA_CONCURRENCY,async candidate=>{try{const payload=await post({mode:'metadata',mediaType:candidate.mediaType,tmdbId:candidate.tmdbId||'',imdbId:candidate.imdbId||'',title:candidate.title,year:candidate.year||''},11000),meta=payload?.metadata;if(meta)return compactMetadata(meta,candidate.mediaType)}catch{}return null});
+  const fresh=rows.filter(Boolean),byKey=new Map();for(const row of [...fresh,...titleMetadata]){const key=`${row.mediaType}|${row.tmdbId||''}|${row.imdbId||''}|${normalize(row.title)}|${row.year||''}`;if(!byKey.has(key))byKey.set(key,row)}titleMetadata=[...byKey.values()].slice(0,TITLE_METADATA_PER_KIND*2);console.log(`Seeded ${fresh.length} popular title metadata records.`);
+}
+
+const episodeMetadata=Array.isArray(previous?.episodeMetadata)?previous.episodeMetadata:[];
+const search={people:enriched.map(x=>({rank:x.rank,id:x.person.id,name:x.person.name,aliases:x.aliases||[],profile:x.person.profile})),titles:titleMetadata.map(x=>({mediaType:x.mediaType,title:x.title,year:x.year,tmdbId:x.tmdbId,imdbId:x.imdbId}))};
+const seed={schema:2,sourceVersion:'0.8.36',builtAt:new Date().toISOString(),maxAgeHours:168,discovery,starmeter:{source:source.source||'IMDb STARmeter / Trending People',sourceUrl:source.sourceUrl||'https://www.imdb.com/chart/starmeter/',capturedAt:source.capturedAt||'',people:enriched},titleMetadata,episodeMetadata,search,static:{titleLookupSchema:4,discoveryMatchSchema:6,top100RankingSchema:3,note:'Provider-neutral warm-start data only. No IPTV credentials, provider catalogue, watch history or live EPG are bundled.'}};
+fs.writeFileSync(assetPath,JSON.stringify(seed,null,2)+'\n');fs.writeFileSync(rootPath,JSON.stringify(seed,null,2)+'\n');
+console.log(`Wrote install seed cache: ${enriched.length} people, ${enriched.filter(x=>x.person?.id||x.person?.profile).length} identities, ${enriched.filter(x=>x.credits?.length).length} filmographies, ${titleMetadata.length} title metadata records, discovery ${Object.keys(discovery).join(',')||'not available in this environment'}.`);
