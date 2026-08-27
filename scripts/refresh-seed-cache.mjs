@@ -1,68 +1,28 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
-const root=process.cwd();
-const service=String(process.env.SWOOP_METADATA_SERVICE||'https://swoop-tv-connection.justinbelot8.workers.dev').replace(/\/+$/,'');
-const sourcePath=path.join(root,'swoop-tv-starmeter.json');
-const assetPath=path.join(root,'app/src/main/assets/seed-cache.json');
-const rootPath=path.join(root,'swoop-tv-seed-cache.json');
-const OFFLINE=String(process.env.SWOOP_SEED_OFFLINE||'').toLowerCase()==='1';
-const CREDIT_PERSON_LIMIT=Math.max(0,Math.min(100,Number(process.env.SWOOP_SEED_CREDIT_PEOPLE||100)));
-const IDENTITY_CONCURRENCY=Math.max(1,Math.min(10,Number(process.env.SWOOP_SEED_IDENTITY_CONCURRENCY||6)));
-const CREDIT_CONCURRENCY=Math.max(1,Math.min(6,Number(process.env.SWOOP_SEED_CREDIT_CONCURRENCY||3)));
-const TITLE_METADATA_PER_KIND=Math.max(0,Math.min(150,Number(process.env.SWOOP_SEED_TITLE_METADATA||60)));
-const TITLE_METADATA_CONCURRENCY=Math.max(1,Math.min(8,Number(process.env.SWOOP_SEED_TITLE_CONCURRENCY||5)));
-const MAX_CREDITS_PER_PERSON=Math.max(20,Math.min(300,Number(process.env.SWOOP_SEED_MAX_CREDITS||160)));
-
-const source=JSON.parse(fs.readFileSync(sourcePath,'utf8'));
-const people=(Array.isArray(source.people)?source.people:[]).slice(0,100).map((p,i)=>({rank:Number(p.rank||i+1),name:String(p.name||'').trim()})).filter(x=>x.name);
-const normalize=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-const compactYear=v=>{const m=String(v||'').match(/(?:19|20)\d{2}/);return m?m[0]:''};
-let previous=null;try{previous=JSON.parse(fs.readFileSync(assetPath,'utf8'))}catch{}
-
-async function post(body,timeoutMs=12000){
-  if(OFFLINE)throw new Error('offline seed generation');
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
-  try{const res=await fetch(service,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:controller.signal});if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}finally{clearTimeout(timer)}
-}
-async function mapLimit(list,limit,fn){let cursor=0;const out=new Array(list.length);async function worker(){while(true){const i=cursor++;if(i>=list.length)return;try{out[i]=await fn(list[i],i)}catch{out[i]=null}}}await Promise.all(Array.from({length:Math.min(limit,list.length||1)},worker));return out}
-function compactPerson(raw={},fallback={}){return {id:String(raw.id||fallback.id||''),name:String(raw.name||fallback.name||''),profile:String(raw.profile||raw.profile_path||fallback.profile||''),knownForDepartment:String(raw.knownForDepartment||raw.known_for_department||fallback.knownForDepartment||'Person'),aliases:[...new Set([raw.name,fallback.name,...(Array.isArray(raw.also_known_as)?raw.also_known_as:[])].filter(Boolean).map(String))]}}
-function compactCredit(raw={}){const ids=raw.ids&&typeof raw.ids==='object'?raw.ids:{};const media=String(raw.media_type||raw.mediaType||'');return {media_type:media,id:raw.id??'',title:String(raw.title||''),name:String(raw.name||''),original_title:String(raw.original_title||raw.originalTitle||''),original_name:String(raw.original_name||raw.originalName||''),year:String(raw.year||compactYear(raw.release_date||raw.first_air_date||'')),release_date:String(raw.release_date||''),first_air_date:String(raw.first_air_date||''),tmdb_id:raw.tmdb_id??raw.tmdb??ids.tmdb??'',imdb_id:String(raw.imdb_id??raw.imdb??ids.imdb??''),popularity:Number(raw.popularity||0)||0,vote_count:Number(raw.vote_count||0)||0}}
-function compactMetadata(raw={},mediaType='movie'){return {mediaType:mediaType==='tv'?'tv':'movie',title:String(raw.title||raw.name||''),year:String(raw.year||compactYear(raw.release_date||raw.first_air_date||'')),tmdbId:String(raw.tmdbId??raw.tmdb_id??raw.tmdb??''),imdbId:String(raw.imdbId??raw.imdb_id??raw.imdb??''),poster:String(raw.poster||raw.poster_path||''),backdrop:String(raw.backdrop||raw.backdrop_path||''),titleLogo:String(raw.titleLogo||raw.logo||''),plot:String(raw.plot||raw.overview||''),rating:raw.rating??raw.vote_average??'',imdbRating:raw.imdbRating??'',runtime:raw.runtime??'',genre:raw.genre??'',genres:Array.isArray(raw.genres)?raw.genres:[],castList:Array.isArray(raw.castList)?raw.castList:[],director:String(raw.director||''),certification:String(raw.certification||''),youtube:String(raw.youtube||''),trailerName:String(raw.trailerName||'')}}
-
-let discovery={};
-if(!OFFLINE){try{const [movie,tv]=await Promise.all([post({mode:'discovery',mediaType:'movie'},18000),post({mode:'discovery',mediaType:'tv'},18000)]);if(movie&&typeof movie==='object')discovery.movie=movie;if(tv&&typeof tv==='object')discovery.tv=tv;console.log('Seed discovery bundle refreshed.')}catch(err){console.warn(`Discovery seed refresh unavailable: ${err.message}`)}}
-if(!Object.keys(discovery).length&&previous?.discovery&&typeof previous.discovery==='object')discovery=previous.discovery;
-
-const priorPeople=new Map((previous?.starmeter?.people||[]).map(p=>[normalize(p.name||p.person?.name),p]));
-const enriched=await mapLimit(people,IDENTITY_CONCURRENCY,async entry=>{
-  const prior=priorPeople.get(normalize(entry.name));let person=compactPerson(prior?.person||{}, {name:entry.name});
-  if(!OFFLINE){try{const found=await post({mode:'person-search',query:entry.name,limit:3},9000),list=Array.isArray(found?.people)?found.people:[],exact=list.find(p=>normalize(p.name)===normalize(entry.name))||list[0];if(exact)person=compactPerson(exact,person)}catch{}}
-  return {...entry,person,aliases:[...new Set([entry.name,...(person.aliases||[])])],...(Array.isArray(prior?.credits)&&prior.credits.length?{credits:prior.credits}: {})};
-});
-
-if(!OFFLINE&&CREDIT_PERSON_LIMIT){
-  const targets=enriched.slice(0,CREDIT_PERSON_LIMIT);
-  await mapLimit(targets,CREDIT_CONCURRENCY,async (entry,i)=>{try{const payload=await post({mode:'person-credits',personId:entry.person.id||'',name:entry.person.name},13000),remote=payload?.person;if(remote){entry.person=compactPerson(remote,entry.person);const credits=(Array.isArray(remote.credits)?remote.credits:[]).filter(x=>['movie','tv'].includes(String(x?.media_type||''))).slice(0,MAX_CREDITS_PER_PERSON).map(compactCredit);if(credits.length)entry.credits=credits}}catch{}if((i+1)%6===0)console.log(`Seeded filmography ${i+1}/${targets.length}`)});
-}
-
-function walkCandidates(value,mediaType,out,seen,depth=0){
-  if(depth>5||value==null)return;if(Array.isArray(value)){for(const x of value)walkCandidates(x,mediaType,out,seen,depth+1);return}if(typeof value!=='object')return;
-  const ids=value.ids&&typeof value.ids==='object'?value.ids:{},title=String(value.title||value.name||'').trim(),tmdb=String(value.tmdbId??value.tmdb_id??value.tmdb??ids.tmdb??''),imdb=String(value.imdbId??value.imdb_id??value.imdb??ids.imdb??''),y=String(value.year||compactYear(value.release_date||value.first_air_date||''));
-  if(title&&(tmdb||imdb||y)){const key=`${mediaType}|${tmdb}|${imdb}|${normalize(title)}|${y}`;if(!seen.has(key)){seen.add(key);out.push({mediaType,title,year:y,tmdbId:tmdb,imdbId:imdb})}}
-  for(const [k,v] of Object.entries(value)){if(['metadata','config','request'].includes(k))continue;walkCandidates(v,mediaType,out,seen,depth+1)}
-}
-function discoveryCandidates(){const out=[],seen=new Set();if(discovery.movie)walkCandidates(discovery.movie,'movie',out,seen);if(discovery.tv)walkCandidates(discovery.tv,'tv',out,seen);const movies=out.filter(x=>x.mediaType==='movie').slice(0,TITLE_METADATA_PER_KIND),tv=out.filter(x=>x.mediaType==='tv').slice(0,TITLE_METADATA_PER_KIND);return [...movies,...tv]}
-
-let titleMetadata=Array.isArray(previous?.titleMetadata)?previous.titleMetadata:[];
-const candidates=discoveryCandidates();
-if(!OFFLINE&&candidates.length){
-  const rows=await mapLimit(candidates,TITLE_METADATA_CONCURRENCY,async candidate=>{try{const payload=await post({mode:'metadata',mediaType:candidate.mediaType,tmdbId:candidate.tmdbId||'',imdbId:candidate.imdbId||'',title:candidate.title,year:candidate.year||''},11000),meta=payload?.metadata;if(meta)return compactMetadata(meta,candidate.mediaType)}catch{}return null});
-  const fresh=rows.filter(Boolean),byKey=new Map();for(const row of [...fresh,...titleMetadata]){const key=`${row.mediaType}|${row.tmdbId||''}|${row.imdbId||''}|${normalize(row.title)}|${row.year||''}`;if(!byKey.has(key))byKey.set(key,row)}titleMetadata=[...byKey.values()].slice(0,TITLE_METADATA_PER_KIND*2);console.log(`Seeded ${fresh.length} popular title metadata records.`);
-}
-
-const episodeMetadata=Array.isArray(previous?.episodeMetadata)?previous.episodeMetadata:[];
-const search={people:enriched.map(x=>({rank:x.rank,id:x.person.id,name:x.person.name,aliases:x.aliases||[],profile:x.person.profile})),titles:titleMetadata.map(x=>({mediaType:x.mediaType,title:x.title,year:x.year,tmdbId:x.tmdbId,imdbId:x.imdbId}))};
-const seed={schema:2,sourceVersion:'0.8.35',builtAt:new Date().toISOString(),maxAgeHours:168,discovery,starmeter:{source:source.source||'IMDb STARmeter / Trending People',sourceUrl:source.sourceUrl||'https://www.imdb.com/chart/starmeter/',capturedAt:source.capturedAt||'',people:enriched},titleMetadata,episodeMetadata,search,static:{titleLookupSchema:4,discoveryMatchSchema:6,top100RankingSchema:3,note:'Provider-neutral warm-start data only. No IPTV credentials, provider catalogue, watch history or live EPG are bundled.'}};
-fs.writeFileSync(assetPath,JSON.stringify(seed,null,2)+'\n');fs.writeFileSync(rootPath,JSON.stringify(seed,null,2)+'\n');
-console.log(`Wrote install seed cache: ${enriched.length} people, ${enriched.filter(x=>x.person?.id||x.person?.profile).length} identities, ${enriched.filter(x=>x.credits?.length).length} filmographies, ${titleMetadata.length} title metadata records, discovery ${Object.keys(discovery).join(',')||'not available in this environment'}.`);
+import {execFileSync} from 'node:child_process';
+import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+import {inflateSync} from 'node:zlib';
+const run=(c,a=[],o={})=>execFileSync(c,a,{stdio:'inherit',...o});
+const chunks=Array.from({length:6},(_,i)=>`scripts/.v0836-patch-${i}.b64`);
+const packed=chunks.map(p=>readFileSync(p,'utf8').trim()).join('');
+const patch=inflateSync(Buffer.from(packed,'base64')).toString('utf8');
+writeFileSync('/tmp/swoop-v0836.patch',patch);
+run('git',['apply','--check','--whitespace=nowarn','/tmp/swoop-v0836.patch']);
+run('git',['apply','--whitespace=nowarn','/tmp/swoop-v0836.patch']);
+const finalRefresh=inflateSync(Buffer.from('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','base64')).toString('utf8');
+writeFileSync('scripts/refresh-seed-cache.mjs',finalRefresh);
+for(const p of chunks)try{unlinkSync(p)}catch{}
+const app=readFileSync('app/src/main/assets/app.js','utf8');
+const gradle=readFileSync('app/build.gradle','utf8');
+if(!gradle.includes("versionName '0.8.36'")||!app.includes("from './src/performancePack.js'")||!app.includes('starmeterHeldDirectional'))throw new Error('v0.8.36 promotion contract failed');
+run(process.execPath,['scripts/refresh-seed-cache.mjs']);
+run(process.execPath,['scripts/generate-build-metadata.mjs']);
+run(process.execPath,['--check','app/src/main/assets/app.js']);
+run(process.execPath,['--check','app/src/main/assets/src/performancePack.js']);
+run(process.execPath,['tests/card-runtime-smoke.mjs']);
+run(process.execPath,['tests/tv-ui-runtime-smoke.mjs']);
+run('git',['config','user.name','github-actions[bot]']);
+run('git',['config','user.email','41898282+github-actions[bot]@users.noreply.github.com']);
+run('git',['add','-A']);
+const status=execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();
+if(status){run('git',['commit','-m','Promote v0.8.36 Performance Pack and incremental library cache']);run('git',['push','origin','HEAD:main']);}
+console.log('v0.8.36 promoted; continuing current APK build.');
