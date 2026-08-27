@@ -44,30 +44,37 @@ gradle=replaceRequired(gradle,/versionName\s+['\"]0\.8\.37['\"]/,"versionName '0
 writeFileSync(gradlePath,gradle);
 
 let activity=readFileSync(activityPath,'utf8');
-activity=replaceRequired(activity,/SwoopTV\/0\.8\.37 AndroidTV/g,'SwoopTV/0.8.38 AndroidTV','native Android user agent');
+if(!activity.includes('0.8.37')||!activity.includes('versionCode", 837'))throw new Error('v0.8.38 promotion could not find native version markers');
+activity=activity.replaceAll('0.8.37','0.8.38').replace('out.put("versionCode", 837);','out.put("versionCode", 838);');
 writeFileSync(activityPath,activity);
 
 let tests=readFileSync(testPath,'utf8');
+tests=replaceRequired(tests,"if (!appSource.includes(\"const ANDROID_CURRENT_VERSION='0.8.37';\")) throw new Error('Current Android UI version marker missing');","if (!appSource.includes(\"const ANDROID_CURRENT_VERSION='0.8.38';\")) throw new Error('Current Android UI version marker missing');",'runtime current-version assertion');
+tests=replaceRequired(tests,"if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.37-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');","if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.38-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');",'diagnostic filename assertion');
+tests=replaceRequired(tests,"if (String(installSeed.sourceVersion||'') !== '0.8.37') throw new Error('Install seed source version is not v0.8.37');","if (String(installSeed.sourceVersion||'') !== '0.8.38') throw new Error('Install seed source version is not v0.8.38');",'install-seed version assertion');
 const testMarker='// v0.8.38 STARmeter viewport-budget regression guards';
-if(!tests.includes(testMarker))tests+=`\n\n${testMarker}\nif (!appSource.includes("STARMETER_PATCH_BATCH=3,STARMETER_ACTIVE_RADIUS=7,STARMETER_ART_RADIUS=8")) throw new Error('v0.8.38 STARmeter patch/artwork budgets missing');\nif (!appSource.includes("img?.closest?.('.starmeter-title-rail'))size='w154'")) throw new Error('v0.8.38 STARmeter title artwork must request w154');\nif (!appSource.includes("img?.closest?.('.starmeter-person-card'))size='w185'")) throw new Error('v0.8.38 STARmeter portrait artwork must request w185');\nif (!appSource.includes("const starmeterTv=NATIVE_ANDROID&&state.page==='starmeter'")) throw new Error('v0.8.38 STARmeter artwork hydration isolation missing');\nif (!appSource.includes('function trimStarmeterArtwork()')) throw new Error('v0.8.38 offscreen STARmeter artwork eviction missing');\nif (!appSource.includes('let budget=STARMETER_PATCH_BATCH')) throw new Error('v0.8.38 bounded STARmeter deferred patch flush missing');\nif (!cssSource.includes('v0.8.38 — STARmeter viewport-budget hotfix')) throw new Error('v0.8.38 STARmeter CSS guard missing');\nif (!cssSource.includes('grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important')) throw new Error('v0.8.38 STARmeter rail must stay single-row');\nif (!activitySource.includes('SwoopTV/0.8.38 AndroidTV')) throw new Error('v0.8.38 native Android marker missing');\n`;
+if(!tests.includes(testMarker))tests+=`\n\n${testMarker}\nif (!appSource.includes("STARMETER_PATCH_BATCH=3,STARMETER_ACTIVE_RADIUS=7,STARMETER_ART_RADIUS=8")) throw new Error('v0.8.38 STARmeter patch/artwork budgets missing');\nif (!appSource.includes("img?.closest?.('.starmeter-title-rail'))size='w154'")) throw new Error('v0.8.38 STARmeter title artwork must request w154');\nif (!appSource.includes("img?.closest?.('.starmeter-person-card'))size='w185'")) throw new Error('v0.8.38 STARmeter portrait artwork must request w185');\nif (!appSource.includes("const starmeterTv=NATIVE_ANDROID&&state.page==='starmeter'")) throw new Error('v0.8.38 STARmeter artwork hydration isolation missing');\nif (!appSource.includes('function trimStarmeterArtwork()')) throw new Error('v0.8.38 offscreen STARmeter artwork eviction missing');\nif (!appSource.includes('let budget=STARMETER_PATCH_BATCH')) throw new Error('v0.8.38 bounded STARmeter deferred patch flush missing');\nif (!cssSource.includes('v0.8.38 — STARmeter viewport-budget hotfix')) throw new Error('v0.8.38 STARmeter CSS guard missing');\nif (!cssSource.includes('grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important')) throw new Error('v0.8.38 STARmeter rail must stay single-row');\nif (!activitySource.includes('SwoopTV/0.8.38 AndroidTV') || !activitySource.includes('public String version() { return "0.8.38"; }')) throw new Error('v0.8.38 native Android markers missing');\n`;
 writeFileSync(testPath,tests);
 
 let notes=readFileSync(notesPath,'utf8');
 const section=`## v0.8.38 — STARmeter Viewport-Budget Hotfix\n\n- Fixes the remaining physical Google TV STARmeter blank/repaint stalls visible in IMG_1143.mp4 during sustained vertical D-pad traversal.\n- Keeps the stable 100-person focus geometry, but limits completed async DOM patching to three nearby rows per flush instead of mutating every deferred row after navigation settles.\n- Stops the generic artwork observer/prefetch path from accumulating STARmeter images far outside the current viewport.\n- Actively releases poster/portrait image sources outside an eight-rank working window and reloads them only when those rows return near the viewport.\n- Requests w154 title posters and w185 person portraits for STARmeter instead of much larger generic artwork sizes.\n- Hard-locks the compact STARmeter title rail to one 100 px grid row with vertical overflow clipped.\n\n`;
 if(!notes.includes('## v0.8.38 — STARmeter Viewport-Budget Hotfix')){const header='# Swoop TV Release Notes\n\n';notes=notes.startsWith(header)?header+section+notes.slice(header.length):section+notes;writeFileSync(notesPath,notes)}
 
+run(process.execPath,['scripts/refresh-seed-cache.mjs']);
 if(existsSync(selfPath))unlinkSync(selfPath);
 
 for(const p of [appPath,testPath])run(process.execPath,['--check',p]);
 run(process.execPath,['tests/card-runtime-smoke.mjs']);
 run(process.execPath,[testPath]);
 run('python',['-m','json.tool','app/src/main/assets/starmeter.json'],{stdio:'ignore'});
+run('python',['-m','json.tool','app/src/main/assets/seed-cache.json'],{stdio:'ignore'});
+run('python',['-m','json.tool','swoop-tv-seed-cache.json'],{stdio:'ignore'});
 
 run('git',['config','user.name','github-actions[bot]']);
 run('git',['config','user.email','41898282+github-actions[bot]@users.noreply.github.com']);
 run('git',['add','-A']);
 const status=execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();
 if(!status)throw new Error('v0.8.38 promotion produced no source changes');
-run('git',['commit','-m','Promote v0.8.38 STARmeter viewport budget hotfix']);
+run('git',['commit','-m','Promote v0.8.38 STARmeter viewport budget hotfix [skip ci]']);
 run('git',['push','origin','HEAD:main']);
 console.log('v0.8.38 source promotion complete; continuing APK build and Downloader publication.');
