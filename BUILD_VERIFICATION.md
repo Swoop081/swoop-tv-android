@@ -1,10 +1,10 @@
-# Swoop TV v0.8.33 Build Verification
+# Swoop TV v0.8.34 Build Verification
 
-- [x] `app/build.gradle` is `versionName 0.8.33` / `versionCode 833`.
-- [x] Android bridge/User-Agent, native diagnostics and diagnostic filenames report v0.8.33 / 833.
-- [x] `ANDROID_CURRENT_VERSION` reports 0.8.33.
+- [x] `app/build.gradle` is `versionName 0.8.34` / `versionCode 834`.
+- [x] Android bridge/User-Agent, native diagnostics and diagnostic filenames report v0.8.34 / 834.
+- [x] `ANDROID_CURRENT_VERSION` reports 0.8.34.
 - [x] Service-worker shell cache is bumped to v0833.
-- [x] Install seed schema remains valid and `sourceVersion` is 0.8.33.
+- [x] Install seed schema remains valid and `sourceVersion` is 0.8.34.
 - [x] Top-level Google TV focus returning to the fixed top navigation invokes canonical route-top restoration.
 - [x] First-row Up on top-level pages without a focusable hero can escape to the active route tab.
 - [x] STARmeter preparation starts from the Who’s Watching/profile picker before login.

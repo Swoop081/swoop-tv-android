@@ -105,7 +105,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.33';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.34';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -138,14 +138,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.33-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.34-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.33') throw new Error('Install seed source version is not v0.8.33');
+if (String(installSeed.sourceVersion||'') !== '0.8.34') throw new Error('Install seed source version is not v0.8.34');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -214,7 +214,14 @@ console.log('Google TV UI runtime smoke passed');
 if (!appSource.includes('function tvForceRouteTop()') || !appSource.includes("target.closest?.('.topbar')")) throw new Error('v0.8.33 canonical route-top restoration missing');
 if (!appSource.includes('function prepareStarmeterBeforeLogin()') || !appSource.includes("tvCatalogWorkerRequest('person-match-batch'")) throw new Error('v0.8.33 pre-login STARmeter batch preparation missing');
 if (!appSource.includes("if(NATIVE_ANDROID){render();setTimeout(()=>prepareStarmeterBeforeLogin()")) throw new Error('STARmeter preparation does not start on the profile picker');
-if (!appSource.includes("waiting=NATIVE_ANDROID&&!starmeterBackgroundReady")) throw new Error('STARmeter can still render partially hydrated rows');
 if (!appSource.includes('const routeTab=document.querySelector(`.desktop-nav [data-page=') || !appSource.includes('CSS.escape(state.page)')) throw new Error('First-row Up does not escape to the active route tab');
 if (!cssSource.includes('height:430px!important') || !cssSource.includes('.profile-starmeter-prep')) throw new Error('v0.8.33 STARmeter non-overlap/profile-prewarm CSS missing');
 if (!fs.readFileSync(new URL('../app/src/main/assets/src/catalog-index-worker.js', import.meta.url), 'utf8').includes("msg.type==='person-match-batch'")) throw new Error('STARmeter worker batch-match contract missing');
+
+// v0.8.34 STARmeter fail-open chunked pre-login matching hotfix.
+if (!appSource.includes('const STARMETER_PRELOGIN_BATCH_SIZE=12')) throw new Error('v0.8.34 STARmeter chunk size missing');
+if (!appSource.includes('offset+=STARMETER_PRELOGIN_BATCH_SIZE') || !appSource.includes("tvCatalogWorkerRequest('person-match-batch',{people:chunk},12000)")) throw new Error('v0.8.34 chunked STARmeter matching missing');
+if (appSource.includes("tvCatalogWorkerRequest('person-match-batch',{people},24000)")) throw new Error('All-100 STARmeter worker request regression returned');
+if (!appSource.includes('void prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('Profile selection still blocks on STARmeter preparation');
+if (!appSource.includes("STARmeter is usable now · provider matching will retry in the background.")) throw new Error('STARmeter fail-open recovery state missing');
+if (!appSource.includes('const body=visible.length?visible.map(starmeterPersonSection).join')) throw new Error('STARmeter page is still hard-gated by background matching');

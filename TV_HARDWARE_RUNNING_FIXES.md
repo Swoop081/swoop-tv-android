@@ -2,10 +2,12 @@
 
 ## Current build under test
 
-**v0.8.33 — Google TV Route Top + Pre-Login STARmeter Stability**
+**v0.8.34 — STARmeter Fail-Open Batch Recovery Hotfix**
 
 ## Implemented — needs physical-TV verification
 
+- [ ] **STAR-STARTUP-001:** STARmeter can no longer stop at 28% with “batch match did not complete”; profile selection remains immediate and STARmeter opens to a usable 100-person surface even while background matching continues.
+- [ ] **STAR-BATCH-001:** pre-login provider matching progresses in small batches, preserves completed people if a later batch is slow, and automatically retries unfinished work.
 - [ ] **TOP-001:** after scrolling any top-level route deep down, returning focus to the active fixed top navigation tab restores the document to its true original top (`scrollY = 0`).
 - [ ] **MYSWOOP-TOP:** My SwoopTV bottom → first rail → Up restores the full My SwoopTV heading/description, not just the first Simpsons/Continue Watching cards.
 - [ ] **STAR-PRELOAD:** Who’s Watching begins preparing all 100 STARmeter people before login; STARmeter opens from completed provider-match data rather than focus-driven loading.

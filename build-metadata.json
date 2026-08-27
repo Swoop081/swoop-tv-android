@@ -1,16 +1,15 @@
 {
-  "version": "0.8.33",
-  "versionCode": 833,
-  "versionedApk": "Swoop-TV-v0.8.33-Google-TV-Test.apk",
+  "version": "0.8.34",
+  "versionCode": 834,
+  "versionedApk": "Swoop-TV-v0.8.34-Google-TV-Test.apk",
   "stableApk": "Swoop-TV-v0.8.1-Google-TV-Test.apk",
   "changes": [
-    "Fixes the physical-TV route scroll trap shown on My SwoopTV and STARmeter: returning Up to the active top navigation tab now restores the underlying page to its canonical scrollY = 0, including a follow-up animation-frame reset for Android WebView.",
-    "Adds an explicit first-row Up escape for top-level pages without a focusable hero action, so My SwoopTV can return from its first rail to the full original header composition instead of remaining partially scrolled.",
-    "Rebuilds STARmeter preparation around one provider-index batch match for the complete Top 100. Matching starts while the Who’s Watching/profile screen is still visible rather than waiting for STARmeter entry or focus movement.",
-    "Uses the packaged Top 100 identities and filmography credits plus the restored durable provider catalogue to populate all 100 provider-available filmographies before STARmeter becomes focusable; STARmeter no longer assembles person rows one-by-one as the remote reaches them.",
-    "Keeps a deliberate whole-page preparation state if the pre-login batch has not completed, instead of exposing mixed “Finding titles…” rows that reflow while the user is navigating.",
-    "Expands STARmeter’s permanent row geometry and vertical safety gap so enlarged poster rails and focused-card scaling cannot paint into the next person’s row.",
-    "Prewarms all Top 100 portraits plus a round-robin set of representative filmography artwork during the profile screen/background preparation window.",
-    "Fixes the Android native diagnostic versionCode marker while advancing Android versionName to 0.8.33 and versionCode to 833."
+    "Fixes the physical-TV STARmeter startup failure captured at 28% where the v0.8.33 all-100 provider-match request could exceed its 24-second worker deadline and leave the whole page permanently blocked behind “STARmeter batch match did not complete.”",
+    "Replaces the single 100-person request with 12-person indexed worker batches. Each completed batch is committed immediately to the in-memory STARmeter/provider cache instead of discarding all progress if a later batch is slow.",
+    "Makes profile selection non-blocking: Who’s Watching still starts STARmeter preparation before login, but selecting a profile never waits for STARmeter matching to finish.",
+    "Makes the STARmeter route fail-open. The fixed 100-person surface remains navigable even if background preparation is incomplete; unmatched rows use the existing bounded visible-row hydration path and fill in without replacing/reflowing the page.",
+    "A timed-out/partial pre-match now reports a usable background state, schedules an automatic retry, and can never strand the viewer on a full-page loading/error gate.",
+    "Retains v0.8.33 route-top restoration and permanent non-overlapping STARmeter row geometry.",
+    "Android versionName is 0.8.34 and versionCode is 834."
   ]
 }

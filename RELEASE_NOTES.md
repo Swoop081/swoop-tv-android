@@ -1,5 +1,15 @@
 # Swoop TV Release Notes
 
+## v0.8.34 — STARmeter Fail-Open Batch Recovery Hotfix
+
+- Fixes the physical-TV STARmeter startup failure captured at **28%** where the v0.8.33 all-100 provider-match request could exceed its 24-second worker deadline and leave the whole page permanently blocked behind “STARmeter batch match did not complete.”
+- Replaces the single 100-person request with **12-person indexed worker batches**. Each completed batch is committed immediately to the in-memory STARmeter/provider cache instead of discarding all progress if a later batch is slow.
+- Makes profile selection non-blocking: Who’s Watching still starts STARmeter preparation before login, but selecting a profile never waits for STARmeter matching to finish.
+- Makes the STARmeter route **fail-open**. The fixed 100-person surface remains navigable even if background preparation is incomplete; unmatched rows use the existing bounded visible-row hydration path and fill in without replacing/reflowing the page.
+- A timed-out/partial pre-match now reports a usable background state, schedules an automatic retry, and can never strand the viewer on a full-page loading/error gate.
+- Retains v0.8.33 route-top restoration and permanent non-overlapping STARmeter row geometry.
+- Android versionName is **0.8.34** and versionCode is **834**.
+
 ## v0.8.33 — Google TV Route Top + Pre-Login STARmeter Stability
 
 - Fixes the physical-TV route scroll trap shown on My SwoopTV and STARmeter: returning Up to the active top navigation tab now restores the underlying page to its canonical `scrollY = 0`, including a follow-up animation-frame reset for Android WebView.

@@ -1,22 +1,21 @@
-# Swoop TV v0.8.33 — Google TV Route Top + Pre-Login STARmeter Stability
+# Swoop TV v0.8.34 — STARmeter Fail-Open Batch Recovery Hotfix
 
 Current Android/Google TV source baseline.
 
-## v0.8.33 highlights
+## v0.8.34 highlights
 
-- Fixes the physical-TV top-scroll trap across top-level routes. Returning focus to the active top navigation tab now restores the document to its true top position, including My SwoopTV and STARmeter.
-- Starts full STARmeter Top 100 preparation on the Who’s Watching screen before profile login.
-- Matches all 100 STARmeter people to the restored provider catalogue in one indexed worker batch rather than person-by-person as focus reaches them.
-- STARmeter does not expose partially assembled person rows on Google TV; if preparation is still finishing it shows one deliberate whole-page preparation state, then renders the completed 100-person surface.
-- STARmeter row height/safety spacing is increased so enlarged poster rails and focused-card scaling cannot overlap the next person.
-- Prewarms the Top 100 portraits plus representative filmography artwork before/while login completes.
-- Retains all v0.8.32 Top 100 artwork/hero hydration, Live preview, Guide-logo and branded-launch work.
+- Fixes the v0.8.33 physical-TV STARmeter failure captured at 28%.
+- Replaces one all-100 provider match with 12-person indexed worker batches and commits each completed batch immediately.
+- Keeps pre-login STARmeter warming, but profile selection no longer waits for it.
+- Removes the full-page STARmeter completion gate: the 100-person page remains navigable and unfinished rows hydrate safely in place.
+- Partial/time-out preparation automatically retries in the background instead of trapping focus behind an error loader.
+- Retains v0.8.33 route-top restoration, fixed row geometry, portrait prewarming and all v0.8.32 performance work.
 
 ## Android package
 
 - applicationId: `tv.swoop.player`
-- versionName: `0.8.33`
-- versionCode: `833`
+- versionName: `0.8.34`
+- versionCode: `834`
 - minSdk: 23
 - target/compile SDK: 36
 - Java: 17
@@ -31,7 +30,7 @@ GitHub Actions refreshes `seed-cache.json` immediately before APK compilation. P
 
 Open **Settings**, focus the Settings cog and press **OK five times within four seconds** to enable Hardware Test Mode. Select the numbered test, reproduce the issue, then choose **Save Diagnostics**.
 
-See `TV_HARDWARE_TEST_CHECKLIST.md` for the v0.8.33 physical-TV gates.
+See `TV_HARDWARE_TEST_CHECKLIST.md` for the v0.8.34 physical-TV gates.
 
 ## APK build
 

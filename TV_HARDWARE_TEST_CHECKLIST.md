@@ -1,6 +1,6 @@
-# Swoop TV v0.8.33 — Google TV Hardware Test Checklist
+# Swoop TV v0.8.34 — Google TV Hardware Test Checklist
 
-Current test build: **v0.8.33 / versionCode 833**
+Current test build: **v0.8.34 / versionCode 834**
 
 Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five times within four seconds**. Select the numbered test before reproducing it, then choose **Save Diagnostics**.
 
@@ -40,4 +40,4 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 
 After reproducing a failure, save the JSON and upload it with the phone video. Diagnostic exports are written to the app Documents directory with a filename beginning:
 
-`Swoop-TV-v0.8.33-Diagnostics-`
+`Swoop-TV-v0.8.34-Diagnostics-`

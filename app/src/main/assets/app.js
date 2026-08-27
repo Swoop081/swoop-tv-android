@@ -24,7 +24,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.33';
+const ANDROID_CURRENT_VERSION='0.8.34';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -36,10 +36,10 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Restores every main Google TV route to its true top position when D-pad focus returns to the selected top navigation tab.',
-  'Prepares the full STARmeter Top 100 against the connected provider catalogue before profile login using one indexed batch match instead of focus-driven person jobs.',
-  'Keeps STARmeter rows in permanent non-overlapping TV geometry and renders the page only from completed provider-match results.',
-  'Prewarms STARmeter portraits and representative filmography artwork while the Who’s Watching screen is still visible.'
+  'Fixes the STARmeter 28% startup failure by splitting provider matching into smaller indexed worker batches instead of one all-100 request.',
+  'STARmeter preparation is now best-effort and fail-open: profile login and the STARmeter page can never be trapped behind a failed background batch.',
+  'Completed STARmeter people are cached incrementally, while unfinished people continue matching from visible-row hydration and scheduled background retries.',
+  'Retains v0.8.33 route-top restoration, permanent STARmeter row geometry and pre-login portrait/artwork warming.'
 ];
 let installSeedCache=null;
 const installSeedPromise=loadInstallSeedCache().then(seed=>{installSeedCache=seed;return seed}).catch(()=>null);
@@ -424,7 +424,8 @@ let personView=null,personLoading=false,personError='',personMovies=[],personSho
 let starmeterPeople=[],starmeterLoaded=false,starmeterLoading=false,starmeterError='',starmeterObserver=null,starmeterPrewarmTimer=null,starmeterVisibleCount=5,starmeterAutoLoadObserver=null;
 const starmeterPersonCache=new Map(),starmeterHotCache=new Map(),starmeterHydratePending=new Map(),starmeterRetryCounts=new Map();
 const starmeterHydrateQueue=[];let starmeterHydrateBusy=0,starmeterGeneration=0;
-let starmeterBackgroundPreparePromise=null,starmeterBackgroundReady=false,starmeterBackgroundProgress=0,starmeterBackgroundStatus='Preparing STARmeter…',starmeterPreparedProviderSignature='';
+let starmeterBackgroundPreparePromise=null,starmeterBackgroundReady=false,starmeterBackgroundComplete=false,starmeterBackgroundProgress=0,starmeterBackgroundStatus='Preparing STARmeter…',starmeterPreparedProviderSignature='',starmeterBackgroundRetryTimer=null;
+const STARMETER_PRELOGIN_BATCH_SIZE=12;
 function withTimeout(promise,ms=6000,label='Operation timed out'){return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))])}
 function cancelStarmeterWork(){starmeterGeneration++;starmeterHydrateQueue.length=0;starmeterHydrateBusy=0;starmeterObserver?.disconnect?.();starmeterObserver=null;starmeterAutoLoadObserver?.disconnect?.();starmeterAutoLoadObserver=null;}
 const episodeMetadataCache=new Map(),episodeMetadataPending=new Map();
@@ -1410,7 +1411,7 @@ function randomSalt(){try{return [...crypto.getRandomValues(new Uint8Array(12))]
 async function switchProfile(id,{skipPin=false}={}){
   const target=state.profiles.find(p=>p.id===id);if(!target)return;
   if(target.pinHash&&!skipPin){pendingProfileId=id;profilePinError='';modal='pin';profilePickerOpen=false;render();return}
-  if(NATIVE_ANDROID&&!starmeterBackgroundReady)await prepareStarmeterBeforeLogin().catch(()=>false);
+  if(NATIVE_ANDROID&&!starmeterBackgroundComplete)void prepareStarmeterBeforeLogin().catch(()=>false);
   if(playerItem)await stopPlayback(true);
   const changed=target.id!==state.activeProfileId;
   if(changed){clearPersistentPageViews();syncActiveProfileFromState();state.activeProfileId=target.id;applyProfileToState(target);detailItem=null;sourceChoiceItem=null;heroRotationIndex=0;}
@@ -1884,9 +1885,9 @@ function starmeterProviderSignature(){
 }
 function patchProfileStarmeterPrep(){
   if(!NATIVE_ANDROID||!profilePickerOpen)return;const el=document.querySelector('[data-profile-starmeter-prep]');if(!el)return;
-  el.classList.toggle('ready',starmeterBackgroundReady);const value=el.querySelector('span'),copy=el.querySelector('strong');
-  if(value)value.textContent=starmeterBackgroundReady?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`;
-  if(copy)copy.textContent=starmeterBackgroundReady?'STARmeter Top 100 ready':starmeterBackgroundStatus;
+  el.classList.toggle('ready',starmeterBackgroundComplete);const value=el.querySelector('span'),copy=el.querySelector('strong');
+  if(value)value.textContent=starmeterBackgroundComplete?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`;
+  if(copy)copy.textContent=starmeterBackgroundComplete?'STARmeter Top 100 ready':starmeterBackgroundStatus;
 }
 function setStarmeterBackgroundProgress(progress,status=''){
   starmeterBackgroundProgress=Math.max(0,Math.min(100,Number(progress||0)));if(status)starmeterBackgroundStatus=status;patchProfileStarmeterPrep();
@@ -1898,30 +1899,48 @@ function prewarmPreparedStarmeterArtwork(){
   const rounds=[];for(let slot=0;slot<3;slot++)for(const entry of starmeterPeople){const cached=starmeterPersonCache.get(starmeterNormalize(entry.name)),item=starmeterPersonTitles(cached)[slot];if(item)rounds.push(item)}
   prewarmArtworkUrls(rounds,160);
 }
+function scheduleStarmeterBackgroundRetry(delay=5000){
+  if(!NATIVE_ANDROID||starmeterBackgroundComplete||starmeterBackgroundRetryTimer)return;
+  starmeterBackgroundRetryTimer=setTimeout(()=>{starmeterBackgroundRetryTimer=null;prepareStarmeterBeforeLogin().catch(()=>false)},Math.max(1500,Number(delay||5000)));
+}
+function applyPreparedStarmeterResults(people=[],results=[]){
+  const byKey=new Map(people.map(row=>[row.key,row]));let applied=0;
+  for(const row of results){const source=byKey.get(row?.key);if(!source)continue;const value={person:source.person,movies:Array.isArray(row.movies)?sortPersonLibraryItems(row.movies):[],shows:Array.isArray(row.shows)?sortPersonLibraryItems(row.shows):[],loadedAt:Date.now(),prelogin:true};starmeterPersonCache.set(row.key,value);starmeterHotCache.set(row.key,{...(starmeterHotCache.get(row.key)||{}),...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||'').toLowerCase()}`,value);applied++}
+  return applied;
+}
 async function prepareStarmeterBeforeLogin(){
   if(!NATIVE_ANDROID)return false;
   const currentSignature=starmeterProviderSignature();
-  if(starmeterBackgroundReady&&currentSignature&&currentSignature===starmeterPreparedProviderSignature)return true;
+  if(starmeterBackgroundComplete&&currentSignature&&currentSignature===starmeterPreparedProviderSignature)return true;
   if(starmeterBackgroundPreparePromise)return starmeterBackgroundPreparePromise;
   starmeterBackgroundPreparePromise=(async()=>{
+    let matched=0,total=0;
     try{
       setStarmeterBackgroundProgress(4,'Preparing STARmeter Top 100…');
       await ensureStarmeterLoaded();if(!starmeterPeople.length)throw new Error('STARmeter list unavailable');
       setStarmeterBackgroundProgress(10,'Restoring your provider catalogue…');
       if(!state.catalog.length||tvHomeSnapshotActive)await ensureDurableLibraryRestored().catch(()=>false);
-      if(!state.catalog.length){setStarmeterBackgroundProgress(100,'STARmeter will prepare after a provider is connected.');return false}
+      if(!state.catalog.length){starmeterBackgroundReady=true;starmeterBackgroundComplete=false;setStarmeterBackgroundProgress(100,'STARmeter is ready and will match titles after a provider is connected.');return false}
       setStarmeterBackgroundProgress(18,'Indexing your connected movies and TV shows…');
       const workerReady=await ensureTvCatalogWorkerReady(18000);if(!workerReady)throw new Error('Provider availability index unavailable');
-      const people=starmeterPeople.map(entry=>{const key=starmeterNormalize(entry.name),hot=starmeterHotCache.get(key),person=hot?.person||starmeterPersonSeed(entry),credits=Array.isArray(hot?.credits)?hot.credits:[];return {key,rank:Number(entry.rank||0),person,moviePayload:personCreditPayload(credits,'movie'),showPayload:personCreditPayload(credits,'series')}});
-      setStarmeterBackgroundProgress(28,'Matching all 100 people to your providers…');
-      const batch=await tvCatalogWorkerRequest('person-match-batch',{people},24000);const results=Array.isArray(batch?.results)?batch.results:[];
-      if(results.length!==people.length)throw new Error('STARmeter batch match did not complete');
-      const byKey=new Map(people.map(row=>[row.key,row]));let done=0;
-      for(const row of results){const source=byKey.get(row.key);if(!source)continue;const value={person:source.person,movies:Array.isArray(row.movies)?sortPersonLibraryItems(row.movies):[],shows:Array.isArray(row.shows)?sortPersonLibraryItems(row.shows):[],loadedAt:Date.now(),prelogin:true};starmeterPersonCache.set(row.key,value);starmeterHotCache.set(row.key,{...(starmeterHotCache.get(row.key)||{}),...value});personLibraryCache.set(`${value.person.id||''}|${String(value.person.name||'').toLowerCase()}`,value);done++;if(done%10===0)setStarmeterBackgroundProgress(28+(done/Math.max(1,people.length))*62,`Matched ${done} of ${people.length} STARmeter people…`)}
-      starmeterBackgroundReady=true;starmeterPreparedProviderSignature=starmeterProviderSignature();setStarmeterBackgroundProgress(100,'STARmeter Top 100 ready');prewarmPreparedStarmeterArtwork();
+      const people=starmeterPeople.map(entry=>{const key=starmeterNormalize(entry.name),hot=starmeterHotCache.get(key),person=hot?.person||starmeterPersonSeed(entry),credits=Array.isArray(hot?.credits)?hot.credits:[];return {key,rank:Number(entry.rank||0),person,moviePayload:personCreditPayload(credits,'movie'),showPayload:personCreditPayload(credits,'series')}});total=people.length;
+      starmeterBackgroundReady=true;starmeterBackgroundComplete=false;
+      setStarmeterBackgroundProgress(28,'Matching STARmeter people to your providers…');
+      for(let offset=0;offset<people.length;offset+=STARMETER_PRELOGIN_BATCH_SIZE){
+        const chunk=people.slice(offset,offset+STARMETER_PRELOGIN_BATCH_SIZE),batch=await tvCatalogWorkerRequest('person-match-batch',{people:chunk},12000),results=Array.isArray(batch?.results)?batch.results:[];
+        const applied=applyPreparedStarmeterResults(chunk,results);matched+=applied;
+        setStarmeterBackgroundProgress(28+(matched/Math.max(1,total))*62,`Matched ${matched} of ${total} STARmeter people…`);
+        if(applied!==chunk.length)throw new Error(`STARmeter background match paused at ${matched} of ${total}`);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+      starmeterBackgroundComplete=true;starmeterPreparedProviderSignature=starmeterProviderSignature();setStarmeterBackgroundProgress(100,'STARmeter Top 100 ready');prewarmPreparedStarmeterArtwork();
       if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();return true;
-    }catch(err){starmeterBackgroundReady=false;starmeterBackgroundStatus=err?.message||'STARmeter preparation will retry in the background.';patchProfileStarmeterPrep();return false}
-    finally{starmeterBackgroundPreparePromise=null}
+    }catch(err){
+      starmeterBackgroundReady=true;starmeterBackgroundComplete=false;starmeterPreparedProviderSignature='';
+      const count=Math.max(matched,[...starmeterPeople].filter(entry=>starmeterPersonCache.has(starmeterNormalize(entry.name))).length),denom=Math.max(1,total||starmeterPeople.length||100);
+      setStarmeterBackgroundProgress(Math.max(starmeterBackgroundProgress,28+(count/denom)*62),count?`STARmeter is usable now · ${count} of ${denom} pre-matched; finishing in background.`:'STARmeter is usable now · provider matching will retry in the background.');
+      if(state.page==='starmeter'&&!profilePickerOpen&&!detailItem&&!personView)render();scheduleStarmeterBackgroundRetry(5000);return false;
+    }finally{starmeterBackgroundPreparePromise=null}
   })();
   return starmeterBackgroundPreparePromise;
 }
@@ -1939,8 +1958,8 @@ function starmeterPersonSection(entry={}){
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
 }
 function starmeterPage(){
-  const visible=starmeterPeople.slice(0,100),waiting=NATIVE_ANDROID&&!starmeterBackgroundReady;
-  const body=waiting?`<div class="starmeter-page-loading starmeter-full-prepare"><span class="provider-spinner"></span><strong>${esc(starmeterBackgroundStatus||'Preparing the complete STARmeter Top 100…')}</strong><small>${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}% · Swoop TV is matching all people before the page becomes focusable.</small></div>`:visible.length?visible.map(starmeterPersonSection).join(''):starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
+  const visible=starmeterPeople.slice(0,100);
+  const body=visible.length?visible.map(starmeterPersonSection).join(''):starmeterError?`<div class="starmeter-error"><h2>STARmeter unavailable</h2><p>${esc(starmeterError)}</p><button class="btn secondary" data-starmeter-retry>Try again</button></div>`:`<div class="starmeter-page-loading"><span class="provider-spinner"></span><strong>Loading IMDb STARmeter Top 100…</strong><small>Preparing the people viewers are searching for now.</small></div>`;
   return `<main class="page starmeter-page"><section class="starmeter-hero"><div><span class="eyebrow">IMDb · TRENDING PEOPLE</span><h1>STARmeter</h1><p>The current IMDb Top 100 people, connected directly to movies and TV shows available in your Swoop TV providers.</p></div><div class="starmeter-count"><strong>${starmeterPeople.length||100}</strong><span>PEOPLE</span></div></section><div class="page-content starmeter-content">${body}</div></main>`;
 }
 async function hydrateStarmeterIdentity(entry={}){
@@ -3190,7 +3209,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favourite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:833,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:834,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
