@@ -38,9 +38,9 @@ app=replaceRequired(
   const progress=Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)));
   el.classList.toggle('ready',starmeterBackgroundComplete);
   const value=el.querySelector('[data-profile-starmeter-percent]'),copy=el.querySelector('[data-profile-starmeter-copy]'),bar=el.querySelector('[data-profile-starmeter-bar]');
-  if(value)value.textContent=starmeterBackgroundComplete?'✓':\`${progress}%\`;
+  if(value)value.textContent=starmeterBackgroundComplete?'✓':\`\${progress}%\`;
   if(copy)copy.textContent=starmeterBackgroundComplete?'Ready':'Please wait…';
-  if(bar)bar.style.width=\`${progress}%\`;
+  if(bar)bar.style.width=\`\${progress}%\`;
 }
 function setStarmeterBackgroundProgress`,
   'profile preparation progress patcher'
