@@ -22,10 +22,10 @@ let tvHomeSnapshotActive=false,tvBackgroundRestoreStarted=false,tvSnapshotSaveTi
 let tvLastFocusedElement=null,tvLastActivationAt=0,androidLaunchChecksScheduled=false,androidLaunchChecksRunning=false,androidProviderLaunchCheckRunning=false,androidAppUpdateAvailable=null,androidLatestManifest=null;
 let tvVerticalQueue=0,tvVerticalFrame=0,tvVerticalProcessing=false;
 const tvRowColumnMemory=new Map();
-let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
+let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.39';
+const ANDROID_CURRENT_VERSION='0.8.40';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,7 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Shows the programme playing right now directly under the Live TV channel logo, updating as focus or the programme changes.',
   'Adds a visible pre-login preparation progress bar, cleans profile focus styling, restores true bottom breathing room on Home, and upgrades the native Google TV player controls.',
   'Pins Top 100 Movies and Top 100 TV Shows directly to Snoak’s Trakt Trending Movies/Shows lists and removes unrelated provider-library filler.',
   'Compacts STARmeter so the Top 5 people fit on one TV screen, with smaller portraits, ranks and provider-title cards plus clean spacing between rows.',
@@ -1876,9 +1877,10 @@ async function primeLiveCategoryRails(){
 function patchLiveHeroFocusedChannel(item){
   if(state.page!=='live'||!item)return false;const hero=document.querySelector('.live-hub-hero'),brand=hero?.querySelector('.live-hub-brand-panel');if(!hero||!brand)return false;
   hero.dataset.liveHeroItem=item.id||'';hero.setAttribute('aria-label',item.name||'Live TV');const watch=brand.querySelector('[data-play]');if(watch)watch.dataset.play=item.id||'';const fav=brand.querySelector('[data-live-favourite]');if(fav){fav.dataset.liveFavourite=item.id||'';fav.textContent=isLiveFavourite(item)?'★ Favorite':'☆ Add Favorite'}
-  const meta=brand.querySelector('[data-live-hero-meta]');if(meta)meta.textContent=item.group||'Live TV';const visual=visualItem(item),logo=String(visual?.logo||'');let img=brand.querySelector('.live-hub-art'),fallback=brand.querySelector('.live-brand-fallback');if(logo){fallback?.remove();if(!img){img=document.createElement('img');img.className='live-hub-art';img.alt='';brand.prepend(img)}if(img.dataset.swoopArt!==logo){img.dataset.swoopArt=logo;img.dataset.swoopLoaded='';img.removeAttribute('src');loadArtwork(img,{priority:'high'})}}else{img?.remove();if(!fallback){fallback=document.createElement('div');fallback.className='live-brand-fallback';brand.prepend(fallback)}fallback.textContent=item.name||'LIVE'}return true;
+  const meta=brand.querySelector('[data-live-hero-meta]');if(meta)meta.textContent=item.group||'Live TV';const visual=visualItem(item),logo=String(visual?.logo||'');let img=brand.querySelector('.live-hub-art'),fallback=brand.querySelector('.live-brand-fallback');if(logo){fallback?.remove();if(!img){img=document.createElement('img');img.className='live-hub-art';img.alt='';brand.prepend(img)}if(img.dataset.swoopArt!==logo){img.dataset.swoopArt=logo;img.dataset.swoopLoaded='';img.removeAttribute('src');loadArtwork(img,{priority:'high'})}}else{img?.remove();if(!fallback){fallback=document.createElement('div');fallback.className='live-brand-fallback';brand.prepend(fallback)}fallback.textContent=item.name||'LIVE'}scheduleLiveHeroNowPlaying(item,180);return true;
 }
 function stopLiveHeroPreview(){
+  if(liveHeroProgrammeTimer){clearTimeout(liveHeroProgrammeTimer);liveHeroProgrammeTimer=null}
   if(livePreviewTimer){clearTimeout(livePreviewTimer);livePreviewTimer=null}livePreviewItemId='';document.querySelector('.live-hub-preview-panel')?.classList.remove('preview-active');
   if(livePreviewActive){livePreviewActive=false;nativeStopPreview().catch(()=>null)}
 }
@@ -1901,11 +1903,12 @@ function livePage(){
   const favorites=state.liveFavourites.map(id=>savedItem(id)||byId.get(id)).filter(Boolean);
   const recent=state.recentLive.map(id=>savedItem(id)||byId.get(id)).filter(Boolean).slice(0,16);
   const categories=liveRailCategories(),shownCategories=categories.slice(0,liveRailCategoryLimit);
-  const lead=favorites[0]||recent[0]||all[0],leadVisual=visualItem(lead),leadFav=lead?isLiveFavourite(lead):false;
+  const lead=favorites[0]||recent[0]||all[0],leadVisual=visualItem(lead),leadFav=lead?isLiveFavourite(lead):false,leadNow=lead?currentProgramme(lead):null;
   const art=leadVisual?.logo?`<img class="live-hub-art" data-swoop-art="${esc(leadVisual.logo)}" alt="${esc(lead?.name||'Live TV')}">`:`<div class="live-brand-fallback">${esc(lead?.name||'LIVE')}</div>`;
   const loading=nativeCatalogMode&&nativeCache.loading&&!all.length?`<div class="native-query-loading"><div><span class="provider-spinner"></span><strong>Loading Live TV…</strong><div class="activity-progress indeterminate"><b></b></div><small>Loading your library…</small></div></div>`:'';
   const categoryRows=shownCategories.map(liveCategoryRailMarkup).join('');
-  return `<main class="page live-hub-page"><section class="live-hub-hero ${leadVisual?.logo?'has-brand-art':''}" data-live-hero-item="${esc(lead?.id||'')}" aria-label="${esc(lead?.name||'Live TV')}"><div class="live-hub-shade"></div><div class="live-hub-brand-panel">${art}<div class="live-hub-brand-copy"><div class="eyebrow">LIVE TV · ${esc(providerName)}</div><span data-live-hero-meta>${esc(lead?.group||'Live TV')}</span></div><div class="cta-row live-hub-actions">${lead?`<button class="btn play-btn" data-play="${esc(lead.id)}">▶ Watch Live</button><button class="btn secondary" data-live-favourite="${esc(lead.id)}">${leadFav?'★ Favorite':'☆ Add Favorite'}</button>`:''}<button class="btn secondary" data-page="guide">▤ TV Guide</button></div></div><div class="live-hub-preview-panel" aria-label="Muted live preview"><div class="live-preview-anchor"></div></div></section>
+  if(lead)setTimeout(()=>{if(state.page==='live')scheduleLiveHeroNowPlaying(lead,120)},0);
+  return `<main class="page live-hub-page"><section class="live-hub-hero ${leadVisual?.logo?'has-brand-art':''}" data-live-hero-item="${esc(lead?.id||'')}" aria-label="${esc(lead?.name||'Live TV')}"><div class="live-hub-shade"></div><div class="live-hub-brand-panel">${art}<div class="live-hub-brand-copy"><div class="live-hub-now" data-live-hero-now><span>NOW PLAYING</span><strong>${esc(leadNow?.title||'Programme information unavailable')}</strong></div><div class="eyebrow">LIVE TV · ${esc(providerName)}</div><span data-live-hero-meta>${esc(lead?.group||'Live TV')}</span></div><div class="cta-row live-hub-actions">${lead?`<button class="btn play-btn" data-play="${esc(lead.id)}">▶ Watch Live</button><button class="btn secondary" data-live-favourite="${esc(lead.id)}">${leadFav?'★ Favorite':'☆ Add Favorite'}</button>`:''}<button class="btn secondary" data-page="guide">▤ TV Guide</button></div></div><div class="live-hub-preview-panel" aria-label="Muted live preview"><div class="live-preview-anchor"></div></div></section>
   <div class="page-content live-hub-content"><div class="provider-filter-pills live-provider-filter"><button class="${providerFilter==='all'?'active':''}" data-provider-filter="all">All Providers</button>${providerPills.map(p=>`<button class="${providerFilter===p.id?'active':''}" data-provider-filter="${esc(p.id)}">${esc(p.name)}</button>`).join('')}</div>${favorites.length?liveSimpleRail('Favorite Channels',favorites.slice(0,100),`${favorites.length} saved`):''}${recent.length?liveSimpleRail('Recent Channels',recent,'Your most recently watched channels'):''}
   <section class="live-category-browser"><div class="section-head live-browser-head"><div><h2>Browse Live TV</h2><span class="section-meta">Swipe across each provider category</span></div><button class="btn secondary compact-btn" data-page="guide">Open TV Guide</button></div>${loading}${categoryRows||(!loading?empty('No Live TV categories','Refresh or reconnect your TV provider to load its channel groups.'):'')}<div class="live-auto-load-sentinel" data-live-category-sentinel aria-hidden="true"></div></section></div></main>`;
 }
@@ -3026,6 +3029,14 @@ function liveMiniGuideChannels(item,count=7){
   return out.slice(0,count);
 }
 function currentProgramme(channel){const cached=epgCache.get(channel?.id),now=Date.now(),list=cached?.list||[];return list.find(p=>now>=p.startMs&&now<p.endMs)||null}
+function patchLiveHeroNowPlaying(channel){
+  if(state.page!=='live'||!channel)return false;const hero=document.querySelector('.live-hub-hero'),box=hero?.querySelector('[data-live-hero-now]');if(!hero||!box||String(hero.dataset.liveHeroItem||'')!==String(channel.id||''))return false;
+  const programme=currentProgramme(channel),title=String(programme?.title||'').trim(),strong=box.querySelector('strong');box.classList.toggle('unavailable',!title);if(strong)strong.textContent=title||'Programme information unavailable';return Boolean(title);
+}
+function scheduleLiveHeroNowPlaying(channel,delay=180){
+  if(liveHeroProgrammeTimer){clearTimeout(liveHeroProgrammeTimer);liveHeroProgrammeTimer=null}if(state.page!=='live'||!channel)return;patchLiveHeroNowPlaying(channel);const id=String(channel.id||'');
+  liveHeroProgrammeTimer=setTimeout(async()=>{liveHeroProgrammeTimer=null;const hero=document.querySelector('.live-hub-hero');if(state.page!=='live'||String(hero?.dataset?.liveHeroItem||'')!==id)return;await ensureLiveEpg(channel).catch(()=>null);const latest=document.querySelector('.live-hub-hero');if(state.page!=='live'||String(latest?.dataset?.liveHeroItem||'')!==id)return;patchLiveHeroNowPlaying(channel);const programme=currentProgramme(channel);if(programme?.endMs){const wait=Math.max(1250,Math.min(6*3600000,Number(programme.endMs)-Date.now()+1000));liveHeroProgrammeTimer=setTimeout(()=>scheduleLiveHeroNowPlaying(channel,0),wait)}},Math.max(0,Number(delay)||0));
+}
 async function ensureLiveEpg(channel){
   if(!channel)return;
   const cached=epgCache.get(channel.id);if(cached&&Date.now()-cached.loadedAt<EPG_TTL_MS)return cached;

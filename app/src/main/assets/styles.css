@@ -2926,3 +2926,17 @@ html.android-tv .starmeter-content,
 html.android-tv .search-page .page-content{
   padding-bottom:210px!important;
 }
+
+
+/* ========================================================================== */
+/* v0.8.40 — Live TV current-programme identity.                              */
+/* ========================================================================== */
+.live-hub-now{display:flex;align-items:baseline;gap:8px;min-width:0}
+.live-hub-now>span{font-size:9px;font-weight:950;letter-spacing:.12em;color:#7fe6bd;white-space:nowrap}
+.live-hub-now>strong{min-width:0;font-size:15px;line-height:1.2;color:#fff;font-weight:900;overflow:hidden;text-overflow:ellipsis}
+.live-hub-now.unavailable>strong{color:#8d929c;font-weight:750}
+html.android-tv .live-hub-now{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:start!important;gap:8px!important;margin-top:4px!important;max-width:100%!important}
+html.android-tv .live-hub-now>span{font-size:8px!important;line-height:1.35!important;padding-top:2px!important;color:#7fe6bd!important;font-weight:1000!important;letter-spacing:.11em!important}
+html.android-tv .live-hub-now>strong{font-size:16px!important;line-height:1.16!important;color:#fff!important;font-weight:900!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important}
+html.android-tv .live-hub-now.unavailable>strong{font-size:11px!important;color:#838894!important;font-weight:750!important}
+html.android-tv[data-tv-density="tight"] .live-hub-now>strong{font-size:14px!important;-webkit-line-clamp:1!important}

@@ -1,5 +1,13 @@
 # Swoop TV Release Notes
 
+## v0.8.40 — Live TV Now Playing
+
+- Adds one concise **Now Playing** programme title directly under the persistent Live TV channel logo.
+- Uses Swoop’s existing EPG cache/current-programme lookup; no extra guide grid, synopsis, next-programme row or timeline is added to the Live TV header.
+- The programme title updates immediately when remote focus moves to another channel and refreshes again at the current programme boundary.
+- Keeps the approved sticky Live TV header geometry, large native preview, channel branding and channel rails unchanged.
+- Android versionName is **0.8.40** and versionCode is **840**.
+
 ## v0.8.39 — Profile Preparation + Player Experience Pass
 
 - Replaces the technical STARmeter preparation status on Who’s Watching with a simple **Please wait…** progress bar and completion state.

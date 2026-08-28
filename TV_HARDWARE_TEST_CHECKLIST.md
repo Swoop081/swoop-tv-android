@@ -63,3 +63,5 @@ Enable Hardware Test Mode by focusing the Settings cog and pressing **OK five ti
 After reproducing a failure, save the JSON and upload it with the phone video. Diagnostic exports are written to the app Documents directory with a filename beginning:
 
 `Swoop-TV-v0.8.37-Diagnostics-`
+
+- [ ] **LIVE-NOW-001:** On Live TV, the left channel logo has exactly one current EPG programme title beneath it; changing channel focus updates the title, and the title changes at the programme boundary without opening the full Guide.
