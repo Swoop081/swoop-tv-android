@@ -7,6 +7,7 @@ const activitySource = fs.readFileSync(new URL('../app/src/main/java/tv/swoop/pl
 const performancePackSource = fs.readFileSync(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url), 'utf8');
 const storageSource = fs.readFileSync(new URL('../app/src/main/assets/src/storage.js', import.meta.url), 'utf8');
 const swSource = fs.readFileSync(new URL('../app/src/main/assets/sw.js', import.meta.url), 'utf8');
+const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 const {performancePackProviderDelta} = await import(new URL('../app/src/main/assets/src/performancePack.js', import.meta.url));
 
 const starmeterManifest = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/starmeter.json', import.meta.url), 'utf8'));
@@ -251,7 +252,9 @@ if (!appSource.includes('data-live-hero-item') || !appSource.includes('live-hub-
 if (!activitySource.includes('AspectRatioFrameLayout.RESIZE_MODE_ZOOM')) throw new Error('Native Live TV preview zoom-fill treatment missing');
 if (!cssSource.includes('padding-bottom:180px!important')) throw new Error('TV page bottom safe-space tail missing');
 // v0.8.41 consolidated physical-TV fixes.
-if (!appSource.includes('installSeedCuratedList') || !appSource.includes("listKey:'trending-movies'") || !appSource.includes("listKey:'trending-shows'")) throw new Error('Packaged Snoak Top 100 seed fallback missing');
+const snoakMovies=installSeed?.curated?.['trending-movies']?.items||[],snoakShows=installSeed?.curated?.['trending-shows']?.items||[];
+if (!appSource.includes('installSeedCuratedList') || !appSource.includes("['top20-movies','trending-movies']") || !appSource.includes("['top20-shows','trending-shows']")) throw new Error('Snoak Top 100 runtime mapping/seed fallback missing');
+if (snoakMovies.length<100 || snoakShows.length<100) throw new Error(`Packaged Snoak Top 100 source lists incomplete: movies=${snoakMovies.length}, shows=${snoakShows.length}`);
 if (!appSource.includes("opts.page&&!opts.rowId")) throw new Error('Home Explore-all regression returned');
 if (!appSource.includes('STARMETER_TITLE_APPEND_BATCH=8') || !appSource.includes('function appendStarmeterTitleRail(')) throw new Error('STARmeter title continuation beyond eight missing');
 if (!cssSource.includes('.myswoop-cinematic-hero{height:440px!important;min-height:440px!important;max-height:440px!important}')) throw new Error('My SwoopTV hero no longer exactly matches Home height');

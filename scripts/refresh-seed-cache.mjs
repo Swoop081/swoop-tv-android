@@ -34,8 +34,36 @@ let discovery={};
 if(!OFFLINE){try{const [movie,tv]=await Promise.all([post({mode:'discovery',mediaType:'movie'},18000),post({mode:'discovery',mediaType:'tv'},18000)]);if(movie&&typeof movie==='object')discovery.movie=movie;if(tv&&typeof tv==='object')discovery.tv=tv;console.log('Seed discovery bundle refreshed.')}catch(err){console.warn(`Discovery seed refresh unavailable: ${err.message}`)}}
 if(!Object.keys(discovery).length&&previous?.discovery&&typeof previous.discovery==='object')discovery=previous.discovery;
 
+function decodeHtmlText(value=''){
+  return String(value).replace(/&#x([0-9a-f]+);/gi,(_,hex)=>String.fromCodePoint(parseInt(hex,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+}
+function parsePublicMdbList(html,mediaType='movie'){
+  const source=String(html||'').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' '),out=[],seen=new Set();
+  const titlePattern=/>\s*([^<>\r\n]{1,180}?)\s*\(((?:19|20)\d{2})\)\s*</g;let match;
+  while((match=titlePattern.exec(source))){
+    const title=decodeHtmlText(match[1]).replace(/\s+/g,' ').trim(),year=String(match[2]||'');
+    if(!title||title.length>130||title.split(/\s+/).length>20||/[.!?]\s/.test(title))continue;
+    const key=`${normalize(title)}|${year}`;if(!normalize(title)||seen.has(key))continue;
+    const prefix=source.slice(Math.max(0,match.index-7000),match.index);
+    const imdbMatches=[...prefix.matchAll(/href=["'][^"']*imdb\.com\/title\/(tt\d+)/gi)],tmdbMatches=[...prefix.matchAll(/href=["'][^"']*themoviedb\.org\/(?:movie|tv)\/(\d+)/gi)];
+    const imdb=imdbMatches.length?imdbMatches[imdbMatches.length-1][1]:'',tmdb=tmdbMatches.length?tmdbMatches[tmdbMatches.length-1][1]:'';
+    seen.add(key);out.push({title,year,media_type:mediaType,ids:{...(tmdb?{tmdb}:{}),...(imdb?{imdb}: {})}});if(out.length>=300)break;
+  }
+  return out;
+}
+async function fetchPublicMdbList(url,mediaType){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  try{
+    const res=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (compatible; SwoopTV-Seed/0.8.41; +https://github.com/Swoop081/swoop-tv-android)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
+    if(!res.ok)throw new Error(`MDBList page HTTP ${res.status}`);const html=await res.text(),items=parsePublicMdbList(html,mediaType);if(items.length<100)throw new Error(`MDBList page parser found only ${items.length} ${mediaType} entries`);
+    return {items,source:'Snoak · Trakt Trending via MDBList',sourceUrl:url,sourceUpdatedAt:Date.now()};
+  }finally{clearTimeout(timer)}
+}
 let curated={};
-if(!OFFLINE){try{const [movies,shows]=await Promise.all([post({mode:'snoak-list',listKey:'trending-movies'},18000),post({mode:'snoak-list',listKey:'trending-shows'},18000)]);if(movies&&typeof movies==='object')curated['trending-movies']=movies;if(shows&&typeof shows==='object')curated['trending-shows']=shows;console.log('Seed Snoak Top 100 source lists refreshed.')}catch(err){console.warn(`Snoak Top 100 seed refresh unavailable: ${err.message}`)}}
+if(!OFFLINE){
+  const jobs=[['trending-movies','https://mdblist.com/lists/snoak/trending-movies','movie'],['trending-shows','https://mdblist.com/lists/snoak/trakt-s-trending-shows','tv']];
+  for(const [key,url,type] of jobs){try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} source entries.`)}catch(err){console.warn(`Snoak ${key} seed refresh unavailable: ${err.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}}
+}
 if(!Object.keys(curated).length&&previous?.curated&&typeof previous.curated==='object')curated=previous.curated;
 
 const priorPeople=new Map((previous?.starmeter?.people||[]).map(p=>[normalize(p.name||p.person?.name),p]));
