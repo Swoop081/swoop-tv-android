@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.47';
+const ANDROID_CURRENT_VERSION='0.8.48';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Replaces first-run provider setup with a calm one-screen-at-a-time wizard: choose Xtream or M3U, enter only the fields that path needs, then connect.',
+  'Xtream first-run now asks for server URL, a friendly playlist name, username and password on separate screens; M3U asks only for playlist URL and playlist name before connecting.',
+  'Hides XMLTV, connection-helper, provider statistics, priority and management controls during onboarding while keeping the full Provider Manager available later in Settings.',
   'Adds ten new first-run avatar choices supplied for Swoop TV: Cheetah, Seal, Triceratops, Capybara, Panda, Dinosaur, Red Panda, Kangaroo, Dog and Cat.',
   'Reorders clean first-run so the customer connects Xtream Codes or M3U first; provider/library work then continues behind the avatar chooser before Swoop TV opens.',
   'Slows playful startup lines to one every 15 seconds and reduces their TV size so each line can actually be read.',
@@ -275,6 +278,7 @@ applyProfileToState(activeProfile());
 let modal=(state.profiles.length||state.providers.length)?null:'provider',continueOptionsTarget=null,toastTimer=null,playerItem=null,playerUiHidden=false,activeHls=null,trailerKey='',trailerTitle='',sourceChoiceItem=null;
 let profilePickerOpen=true,profileEditId='',pendingProfileId='',profilePinError='';
 let firstRunAvatarId='',firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider'),firstRunProviderBusy=false,firstRunProviderReady=!state.profiles.length&&state.providers.length>0,firstRunProviderError='',firstRunAvatarConfirmed=false;
+let firstRunProviderStep='method',firstRunProviderDraft={type:'',server:'',url:'',name:'',username:''};
 let playbackMonitorTimer=null,lastPlaybackPersist=0,playerStartedAt=0,upNextTimer=null,upNextSeconds=0,upNextItem=null;
 let liveMiniGuideToken=0,channelNumberBuffer='',channelNumberTimer=null;
 let heroRotationIndex=0,heroRotationTimer=null,mySwoopHeroIndex=0,mySwoopHeroTimer=null,mySwoopHeroSwapToken=0;
@@ -2701,7 +2705,30 @@ function render(){
   if(!mediaRoute){scheduleHeroRotation();scheduleMySwoopHeroRotation();}
 }
 
+function firstRunProviderWizardModal(){
+  const type=firstRunProviderDraft.type||'',xtream=type==='xtream',step=firstRunProviderStep||'method';
+  const total=xtream?5:3;
+  const stepNumber=step==='method'?1:step==='address'?2:step==='name'?3:step==='username'?4:5;
+  const progress=type?`STEP ${Math.min(stepNumber,total)} OF ${total}`:'STEP 1';
+  const back=step==='method'?'':`<button type="button" class="btn secondary" data-first-provider-back>Back</button>`;
+  const shell=(title,copy,body)=>`<div class="modal-backdrop"><div class="modal provider-modal first-run-provider-wizard" data-modal-card><div class="modal-body provider-modal-body"><section class="provider-add-section"><div class="provider-add-heading"><span class="eyebrow">${progress}</span><h2>${title}</h2>${copy?`<p>${copy}</p>`:''}</div>${body}<div id="providerStatus" aria-live="polite"></div></section></div></div></div>`;
+  if(step==='method')return shell('How do you sign in?','Choose the option your TV provider gave you.',`<div class="provider-methods" aria-label="Provider type"><button type="button" class="provider-method" data-first-provider-method="xtream"><span class="provider-method-icon">X</span><span><strong>Xtream Codes</strong><small>Server, username and password</small></span></button><button type="button" class="provider-method" data-first-provider-method="m3u"><span class="provider-method-icon">M3U</span><span><strong>M3U Playlist</strong><small>Playlist URL</small></span></button></div>`);
+  if(step==='address'){
+    const title=xtream?'What is your server URL?':'What is your M3U playlist URL?';
+    const label=xtream?'Server URL':'Playlist URL',value=xtream?firstRunProviderDraft.server:firstRunProviderDraft.url;
+    return shell(title,'Enter the address exactly as your provider gave it to you.',`<div class="field"><label>${label}</label><input data-first-provider-input type="url" value="${esc(value||'')}" placeholder="http://..." autocomplete="url" autofocus></div><div class="cta-row">${back}<button type="button" class="btn accent" data-first-provider-next>Next</button></div>`);
+  }
+  if(step==='name'){
+    const copy='This can be anything you want — for example Main TV, Family TV or Lounge.';
+    if(!xtream)return shell('Name this playlist',copy,`<form id="m3uForm"><input type="hidden" name="url" value="${esc(firstRunProviderDraft.url||'')}"><input type="hidden" name="epgUrl" value=""><input type="hidden" name="remember" value="on"><div class="field"><label>Playlist name</label><input data-first-provider-input name="name" value="${esc(firstRunProviderDraft.name||'')}" placeholder="Main TV" required autofocus></div><div class="cta-row">${back}<button class="btn accent" type="submit">Connect</button></div></form>`);
+    return shell('Name this playlist',copy,`<div class="field"><label>Playlist name</label><input data-first-provider-input value="${esc(firstRunProviderDraft.name||'')}" placeholder="Main TV" autofocus></div><div class="cta-row">${back}<button type="button" class="btn accent" data-first-provider-next>Next</button></div>`);
+  }
+  if(step==='username')return shell('What is your username?','Use the username supplied by your TV provider.',`<div class="field"><label>Username</label><input data-first-provider-input value="${esc(firstRunProviderDraft.username||'')}" autocomplete="username" autofocus></div><div class="cta-row">${back}<button type="button" class="btn accent" data-first-provider-next>Next</button></div>`);
+  return shell('Enter your password','One last step, then Swoop TV will connect.',`<form id="xtreamForm"><input type="hidden" name="name" value="${esc(firstRunProviderDraft.name||'Xtream Provider')}"><input type="hidden" name="server" value="${esc(firstRunProviderDraft.server||'')}"><input type="hidden" name="username" value="${esc(firstRunProviderDraft.username||'')}"><input type="hidden" name="relayUrl" value=""><input type="hidden" name="relayToken" value=""><input type="hidden" name="remember" value="on"><div class="field"><label>Password</label><input data-first-provider-input name="password" type="password" autocomplete="current-password" required autofocus></div><div class="cta-row">${back}<button class="btn accent" type="submit">Connect</button></div></form>`);
+}
+
 function providerModal(){
+  if(!state.profiles.length&&!state.providers.length)return firstRunProviderWizardModal();
   const visibleProviderIds=new Set(state.providers.map(p=>String(p.id)));
   const xtreamSaved=savedProviderProfiles.find(p=>p.type==='xtream'&&visibleProviderIds.has(providerProfileId(p)))||{};
   const m3uSaved=savedProviderProfiles.find(p=>p.type==='m3u'&&visibleProviderIds.has(providerProfileId(p)))||{};
@@ -3437,7 +3464,10 @@ function bind(){
       x.setAttribute('aria-pressed',active?'true':'false');
     });
   });
-  document.querySelector('[data-first-provider-open]')?.addEventListener('click',()=>{firstRunStage='provider';modal='provider';profilePickerOpen=true;render();requestAnimationFrame(()=>document.querySelector('[data-provider-tab="xtream"]')?.focus?.({preventScroll:true}))});
+  document.querySelector('[data-first-provider-open]')?.addEventListener('click',()=>{firstRunStage='provider';firstRunProviderStep='method';firstRunProviderDraft={type:'',server:'',url:'',name:'',username:''};modal='provider';profilePickerOpen=true;render();requestAnimationFrame(()=>document.querySelector('[data-first-provider-method]')?.focus?.({preventScroll:true}))});
+  document.querySelectorAll('[data-first-provider-method]').forEach(el=>el.onclick=()=>{firstRunProviderDraft={type:el.dataset.firstProviderMethod||'',server:'',url:'',name:'',username:''};firstRunProviderStep='address';render();requestAnimationFrame(()=>document.querySelector('[data-first-provider-input]')?.focus?.({preventScroll:true}))});
+  document.querySelector('[data-first-provider-next]')?.addEventListener('click',()=>{const input=document.querySelector('[data-first-provider-input]'),value=String(input?.value||'').trim();if(!value){toast('Please enter this detail');input?.focus?.();return}if(firstRunProviderStep==='address'){if(firstRunProviderDraft.type==='xtream')firstRunProviderDraft.server=value;else firstRunProviderDraft.url=value;firstRunProviderStep='name'}else if(firstRunProviderStep==='name'){firstRunProviderDraft.name=value;firstRunProviderStep='username'}else if(firstRunProviderStep==='username'){firstRunProviderDraft.username=value;firstRunProviderStep='password'}render();requestAnimationFrame(()=>document.querySelector('[data-first-provider-input]')?.focus?.({preventScroll:true}))});
+  document.querySelector('[data-first-provider-back]')?.addEventListener('click',()=>{if(firstRunProviderStep==='address')firstRunProviderStep='method';else if(firstRunProviderStep==='name')firstRunProviderStep='address';else if(firstRunProviderStep==='username')firstRunProviderStep='name';else if(firstRunProviderStep==='password')firstRunProviderStep='username';render();requestAnimationFrame(()=>document.querySelector('[data-first-provider-input],[data-first-provider-method]')?.focus?.({preventScroll:true}))});
   document.querySelector('[data-first-account-submit]')?.addEventListener('click',async()=>{
     if(state.profiles.length)return;
     if(!firstRunAvatarId){toast('Choose an avatar');return}
@@ -3508,7 +3538,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favorite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:845,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:848,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
