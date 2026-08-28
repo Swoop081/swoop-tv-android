@@ -1,3 +1,15 @@
+## v0.8.48 — Guided Provider Setup Wizard
+
+- Replaces the first-run all-in-one provider form with a calm, deliberate **one-screen-at-a-time** TV setup wizard.
+- First decision is simply **Xtream Codes** or **M3U Playlist**. The unselected setup path and all unrelated fields stay hidden.
+- Xtream setup asks, in order: **Server URL → Playlist name → Username → Password → Connect**.
+- The playlist name is explicitly explained as a friendly label that can be anything the customer wants, such as Main TV, Family TV or Lounge.
+- M3U setup asks only for **Playlist URL → Playlist name → Connect** during first run.
+- Hides XMLTV/EPG, connection-helper, provider statistics, provider priority and management controls from first-run onboarding; those remain available later in the full Provider Manager.
+- Preserves provider-first loading: after the connection is accepted, the avatar chooser takes over while library import, metadata and performance preparation continue behind it.
+- Preserves private-by-default secondary account credentials and the existing automatic-update/install flow.
+- Android versionName/versionCode: **0.8.48 / 848**.
+
 ## v0.8.47 — Provider-First First Run + Guided TV Setup
 
 - Removes the manufactured **Swoop TV / lion** profile from clean first-run. With no real account, Swoop TV does not pretend one exists.
