@@ -75,6 +75,8 @@ if(!release.includes('## v0.8.51')){
 
 // Promotion must leave the source tree as the canonical v0.8.51 baseline and must not trigger a second build.
 for(const p of ['.promotion/promote-pending.mjs','.promotion/build-request.txt']){try{fs.rmSync(p)}catch{}}
+execFileSync('git',['config','user.name','Swoop TV Build'],{stdio:'inherit'});
+execFileSync('git',['config','user.email','actions@users.noreply.github.com'],{stdio:'inherit'});
 execFileSync('git',['add','-A'],{stdio:'inherit'});
 execFileSync('git',['commit','-m','Promote v0.8.51 profile-entry race hotfix [skip ci]'],{stdio:'inherit'});
 execFileSync('git',['push','origin','HEAD:main'],{stdio:'inherit'});
