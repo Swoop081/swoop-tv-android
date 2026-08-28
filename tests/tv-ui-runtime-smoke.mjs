@@ -284,7 +284,7 @@ console.log('Google TV UI runtime smoke passed');
 // v0.8.33 route-top restoration + complete pre-login STARmeter preparation.
 if (!appSource.includes('function tvForceRouteTop()') || !appSource.includes("target.closest?.('.topbar')")) throw new Error('v0.8.33 canonical route-top restoration missing');
 if (!appSource.includes('function prepareStarmeterBeforeLogin()') || !appSource.includes("tvCatalogWorkerRequest('person-match-batch'")) throw new Error('v0.8.33 pre-login STARmeter batch preparation missing');
-if (!appSource.includes("if(NATIVE_ANDROID){render();setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)}")) throw new Error('STARmeter preparation does not start on the profile picker');
+if (!appSource.includes('async function bootstrapAndroidPreLogin()') || !appSource.includes('prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('STARmeter preparation does not start during the Android pre-login boot pipeline');
 if (!appSource.includes('const routeTab=document.querySelector(`.desktop-nav [data-page=') || !appSource.includes('CSS.escape(state.page)')) throw new Error('First-row Up does not escape to the active route tab');
 if (!cssSource.includes('height:136px!important') || !cssSource.includes('.profile-starmeter-prep')) throw new Error('v0.8.37 compact STARmeter fixed-row/profile-prewarm CSS missing');
 if (!fs.readFileSync(new URL('../app/src/main/assets/src/catalog-index-worker.js', import.meta.url), 'utf8').includes("msg.type==='person-match-batch'")) throw new Error('STARmeter worker batch-match contract missing');
