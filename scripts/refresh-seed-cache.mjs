@@ -103,6 +103,30 @@ async function fetchTraktMediaSurface(mediaType){
   if(items.length<100)throw new Error(`Trakt media surface found only ${items.length} ${mediaType} entries`);
   return {items:items.slice(0,100),source:'Trakt Trending · current public media surface',sourceUrl:`https://media-og.trakt.tv/${kind}/trending`,sourceUpdatedAt:Date.now()};
 }
+const TRAKT_PUBLIC_WEB_CLIENT_KEY='201dc70c5ec6af530f12f079ea1922733f6e1085ad7b02f36d8e011b75bcea7d';
+async function fetchTraktPublicApiList(mediaType){
+  const slug=mediaType==='movie'?'trakt-s-trending-movies':'trakt-s-trending-shows';
+  const url=`https://api.trakt.tv/users/snoak/lists/${slug}/items?page=1&limit=100`;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
+  try{
+    const res=await fetch(url,{headers:{accept:'application/json','trakt-api-version':'2','trakt-api-key':TRAKT_PUBLIC_WEB_CLIENT_KEY,'user-agent':'SwoopTV/0.8.41'},signal:controller.signal,redirect:'follow'});
+    const text=await res.text();
+    console.log(`Trakt public API ${mediaType}: HTTP ${res.status}, ${text.length} bytes.`);
+    if(!res.ok)throw new Error(`Trakt public API HTTP ${res.status}: ${text.slice(0,240).replace(/\s+/g,' ')}`);
+    let rows;try{rows=JSON.parse(text)}catch{throw new Error('Trakt public API returned non-JSON body')}
+    if(!Array.isArray(rows))throw new Error('Trakt public API response is not an item array');
+    const items=[];
+    for(const row of rows){
+      const media=row?.movie||row?.show||null,title=String(media?.title||'').trim(),year=String(media?.year||''),ids=media?.ids||{};
+      if(!title||!year)continue;
+      items.push({title,year,media_type:mediaType,ids:{...(ids.trakt?{trakt:String(ids.trakt)}:{}),...(ids.tmdb?{tmdb:String(ids.tmdb)}:{}),...(ids.imdb?{imdb:String(ids.imdb)}:{}),...(ids.tvdb?{tvdb:String(ids.tvdb)}:{})}});
+      if(items.length>=100)break;
+    }
+    console.log(`Trakt public API parsed ${mediaType}: ${items.length} items.`);
+    if(items.length<100)throw new Error(`Trakt public API returned only ${items.length} usable ${mediaType} items`);
+    return {items,source:'Snoak · Trakt Trending',sourceUrl:`https://trakt.tv/users/snoak/lists/${slug}`,sourceUpdatedAt:Date.now()};
+  }finally{clearTimeout(timer)}
+}
 async function fetchTraktWebApiList(mediaType){
   const slug=mediaType==='movie'?'trakt-s-trending-movies':'trakt-s-trending-shows';
   const url=`https://apiz.trakt.tv/users/snoak/lists/${slug}/items?extended=full%2Cimages%2Ccolors&page=1&limit=100`;
@@ -223,16 +247,15 @@ if(!OFFLINE){
       console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
     }catch(workerErr){
       try{
-        curated[key]=await fetchTraktWebApiList(type);
-        console.log(`Seed Snoak ${key}: ${curated[key].items.length} Trakt web API entries.`);
+        curated[key]=await fetchTraktPublicApiList(type);
+        console.log(`Seed Snoak ${key}: ${curated[key].items.length} Trakt public API entries.`);
       }catch(apiErr){
         try{
-          const traktUrl=type==='movie'?'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-shows';
-          curated[key]=await fetchPublicTraktTrending(traktUrl,type);
-          console.log(`Seed Snoak ${key}: ${curated[key].items.length} canonical app.trakt.tv entries.`);
-        }catch(traktErr){
-          try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList mirror entries.`)}
-          catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; apiz: ${apiErr.message}; app.trakt.tv: ${traktErr.message}; MDBList: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+          curated[key]=await fetchPublicMdbList(url,type);
+          console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList mirror entries.`);
+        }catch(mdbErr){
+          console.warn(`Snoak ${key} seed refresh unavailable: Worker: ${workerErr.message}; Trakt public API: ${apiErr.message}; MDBList: ${mdbErr.message}`);
+          if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key];
         }
       }
     }
