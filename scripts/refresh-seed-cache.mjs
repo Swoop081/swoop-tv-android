@@ -69,8 +69,21 @@ async function fetchPublicMdbList(url,mediaType){
 }
 let curated={};
 if(!OFFLINE){
-  const jobs=[['trending-movies','https://mdblist.com/lists/snoak/trending-movies','movie'],['trending-shows','https://mdblist.com/lists/snoak/trakt-s-trending-shows','tv']];
-  for(const [key,url,type] of jobs){try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} source entries.`)}catch(err){console.warn(`Snoak ${key} seed refresh unavailable: ${err.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}}
+  const jobs=[
+    ['trending-movies','movies-trakt','https://mdblist.com/lists/snoak/trending-movies','movie'],
+    ['trending-shows','shows-trakt','https://mdblist.com/lists/snoak/trakt-s-trending-shows','tv']
+  ];
+  for(const [key,workerKey,url,type] of jobs){
+    try{
+      const payload=await post({mode:'snoak-list',listKey:workerKey},20000),items=Array.isArray(payload?.items)?payload.items:[];
+      if(items.length<100)throw new Error(`Worker returned only ${items.length} entries for ${workerKey}`);
+      curated[key]={...payload,listKey:key,items:items.slice(0,100)};
+      console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
+    }catch(workerErr){
+      try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} public fallback entries.`)}
+      catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; public fallback: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+    }
+  }
 }
 if(!Object.keys(curated).length&&previous?.curated&&typeof previous.curated==='object')curated=previous.curated;
 

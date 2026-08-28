@@ -14,5 +14,7 @@ export async function fetchSwoopDiscovery({settings={},mediaType='movie'}={}){
 
 export async function fetchSwoopCuratedList({settings={},listKey='' }={}){
   if(!listKey)throw new Error('Swoop TV curated-list key is missing.');
-  return postDiscovery(settings,{mode:'snoak-list',listKey:String(listKey)});
+  const aliases={'trending-movies':'movies-trakt','trending-shows':'shows-trakt'};
+  const workerKey=aliases[String(listKey)]||String(listKey);
+  return postDiscovery(settings,{mode:'snoak-list',listKey:workerKey});
 }
