@@ -57,7 +57,7 @@ async function fetchPublicMdbList(url,mediaType){
     const pageUrl=new URL(url);pageUrl.searchParams.set('page',String(page));
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
     try{
-      const res=await fetch(pageUrl,{headers:{'user-agent':'Mozilla/5.0 (compatible; SwoopTV-Seed/0.8.41; +https://github.com/Swoop081/swoop-tv-android)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
+      const res=await fetch(pageUrl,{headers:{'user-agent':'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
       if(!res.ok)throw new Error(`MDBList page ${page} HTTP ${res.status}`);
       const html=await res.text(),pageItems=parsePublicMdbList(html,mediaType);let added=0;
       for(const item of pageItems){const key=`${normalize(item.title)}|${item.year}`;if(!normalize(item.title)||seen.has(key))continue;seen.add(key);items.push(item);added++;}
@@ -70,7 +70,7 @@ async function fetchPublicMdbList(url,mediaType){
 async function fetchPublicTraktTrending(url,mediaType){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
   try{
-    const res=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (compatible; SwoopTV-Seed/0.8.41; +https://github.com/Swoop081/swoop-tv-android)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
+    const res=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
     if(!res.ok)throw new Error(`Trakt trending HTTP ${res.status}`);
     const html=await res.text();
     const text=decodeHtmlText(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,'\n'));
