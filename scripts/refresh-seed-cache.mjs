@@ -103,6 +103,24 @@ async function fetchTraktMediaSurface(mediaType){
   if(items.length<100)throw new Error(`Trakt media surface found only ${items.length} ${mediaType} entries`);
   return {items:items.slice(0,100),source:'Trakt Trending · current public media surface',sourceUrl:`https://media-og.trakt.tv/${kind}/trending`,sourceUpdatedAt:Date.now()};
 }
+async function fetchTraktWebApiList(mediaType){
+  const slug=mediaType==='movie'?'trakt-s-trending-movies':'trakt-s-trending-shows';
+  const url=`https://apiz.trakt.tv/users/snoak/lists/${slug}/items?extended=full%2Cimages%2Ccolors&page=1&limit=100`;
+  let raw='';
+  try{
+    raw=execLocalFileSync('curl',['--silent','--show-error','--location','--max-time','25','--connect-timeout','10','--http1.1','--compressed','--user-agent','Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/142 Safari/537.36','--header','Accept: application/json','--header','Origin: https://app.trakt.tv','--header','Referer: https://app.trakt.tv/', '--write-out','\n__SWOOP_HTTP__:%{http_code}',url],{encoding:'utf8',maxBuffer:30*1024*1024});
+  }catch(err){throw new Error(`apiz curl failed: ${String(err?.stderr||err?.message||err).trim()}`)}
+  const match=raw.match(/\n__SWOOP_HTTP__:(\d{3})\s*$/),status=match?Number(match[1]):0,body=match?raw.slice(0,match.index):raw;
+  console.log(`Trakt apiz anonymous ${mediaType}: HTTP ${status}, ${body.length} bytes.`);
+  if(status!==200)throw new Error(`Trakt apiz anonymous HTTP ${status}: ${body.slice(0,240).replace(/\s+/g,' ')}`);
+  let rows;try{rows=JSON.parse(body)}catch{throw new Error('Trakt apiz returned non-JSON body')}
+  if(!Array.isArray(rows))throw new Error('Trakt apiz response is not an item array');
+  const items=[];
+  for(const row of rows){const media=row?.movie||row?.show||row?.episode||null,title=String(media?.title||'').trim(),year=compactYear(media?.year),ids=media?.ids||{};if(!title||!year)continue;items.push({title,year,media_type:mediaType,ids:{...(ids.tmdb?{tmdb:String(ids.tmdb)}:{}),...(ids.imdb?{imdb:String(ids.imdb)}:{}),...(ids.trakt?{trakt:String(ids.trakt)}:{})}});if(items.length>=100)break;}
+  console.log(`Trakt apiz anonymous parsed ${mediaType}: ${items.length} items.`);
+  if(items.length<100)throw new Error(`Trakt apiz returned only ${items.length} usable ${mediaType} items`);
+  return {items,source:'Snoak · Trakt Trending',sourceUrl:`https://app.trakt.tv/users/snoak/lists/${slug}`,sourceUpdatedAt:Date.now()};
+}
 async function fetchPublicTraktTrending(url,mediaType){
   let html='',fetchError='';
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
@@ -158,12 +176,17 @@ if(!OFFLINE){
       console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
     }catch(workerErr){
       try{
-        const traktUrl=type==='movie'?'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-shows';
-        curated[key]=await fetchPublicTraktTrending(traktUrl,type);
-        console.log(`Seed Snoak ${key}: ${curated[key].items.length} canonical app.trakt.tv entries.`);
-      }catch(traktErr){
-        try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList mirror entries.`)}
-        catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; app.trakt.tv: ${traktErr.message}; MDBList: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+        curated[key]=await fetchTraktWebApiList(type);
+        console.log(`Seed Snoak ${key}: ${curated[key].items.length} Trakt web API entries.`);
+      }catch(apiErr){
+        try{
+          const traktUrl=type==='movie'?'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-shows';
+          curated[key]=await fetchPublicTraktTrending(traktUrl,type);
+          console.log(`Seed Snoak ${key}: ${curated[key].items.length} canonical app.trakt.tv entries.`);
+        }catch(traktErr){
+          try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList mirror entries.`)}
+          catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; apiz: ${apiErr.message}; app.trakt.tv: ${traktErr.message}; MDBList: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+        }
       }
     }
   }
