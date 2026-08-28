@@ -1,3 +1,10 @@
+## v0.8.50 first-run onboarding checks
+
+- ONBOARD-ENTER-001: Type each provider field and press keyboard Enter with the remote. Intermediate fields must advance without Back; final fields must submit Connect.
+- ONBOARD-AVATAR-001: Press OK on an avatar. Use this avatar / Continue must enable immediately and be reachable with Down/OK.
+- ONBOARD-ART-001: New selectable avatars use the sharp original production-resolution set; low-resolution secondary portraits are not offered.
+- ONBOARD-STATE-001: Updating over a connected provider with no completed profile resumes avatar selection without deleting the provider.
+
 ## v0.8.41 focused hardware checks
 
 - **TOP100-RESTORE-001:** Home shows populated Top 100 Movies and Top 100 TV Shows from Snoak trending sources after a fresh install/update; no empty pinned rows.

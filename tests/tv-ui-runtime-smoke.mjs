@@ -133,7 +133,12 @@ if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateRecei
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.49';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.50';")) throw new Error('Current Android UI version marker missing');
+if (!activitySource.includes('InputMethodManager') || !activitySource.includes('isWebTextInputActive()') || !activitySource.includes('imm.isAcceptingText()') || !activitySource.includes('&& !isWebTextInputActive())') ) throw new Error('First-run TV keyboard Select/Enter pass-through missing');
+if (!appSource.includes("event.key==='Enter'") || !appSource.includes('form.requestSubmit')) throw new Error('First-run keyboard Enter/Done handling missing');
+if (!appSource.includes('submit.disabled=false') || !appSource.includes("submit.removeAttribute('disabled')")) throw new Error('First-run avatar Continue enable hotfix missing');
+if (!appSource.includes('function tvProfileAvatarChoices()') || !appSource.includes('tvProfileAvatarChoices().map')) throw new Error('Sharp TV avatar chooser filter missing');
+if (!swSource.includes('swoop-tv-v0850-shell')) throw new Error('v0.8.50 service-worker cache marker missing');
 if (appSource.includes("id:'profile-main',name:'Swoop TV',avatar:'lion'")) throw new Error('Manufactured Swoop TV/lion first-run profile still exists');
 if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes("firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider')") || !appSource.includes("let modal=(state.profiles.length||state.providers.length)?null:'provider'")) throw new Error('Zero-account provider-first onboarding missing');
 if (!appSource.includes('setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},15000)')) throw new Error('Cinema loading messages are not held for 15 seconds');

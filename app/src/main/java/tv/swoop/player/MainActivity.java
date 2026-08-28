@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebResourceRequest;
@@ -215,7 +216,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.47 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.50 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -1015,6 +1016,16 @@ public class MainActivity extends Activity {
                 || keyCode == KeyEvent.KEYCODE_BUTTON_A;
     }
 
+    private boolean isWebTextInputActive() {
+        try {
+            if (webView == null || !webView.hasFocus()) return false;
+            InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            return imm != null && imm.isActive(webView) && imm.isAcceptingText();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private void activateFocusedWebControl() {
         if (webView == null) return;
         webView.evaluateJavascript(
@@ -1078,7 +1089,7 @@ public class MainActivity extends Activity {
             onBackPressed();
             return true;
         }
-        if (!nativePlayerVisible && isTvSelectKey(event.getKeyCode())) {
+        if (!nativePlayerVisible && isTvSelectKey(event.getKeyCode()) && !isWebTextInputActive()) {
             // Ordinary controls retain deterministic ACTION_DOWN activation. Continue Watching
             // cards opt into a 550 ms long-press window so OK can expose contextual actions.
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) beginSelectKey(event.getKeyCode());

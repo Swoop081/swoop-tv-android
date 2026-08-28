@@ -1,3 +1,13 @@
+## v0.8.50 — First-Run Remote Input + Avatar Hotfix
+
+- Fixes Google TV first-run text entry so the on-screen keyboard Enter / Done action reaches the WebView instead of being swallowed by the native TV Select-key handler.
+- Pressing Enter on server URL, playlist URL, playlist name and username now advances directly; final password/name fields submit Connect.
+- Fixes Choose your avatar so selecting an avatar immediately enables Use this avatar / Continue.
+- Removes the low-resolution 128×128 secondary avatar batch from new selectable TV choices for now, retaining the original production-resolution animal set. Existing profile IDs remain compatible.
+- Keeps the v0.8.49 approximately 80%-viewport responsive onboarding geometry unchanged.
+- Bumps the packaged shell cache and native Android marker so corrected onboarding code is not shadowed by an old cached shell.
+- Android versionName/versionCode: 0.8.50 / 850.
+
 ## v0.8.49 — Full-Size Responsive TV Onboarding
 
 - Makes **every first-run provider setup screen** use approximately **80% of the available TV viewport** instead of inheriting the compact Provider Manager modal size.
