@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.42';
+const ANDROID_CURRENT_VERSION='0.8.43';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,8 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Fixes the Google TV Allow Update Installs button so it actually opens Android settings, with multiple TV-firmware fallbacks when the package-specific settings page is unavailable.',
+  'Resumes a pending manual or automatic Swoop TV update after the one-time install-source permission is granted and the user returns to the app.',
   'Adds native automatic GitHub updates on Google TV: Swoop TV checks the stable release at launch, downloads a newer APK and updates itself in place.',
   'Verifies the published SHA-256 checksum plus application ID/version before installation, keeps Automatic Updates on by default, and falls back to Android approval when the TV requires it.',
   'Adds Automatic Updates, Check for Update Now and one-time install-permission controls to Settings while keeping Downloader code 3682231 as the bootstrap/fallback installer.',
@@ -3383,7 +3385,7 @@ function bind(){
   document.querySelectorAll('[data-android-auto-update]').forEach(el=>el.onclick=()=>{const enabled=el.dataset.androidAutoUpdate==='on';androidUpdateBridgeCall('setAutomaticUpdates',enabled);toast(enabled?'Automatic updates enabled':'Automatic updates disabled');render()});
   document.querySelector('[data-android-update-check]')?.addEventListener('click',()=>{androidUpdateBridgeCall('checkForUpdate',false);toast('Checking GitHub for a Swoop TV update…');setTimeout(()=>{if(state.page==='settings')render()},800)});
   document.querySelector('[data-android-update-install]')?.addEventListener('click',()=>{const result=androidUpdateBridgeCall('installAvailableUpdate');if(result?.phase==='permission_required')toast('Allow Swoop TV to install updates once, then the update will continue.');else toast('Preparing the Swoop TV update…');setTimeout(()=>{if(state.page==='settings')render()},500)});
-  document.querySelector('[data-android-update-permission]')?.addEventListener('click',()=>{androidUpdateBridgeCall('openUpdatePermissionSettings');toast('Enable “Allow from this source” for Swoop TV.')});
+  document.querySelector('[data-android-update-permission]')?.addEventListener('click',()=>{androidUpdateBridgeCall('openUpdatePermissionSettings');toast('Opening Android update-install settings…')});
   document.querySelector('[data-action="clear-history"]')?.addEventListener('click',()=>{state.continueWatching=[];persist();render();toast('Continue Watching cleared')});
   document.querySelector('[data-action="clear-viewing"]')?.addEventListener('click',()=>{state.watchHistory=[];persist();render();toast('Recommendation history reset')});
   document.querySelector('[data-action="clear-source-preferences"]')?.addEventListener('click',()=>{state.settings.movieSourcePreferences={};persist();render();toast('Remembered movie source choices cleared')});

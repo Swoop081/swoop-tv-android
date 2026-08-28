@@ -85,14 +85,23 @@ final class SwoopUpdateManager {
     }
 
     void onResume() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                && "permission_required".equals(phase)
-                && canRequestPackageInstalls()
-                && automaticUpdates()
-                && latestVersionCode > BuildConfig.VERSION_CODE
-                && !busy) {
-            installAvailableUpdate(false);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            notifyStatus();
+            return;
         }
+        boolean canInstall = canRequestPackageInstalls();
+        boolean pendingManual = prefs.getBoolean("installAfterPermission", false);
+        if (canInstall && "permission_required".equals(phase)) {
+            if (latestVersionCode > BuildConfig.VERSION_CODE && !busy && (pendingManual || automaticUpdates())) {
+                prefs.edit().putBoolean("installAfterPermission", false).apply();
+                installAvailableUpdate(false);
+                return;
+            }
+            prefs.edit().putBoolean("installAfterPermission", false).apply();
+            setState(latestVersionCode > BuildConfig.VERSION_CODE ? "available" : "up_to_date", "", latestVersionCode > BuildConfig.VERSION_CODE ? 0 : 100);
+            return;
+        }
+        notifyStatus();
     }
 
     void shutdown() {
@@ -161,6 +170,7 @@ final class SwoopUpdateManager {
         synchronized (this) {
             if (busy) return statusJson();
             if (!canRequestPackageInstalls()) {
+                prefs.edit().putBoolean("installAfterPermission", true).apply();
                 setState("permission_required", "", 0);
                 if (openPermissionWhenNeeded) openInstallPermissionSettings();
                 return statusJson();
@@ -184,13 +194,28 @@ final class SwoopUpdateManager {
     String openInstallPermissionSettings() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return statusJson();
         main.post(() -> {
-            try {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:" + activity.getPackageName()));
-                activity.startActivity(intent);
-            } catch (Exception e) {
-                Log.w(TAG, "Could not open unknown-app-source settings", e);
+            Uri packageUri = Uri.parse("package:" + activity.getPackageName());
+            Intent[] candidates = new Intent[] {
+                    new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUri),
+                    new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                    new Intent(Settings.ACTION_SECURITY_SETTINGS),
+                    new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri)
+            };
+            Exception lastError = null;
+            for (Intent intent : candidates) {
+                try {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    activity.startActivity(intent);
+                    Log.i(TAG, "Opened update install settings with " + intent.getAction());
+                    return;
+                } catch (Exception e) {
+                    lastError = e;
+                    Log.w(TAG, "Update settings intent unavailable: " + intent.getAction(), e);
+                }
             }
+            String message = "Could not open Android update-install settings. Open Settings > Apps > Special app access > Install unknown apps and allow Swoop TV.";
+            if (lastError != null) Log.e(TAG, message, lastError);
+            setState("permission_required", message, 0);
         });
         return statusJson();
     }

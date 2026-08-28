@@ -114,12 +114,14 @@ if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build m
 if (!manifestSource.includes('android.permission.REQUEST_INSTALL_PACKAGES') || !manifestSource.includes('android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION')) throw new Error('Android updater permissions missing');
 if (!manifestSource.includes('.SwoopUpdateReceiver')) throw new Error('PackageInstaller status receiver missing');
 if (!updaterSource.includes('PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED') || !updaterSource.includes('downloadVerifiedApk') || !updaterSource.includes('SHA-256')) throw new Error('Native verified self-update pipeline missing');
+if (!updaterSource.includes('Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES') || !updaterSource.includes('Settings.ACTION_SECURITY_SETTINGS') || !updaterSource.includes('Settings.ACTION_APPLICATION_DETAILS_SETTINGS')) throw new Error('Google TV update-permission settings fallbacks missing');
+if (!updaterSource.includes('installAfterPermission') || !updaterSource.includes('pendingManual || automaticUpdates()')) throw new Error('Updater permission-return continuation missing');
 if (!updaterSource.includes('url + ".sha256"')) throw new Error('Stable APK checksum verification missing');
 if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateReceiverSource.includes('STATUS_SUCCESS')) throw new Error('Android install approval/success fallback handling missing');
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.42';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.43';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -152,13 +154,13 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.42-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.43-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.42') throw new Error('Install seed source version is not v0.8.42');
+if (String(installSeed.sourceVersion||'') !== '0.8.43') throw new Error('Install seed source version is not v0.8.43');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -259,7 +261,7 @@ if (!whatsBlock.includes('data-whats-new-done autofocus') || whatsBlock.includes
 if (!appSource.includes('data-live-hero-item') || !appSource.includes('live-hub-brand-copy') || !cssSource.includes('position:sticky!important') || !cssSource.includes('grid-template-columns:minmax(0,35%) minmax(0,65%)!important')) throw new Error('Persistent two-column Live TV header missing');
 if (!activitySource.includes('AspectRatioFrameLayout.RESIZE_MODE_ZOOM')) throw new Error('Native Live TV preview zoom-fill treatment missing');
 if (!cssSource.includes('padding-bottom:180px!important')) throw new Error('TV page bottom safe-space tail missing');
-// v0.8.42 consolidated physical-TV fixes.
+// v0.8.43 consolidated physical-TV fixes.
 const snoakMovies=installSeed?.curated?.['trending-movies']?.items||[],snoakShows=installSeed?.curated?.['trending-shows']?.items||[];
 if (!appSource.includes('installSeedCuratedList') || !appSource.includes("['top20-movies','trending-movies']") || !appSource.includes("['top20-shows','trending-shows']")) throw new Error('Snoak Top 100 runtime mapping/seed fallback missing');
 if (snoakMovies.length<100 || snoakShows.length<100) throw new Error(`Packaged Snoak Top 100 source lists incomplete: movies=${snoakMovies.length}, shows=${snoakShows.length}`);
@@ -309,9 +311,9 @@ if (!appSource.includes('function trimStarmeterArtwork()')) throw new Error('v0.
 if (!appSource.includes('let budget=STARMETER_PATCH_BATCH')) throw new Error('v0.8.38 bounded STARmeter deferred patch flush missing');
 if (!cssSource.includes('v0.8.38 — STARmeter viewport-budget hotfix')) throw new Error('v0.8.38 STARmeter CSS guard missing');
 if (!cssSource.includes('grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important')) throw new Error('v0.8.38 STARmeter rail must stay single-row');
-if (!activitySource.includes('SwoopTV/0.8.42 AndroidTV') || !activitySource.includes('public String version() { return "0.8.42"; }')) throw new Error('v0.8.42 native Android markers missing');
+if (!activitySource.includes('SwoopTV/0.8.43 AndroidTV') || !activitySource.includes('public String version() { return "0.8.43"; }')) throw new Error('v0.8.43 native Android markers missing');
 
-// v0.8.42 direct Snoak/Trakt Top 100 sources.
+// v0.8.43 direct Snoak/Trakt Top 100 sources.
 if (!appSource.includes("['top20-movies','trending-movies']") || !appSource.includes("['top20-shows','trending-shows']")) throw new Error('Top 100 rows are not pinned to Snoak Trakt trending lists');
 if (!appSource.includes("?filtered.slice(0,HOME_RANKED_ROW_LIMIT):filtered")) throw new Error('Top 100 rows still use aggregate provider-library filler');
 if (!appSource.includes("!String(id).startsWith('top20-')")) throw new Error('Top 100 local fallback guard missing');
@@ -323,7 +325,7 @@ if (!activitySource.includes('setShowSubtitleButton(true)') || !activitySource.i
 if (!activitySource.includes('buildSubtitleConfigurations(JSONArray subtitleTracks)') || !nativeSource.includes('item?.subtitles') || !nativeSource.includes('subtitleUrl')) throw new Error('Sideloaded subtitle handoff missing');
 if (!activitySource.includes('Audio and playback options')) throw new Error('Premium audio/settings control emphasis missing');
 
-// v0.8.42 Live TV current-programme header.
+// v0.8.43 Live TV current-programme header.
 if (!appSource.includes('data-live-hero-now') || !appSource.includes('function scheduleLiveHeroNowPlaying(')) throw new Error('Live TV current-programme header/sync missing');
 if (!appSource.includes('currentProgramme(channel)') || !appSource.includes('ensureLiveEpg(channel)')) throw new Error('Live TV Now Playing is not sourced from the existing EPG cache/path');
 if (!appSource.includes('NOW PLAYING') || !cssSource.includes('.live-hub-now>strong')) throw new Error('Live TV Now Playing presentation missing');

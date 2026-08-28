@@ -109,7 +109,7 @@ async function fetchTraktPublicApiList(mediaType){
   const url=`https://api.trakt.tv/users/snoak/lists/${slug}/items?page=1&limit=100`;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
   try{
-    const res=await fetch(url,{headers:{accept:'application/json','trakt-api-version':'2','trakt-api-key':TRAKT_PUBLIC_WEB_CLIENT_KEY,'user-agent':'SwoopTV/0.8.42'},signal:controller.signal,redirect:'follow'});
+    const res=await fetch(url,{headers:{accept:'application/json','trakt-api-version':'2','trakt-api-key':TRAKT_PUBLIC_WEB_CLIENT_KEY,'user-agent':'SwoopTV/0.8.43'},signal:controller.signal,redirect:'follow'});
     const text=await res.text();
     console.log(`Trakt public API ${mediaType}: HTTP ${res.status}, ${text.length} bytes.`);
     if(!res.ok)throw new Error(`Trakt public API HTTP ${res.status}: ${text.slice(0,240).replace(/\s+/g,' ')}`);
@@ -292,6 +292,6 @@ if(!OFFLINE&&candidates.length){
 
 const episodeMetadata=Array.isArray(previous?.episodeMetadata)?previous.episodeMetadata:[];
 const search={people:enriched.map(x=>({rank:x.rank,id:x.person.id,name:x.person.name,aliases:x.aliases||[],profile:x.person.profile})),titles:titleMetadata.map(x=>({mediaType:x.mediaType,title:x.title,year:x.year,tmdbId:x.tmdbId,imdbId:x.imdbId}))};
-const seed={schema:2,sourceVersion:'0.8.42',builtAt:new Date().toISOString(),maxAgeHours:168,discovery,curated,starmeter:{source:source.source||'IMDb STARmeter / Trending People',sourceUrl:source.sourceUrl||'https://www.imdb.com/chart/starmeter/',capturedAt:source.capturedAt||'',people:enriched},titleMetadata,episodeMetadata,search,static:{titleLookupSchema:4,discoveryMatchSchema:6,top100RankingSchema:5,note:'Provider-neutral warm-start data only. No IPTV credentials, provider catalogue, watch history or live EPG are bundled.'}};
+const seed={schema:2,sourceVersion:'0.8.43',builtAt:new Date().toISOString(),maxAgeHours:168,discovery,curated,starmeter:{source:source.source||'IMDb STARmeter / Trending People',sourceUrl:source.sourceUrl||'https://www.imdb.com/chart/starmeter/',capturedAt:source.capturedAt||'',people:enriched},titleMetadata,episodeMetadata,search,static:{titleLookupSchema:4,discoveryMatchSchema:6,top100RankingSchema:5,note:'Provider-neutral warm-start data only. No IPTV credentials, provider catalogue, watch history or live EPG are bundled.'}};
 fs.writeFileSync(assetPath,JSON.stringify(seed,null,2)+'\n');fs.writeFileSync(rootPath,JSON.stringify(seed,null,2)+'\n');
 console.log(`Wrote install seed cache: ${enriched.length} people, ${enriched.filter(x=>x.person?.id||x.person?.profile).length} identities, ${enriched.filter(x=>x.credits?.length).length} filmographies, ${titleMetadata.length} title metadata records, discovery ${Object.keys(discovery).join(',')||'not available in this environment'}.`);
