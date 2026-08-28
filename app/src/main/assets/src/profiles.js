@@ -9,16 +9,16 @@ export const PROFILE_AVATARS=[
   {id:'meerkat',label:'Meerkat',image:'./assets/avatar-meerkat.jpeg'},
   {id:'parrot',label:'Parrot',image:'./assets/avatar-parrot.jpeg'},
   {id:'tiger',label:'Tiger',image:'./assets/avatar-tiger.jpeg'},
-  {id:'cheetah',label:'Cheetah',image:'./assets/avatar-cheetah.jpg'},
-  {id:'seal',label:'Seal',image:'./assets/avatar-seal.jpg'},
-  {id:'triceratops',label:'Triceratops',image:'./assets/avatar-triceratops.jpg'},
-  {id:'capybara',label:'Capybara',image:'./assets/avatar-capybara.jpg'},
-  {id:'panda',label:'Panda',image:'./assets/avatar-panda.jpg'},
-  {id:'dinosaur',label:'Dinosaur',image:'./assets/avatar-dinosaur.jpg'},
-  {id:'red-panda',label:'Red Panda',image:'./assets/avatar-red-panda.jpg'},
-  {id:'kangaroo',label:'Kangaroo',image:'./assets/avatar-kangaroo.jpg'},
-  {id:'dog',label:'Dog',image:'./assets/avatar-dog.jpg'},
-  {id:'cat',label:'Cat',image:'./assets/avatar-cat.jpg'}
+  {id:'cheetah',label:'Cheetah',image:'./assets/avatar-cheetah.svg'},
+  {id:'seal',label:'Seal',image:'./assets/avatar-seal.svg'},
+  {id:'triceratops',label:'Triceratops',image:'./assets/avatar-triceratops.svg'},
+  {id:'capybara',label:'Capybara',image:'./assets/avatar-capybara.svg'},
+  {id:'panda',label:'Panda',image:'./assets/avatar-panda.svg'},
+  {id:'dinosaur',label:'Dinosaur',image:'./assets/avatar-dinosaur.svg'},
+  {id:'red-panda',label:'Red Panda',image:'./assets/avatar-red-panda.svg'},
+  {id:'kangaroo',label:'Kangaroo',image:'./assets/avatar-kangaroo.svg'},
+  {id:'dog',label:'Dog',image:'./assets/avatar-dog.svg'},
+  {id:'cat',label:'Cat',image:'./assets/avatar-cat.svg'}
 ];
 
 export function avatarById(id='lion'){const legacy={cyan:'lion',violet:'zebra',sunset:'tiger',ocean:'elephant',lime:'giraffe',rose:'meerkat',gold:'lion',kids:'monkey'};const key=legacy[id]||id;return PROFILE_AVATARS.find(x=>x.id===key)||PROFILE_AVATARS[0]}

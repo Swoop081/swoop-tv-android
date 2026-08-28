@@ -133,11 +133,13 @@ if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateRecei
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.51';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.52';")) throw new Error('Current Android UI version marker missing');
 if (!activitySource.includes('InputMethodManager') || !activitySource.includes('isWebTextInputActive()') || !activitySource.includes('imm.isAcceptingText()') || !activitySource.includes('&& !isWebTextInputActive())') ) throw new Error('First-run TV keyboard Select/Enter pass-through missing');
 if (!appSource.includes("event.key==='Enter'") || !appSource.includes('form.requestSubmit')) throw new Error('First-run keyboard Enter/Done handling missing');
 if (!appSource.includes('submit.disabled=false') || !appSource.includes("submit.removeAttribute('disabled')")) throw new Error('First-run avatar Continue enable hotfix missing');
-if (!appSource.includes('function tvProfileAvatarChoices()') || !appSource.includes('tvProfileAvatarChoices().map')) throw new Error('Sharp TV avatar chooser filter missing');
+if (!appSource.includes('function tvProfileAvatarChoices(){return PROFILE_AVATARS}') || !appSource.includes('tvProfileAvatarChoices().map')) throw new Error('Full 20-avatar TV chooser missing');
+for(const id of ['cheetah','seal','triceratops','capybara','panda','dinosaur','red-panda','kangaroo','dog','cat']){if(!profilesSource.includes(`avatar-${id}.svg`)||!fs.existsSync(new URL(`../app/src/main/assets/assets/avatar-${id}.svg`,import.meta.url)))throw new Error(`High-resolution TV avatar missing: ${id}`)}
+if(!activitySource.includes('SwoopTV/0.8.52 AndroidTV')||!activitySource.includes('out.put("versionCode", 852)'))throw new Error('Native Android v0.8.52 markers are not aligned');
 if (!appSource.includes('let androidProfileEntryCommitted=false;')) throw new Error('Android profile-entry commitment latch missing');
 if (!appSource.includes('if(NATIVE_ANDROID)androidProfileEntryCommitted=true;')) throw new Error('Profile selection does not commit Android Home entry');
 if (appSource.includes('refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('STARmeter still launches before profile selection');

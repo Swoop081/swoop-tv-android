@@ -25,9 +25,8 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.51';
-const TV_SHARP_PROFILE_AVATAR_IDS=new Set(['lion','elephant','giraffe','zebra','rhino','turtle','monkey','meerkat','parrot','tiger']);
-function tvProfileAvatarChoices(){return PROFILE_AVATARS.filter(av=>TV_SHARP_PROFILE_AVATAR_IDS.has(av.id))}
+const ANDROID_CURRENT_VERSION='0.8.52';
+function tvProfileAvatarChoices(){return PROFILE_AVATARS}
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -44,7 +43,8 @@ const ANDROID_CURRENT_CHANGELOG=[
   'Prevents the profile-screen progress indicator from cycling indefinitely while optional background matching retries.',
   'Fixes first-run Google TV keyboard Enter/Done so each provider field advances without pressing Back.',
   'Fixes avatar selection so Use this avatar / Continue becomes enabled immediately after a choice.',
-  'Keeps only production-resolution avatar artwork selectable on TV until the low-resolution secondary batch is replaced.',
+  'Upgrades the ten newer profile avatars to crisp scalable TV artwork and restores the full 20-avatar chooser on Google TV.',
+  'Keeps the expanded avatar chooser D-pad friendly while preserving the large first-run profile/onboarding presentation.',
   'Makes every first-run provider step a true TV-scale screen using about 80% of the available viewport instead of a small modal.',
   'Scales headings, instructions, provider choices, text fields and Back/Next/Connect controls responsively across different TV resolutions and aspect ratios.',
   'Keeps the same large centered geometry on every Xtream and M3U onboarding step while leaving the normal Provider Manager compact in Settings.',
