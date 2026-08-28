@@ -2984,3 +2984,121 @@ html.android-tv .first-account-avatar-grid{grid-template-columns:repeat(10,minma
 html.android-tv .profile-avatar-first-run{width:82px;height:82px;border-radius:18px}
 html.android-tv .first-account-avatar-choice{padding:7px 2px;gap:6px}
 html.android-tv .startup-cinema-card .boot-fun-title{font-size:clamp(24px,2.6vw,38px)!important;line-height:1.12!important;min-height:1.2em!important}
+
+
+/* v0.8.49 — 80% TV-first onboarding wizard */
+/* First-run only: every provider setup step uses the same large responsive TV canvas. */
+html.android-tv .modal-backdrop:has(.first-run-provider-wizard){
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+html.android-tv .first-run-provider-wizard{
+  width:80vw!important;
+  height:80vh!important;
+  max-width:none!important;
+  max-height:none!important;
+  min-width:0!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border-radius:clamp(16px,1.5vw,28px)!important;
+}
+html.android-tv .first-run-provider-wizard .provider-modal-body{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-height:0!important;
+  padding:clamp(28px,5vh,72px) clamp(36px,5.5vw,108px)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:auto!important;
+}
+html.android-tv .first-run-provider-wizard .provider-add-section{
+  width:100%!important;
+  max-width:1180px!important;
+  margin:auto!important;
+  padding:0!important;
+}
+html.android-tv .first-run-provider-wizard .provider-add-heading{margin:0 0 clamp(24px,4vh,48px)!important}
+html.android-tv .first-run-provider-wizard .provider-add-heading .eyebrow{font-size:clamp(12px,1.05vw,19px)!important;letter-spacing:.18em!important}
+html.android-tv .first-run-provider-wizard .provider-add-heading h2{
+  margin:clamp(6px,1vh,12px) 0 clamp(10px,1.5vh,18px)!important;
+  font-size:clamp(38px,4.2vw,76px)!important;
+  line-height:1!important;
+  letter-spacing:-.045em!important;
+}
+html.android-tv .first-run-provider-wizard .provider-add-heading p{
+  max-width:48ch!important;
+  margin:0!important;
+  font-size:clamp(17px,1.45vw,27px)!important;
+  line-height:1.45!important;
+  color:#b9bdc7!important;
+}
+html.android-tv .first-run-provider-wizard .provider-methods{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:clamp(16px,2vw,34px)!important;
+  margin:0!important;
+}
+html.android-tv .first-run-provider-wizard .provider-method{
+  min-height:clamp(118px,18vh,196px)!important;
+  padding:clamp(20px,2.2vw,38px)!important;
+  gap:clamp(16px,1.8vw,30px)!important;
+  border-radius:clamp(13px,1.2vw,22px)!important;
+}
+html.android-tv .first-run-provider-wizard .provider-method-icon{
+  width:clamp(56px,5vw,88px)!important;
+  height:clamp(56px,5vw,88px)!important;
+  border-radius:clamp(10px,1vw,18px)!important;
+  font-size:clamp(15px,1.4vw,24px)!important;
+}
+html.android-tv .first-run-provider-wizard .provider-method strong{font-size:clamp(22px,2.1vw,36px)!important;line-height:1.08!important}
+html.android-tv .first-run-provider-wizard .provider-method small{font-size:clamp(15px,1.25vw,23px)!important;line-height:1.35!important;margin-top:6px!important}
+html.android-tv .first-run-provider-wizard .field{width:100%!important;max-width:920px!important;margin:0!important}
+html.android-tv .first-run-provider-wizard .field label{
+  display:block!important;
+  margin-bottom:clamp(8px,1.2vh,14px)!important;
+  font-size:clamp(15px,1.2vw,22px)!important;
+  font-weight:850!important;
+}
+html.android-tv .first-run-provider-wizard .field input,
+html.android-tv .first-run-provider-wizard .field select{
+  width:100%!important;
+  min-height:clamp(64px,8.5vh,94px)!important;
+  padding:clamp(15px,2vh,24px) clamp(18px,1.8vw,30px)!important;
+  border-radius:clamp(11px,1vw,17px)!important;
+  font-size:clamp(20px,2vw,34px)!important;
+  line-height:1.2!important;
+}
+html.android-tv .first-run-provider-wizard .cta-row{
+  width:100%!important;
+  max-width:920px!important;
+  margin-top:clamp(24px,4vh,48px)!important;
+  gap:clamp(14px,1.4vw,24px)!important;
+}
+html.android-tv .first-run-provider-wizard .cta-row .btn{
+  min-width:clamp(150px,14vw,250px)!important;
+  min-height:clamp(60px,8vh,88px)!important;
+  padding:clamp(14px,1.7vh,22px) clamp(24px,2.4vw,42px)!important;
+  border-radius:clamp(10px,.9vw,16px)!important;
+  font-size:clamp(18px,1.65vw,29px)!important;
+}
+html.android-tv .first-run-provider-wizard #providerStatus{font-size:clamp(15px,1.2vw,21px)!important;margin-top:18px!important}
+html.android-tv .first-run-provider-wizard :is(.provider-method,.btn,input):focus-visible{outline:4px solid #fff!important;outline-offset:5px!important}
+
+/* Keep the ~80% canvas on smaller/shorter TVs, but compress internal spacing so nothing clips. */
+@media (max-width:1400px), (max-height:800px){
+  html.android-tv .first-run-provider-wizard .provider-modal-body{padding:clamp(20px,3.5vh,40px) clamp(28px,4vw,60px)!important}
+  html.android-tv .first-run-provider-wizard .provider-add-heading{margin-bottom:clamp(18px,2.8vh,30px)!important}
+  html.android-tv .first-run-provider-wizard .provider-method{min-height:clamp(100px,17vh,150px)!important}
+  html.android-tv .first-run-provider-wizard .field input{min-height:clamp(58px,8vh,76px)!important}
+  html.android-tv .first-run-provider-wizard .cta-row{margin-top:clamp(18px,3vh,30px)!important}
+}
+@media (max-width:980px){
+  html.android-tv .first-run-provider-wizard{width:84vw!important;height:82vh!important}
+  html.android-tv .first-run-provider-wizard .provider-methods{grid-template-columns:1fr!important}
+  html.android-tv .first-run-provider-wizard .provider-method{min-height:clamp(86px,14vh,118px)!important}
+}

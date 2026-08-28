@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.48';
+const ANDROID_CURRENT_VERSION='0.8.49';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Makes every first-run provider step a true TV-scale screen using about 80% of the available viewport instead of a small modal.',
+  'Scales headings, instructions, provider choices, text fields and Back/Next/Connect controls responsively across different TV resolutions and aspect ratios.',
+  'Keeps the same large centered geometry on every Xtream and M3U onboarding step while leaving the normal Provider Manager compact in Settings.',
   'Replaces first-run provider setup with a calm one-screen-at-a-time wizard: choose Xtream or M3U, enter only the fields that path needs, then connect.',
   'Xtream first-run now asks for server URL, a friendly playlist name, username and password on separate screens; M3U asks only for playlist URL and playlist name before connecting.',
   'Hides XMLTV, connection-helper, provider statistics, priority and management controls during onboarding while keeping the full Provider Manager available later in Settings.',
