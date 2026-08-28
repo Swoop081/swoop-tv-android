@@ -52,12 +52,20 @@ function parsePublicMdbList(html,mediaType='movie'){
   return out;
 }
 async function fetchPublicMdbList(url,mediaType){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
-  try{
-    const res=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (compatible; SwoopTV-Seed/0.8.41; +https://github.com/Swoop081/swoop-tv-android)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
-    if(!res.ok)throw new Error(`MDBList page HTTP ${res.status}`);const html=await res.text(),items=parsePublicMdbList(html,mediaType);if(items.length<100)throw new Error(`MDBList page parser found only ${items.length} ${mediaType} entries`);
-    return {items,source:'Snoak · Trakt Trending via MDBList',sourceUrl:url,sourceUpdatedAt:Date.now()};
-  }finally{clearTimeout(timer)}
+  const items=[],seen=new Set();
+  for(let page=0;page<6&&items.length<120;page++){
+    const pageUrl=new URL(url);pageUrl.searchParams.set('page',String(page));
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const res=await fetch(pageUrl,{headers:{'user-agent':'Mozilla/5.0 (compatible; SwoopTV-Seed/0.8.41; +https://github.com/Swoop081/swoop-tv-android)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
+      if(!res.ok)throw new Error(`MDBList page ${page} HTTP ${res.status}`);
+      const html=await res.text(),pageItems=parsePublicMdbList(html,mediaType);let added=0;
+      for(const item of pageItems){const key=`${normalize(item.title)}|${item.year}`;if(!normalize(item.title)||seen.has(key))continue;seen.add(key);items.push(item);added++;}
+      if(!pageItems.length||(page>0&&!added))break;
+    }finally{clearTimeout(timer)}
+  }
+  if(items.length<100)throw new Error(`MDBList paged parser found only ${items.length} ${mediaType} entries`);
+  return {items:items.slice(0,100),source:'Snoak · Trakt Trending via MDBList',sourceUrl:url,sourceUpdatedAt:Date.now()};
 }
 let curated={};
 if(!OFFLINE){
