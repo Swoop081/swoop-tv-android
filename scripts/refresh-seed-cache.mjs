@@ -139,17 +139,12 @@ if(!OFFLINE){
       console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
     }catch(workerErr){
       try{
-        curated[key]=await fetchTraktMediaSurface(type);
-        console.log(`Seed Snoak ${key}: ${curated[key].items.length} current Trakt media-surface entries.`);
-      }catch(mediaErr){
-        try{
-          const traktUrl=type==='movie'?'https://trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://trakt.tv/users/snoak/lists/trakt-s-trending-shows';
-          curated[key]=await fetchPublicTraktTrending(traktUrl,type);
-          console.log(`Seed Snoak ${key}: ${curated[key].items.length} direct Snoak Trakt fallback entries.`);
-        }catch(traktErr){
-          try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList public fallback entries.`)}
-          catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; Trakt media: ${mediaErr.message}; Snoak Trakt: ${traktErr.message}; MDBList: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
-        }
+        const traktUrl=type==='movie'?'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://app.trakt.tv/users/snoak/lists/trakt-s-trending-shows';
+        curated[key]=await fetchPublicTraktTrending(traktUrl,type);
+        console.log(`Seed Snoak ${key}: ${curated[key].items.length} canonical app.trakt.tv entries.`);
+      }catch(traktErr){
+        try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList mirror entries.`)}
+        catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; app.trakt.tv: ${traktErr.message}; MDBList: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
       }
     }
   }
