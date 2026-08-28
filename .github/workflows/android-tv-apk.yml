@@ -61,6 +61,9 @@ jobs:
       - name: Apply pending source promotion
         shell: bash
         run: |
+          if [ -f .promotion/top100-patch.mjs ]; then
+            node .promotion/top100-patch.mjs
+          fi
           if [ -f .promotion/promote-pending.mjs ]; then
             node .promotion/promote-pending.mjs
           else
