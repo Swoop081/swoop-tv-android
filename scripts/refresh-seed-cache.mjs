@@ -170,6 +170,22 @@ async function fetchPublicTraktTrending(url,mediaType){
               console.log(`app.trakt.tv node52 signals ${mediaType}: size=${routeJs.length} ${JSON.stringify(hits).slice(0,32000)}`);
               const imports=[...new Set([...routeJs.matchAll(/\.\.\/chunks\/([^\"'`)]+\.js)/g)].map(m=>m[1]))].slice(0,40);
               console.log(`app.trakt.tv node52 imports ${mediaType}: ${JSON.stringify(imports)}`);
+              const importSignals=[];
+              for(const chunk of imports){
+                try{
+                  const chunkUrl='https://app.trakt.tv/_app/immutable/chunks/'+chunk;
+                  const chunkJs=execLocalFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','15','--connect-timeout','8','--http1.1','--compressed',chunkUrl],{encoding:'utf8',maxBuffer:24*1024*1024});
+                  const lower=chunkJs.toLowerCase();
+                  const needles=['users.lists.list','list.items','list_id','api.trakt.tv','apiz','trakt-api-key','trakt-api-version','client_id','client-id','authorization','/users/','/lists/','items({','items:','pagination','limit:'];
+                  const hits=[];
+                  for(const needle of needles){
+                    let from=0,count=0;
+                    while(count<3){const at=lower.indexOf(needle.toLowerCase(),from);if(at<0)break;hits.push(needle+': '+chunkJs.slice(Math.max(0,at-650),Math.min(chunkJs.length,at+2400)).replace(/\s+/g,' '));from=at+needle.length;count++;}
+                  }
+                  if(hits.length)importSignals.push({chunk,size:chunkJs.length,hits});
+                }catch(err){importSignals.push({chunk,error:String(err?.message||err)});}
+              }
+              console.log(`app.trakt.tv node52 import API signals ${mediaType}: ${JSON.stringify(importSignals).slice(0,60000)}`);
             }
           }
         }catch(err){console.warn(`app.trakt.tv node52 diagnostic ${mediaType} failed: ${String(err?.message||err)}`)}
