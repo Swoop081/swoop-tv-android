@@ -29,8 +29,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: swoop-tv-google-tv-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-debug-apk:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build apk]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
