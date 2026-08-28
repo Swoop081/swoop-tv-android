@@ -133,7 +133,7 @@ if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateRecei
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.48';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.49';")) throw new Error('Current Android UI version marker missing');
 if (appSource.includes("id:'profile-main',name:'Swoop TV',avatar:'lion'")) throw new Error('Manufactured Swoop TV/lion first-run profile still exists');
 if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes("firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider')") || !appSource.includes("let modal=(state.profiles.length||state.providers.length)?null:'provider'")) throw new Error('Zero-account provider-first onboarding missing');
 if (!appSource.includes('setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},15000)')) throw new Error('Cinema loading messages are not held for 15 seconds');
