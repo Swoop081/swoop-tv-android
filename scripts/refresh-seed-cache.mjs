@@ -67,6 +67,39 @@ async function fetchPublicMdbList(url,mediaType){
   if(items.length<100)throw new Error(`MDBList paged parser found only ${items.length} ${mediaType} entries`);
   return {items:items.slice(0,100),source:'Snoak · Trakt Trending via MDBList',sourceUrl:url,sourceUpdatedAt:Date.now()};
 }
+function parseTraktTrendingSurface(html,mediaType='movie'){
+  const out=[],seen=new Set(),kind=mediaType==='tv'?'shows':'movies';
+  const source=String(html||'');
+  const anchorPattern=new RegExp('<a\\b[^>]*href=["\\'](?:https?:\\/\\/(?:www\\.)?trakt\\.tv)?\\/'+kind+'\\/[^"\\']+["\\'][^>]*>([\\s\\S]*?)<\\/a>','gi');
+  let match;
+  while((match=anchorPattern.exec(source))){
+    const text=decodeHtmlText(String(match[1]||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();
+    const m=text.match(/^(.{1,180}?)\s+((?:19|20)\d{2})$/);
+    if(!m)continue;
+    const title=m[1].trim(),year=m[2],key=`${normalize(title)}|${year}`;
+    if(!normalize(title)||seen.has(key))continue;
+    seen.add(key);out.push({title,year,media_type:mediaType,ids:{}});
+  }
+  return out;
+}
+async function fetchTraktMediaSurface(mediaType){
+  const items=[],seen=new Set(),kind=mediaType==='tv'?'shows':'movies';
+  for(let page=1;page<=5&&items.length<120;page++){
+    const url=`https://media-og.trakt.tv/${kind}/trending${page>1?'?page='+page:''}`;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
+    try{
+      const res=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/142 Safari/537.36','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
+      if(!res.ok)throw new Error(`Trakt media surface page ${page} HTTP ${res.status}`);
+      const rows=parseTraktTrendingSurface(await res.text(),mediaType);
+      let added=0;
+      for(const row of rows){const key=`${normalize(row.title)}|${row.year}`;if(seen.has(key))continue;seen.add(key);items.push(row);added++;}
+      console.log(`Trakt media surface ${kind} page ${page}: ${rows.length} parsed, ${added} new, ${items.length} total.`);
+      if(!rows.length||!added)break;
+    }finally{clearTimeout(timer)}
+  }
+  if(items.length<100)throw new Error(`Trakt media surface found only ${items.length} ${mediaType} entries`);
+  return {items:items.slice(0,100),source:'Trakt Trending · current public media surface',sourceUrl:`https://media-og.trakt.tv/${kind}/trending`,sourceUpdatedAt:Date.now()};
+}
 async function fetchPublicTraktTrending(url,mediaType){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
   try{
@@ -104,12 +137,17 @@ if(!OFFLINE){
       console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
     }catch(workerErr){
       try{
-        const traktUrl=type==='movie'?'https://trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://trakt.tv/users/snoak/lists/trakt-s-trending-shows';
-        curated[key]=await fetchPublicTraktTrending(traktUrl,type);
-        console.log(`Seed Snoak ${key}: ${curated[key].items.length} direct Trakt fallback entries.`);
-      }catch(traktErr){
-        try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList public fallback entries.`)}
-        catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; Trakt fallback: ${traktErr.message}; MDBList fallback: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+        curated[key]=await fetchTraktMediaSurface(type);
+        console.log(`Seed Snoak ${key}: ${curated[key].items.length} current Trakt media-surface entries.`);
+      }catch(mediaErr){
+        try{
+          const traktUrl=type==='movie'?'https://trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://trakt.tv/users/snoak/lists/trakt-s-trending-shows';
+          curated[key]=await fetchPublicTraktTrending(traktUrl,type);
+          console.log(`Seed Snoak ${key}: ${curated[key].items.length} direct Snoak Trakt fallback entries.`);
+        }catch(traktErr){
+          try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList public fallback entries.`)}
+          catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; Trakt media: ${mediaErr.message}; Snoak Trakt: ${traktErr.message}; MDBList: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+        }
       }
     }
   }
