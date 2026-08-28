@@ -63,18 +63,10 @@ writeFileSync(testPath,tests);
 
 if(existsSync(pendingPath)){
   let pending=readFileSync(pendingPath,'utf8');
-  pending=replaceRequired(
-    pending,
-    '- Adds sideloaded/provider subtitle handoff for SRT/VTT-style subtitle URLs when Swoop has subtitle metadata for the selected title.\n- Android versionName is **0.8.39** and versionCode is **839**.',
-    '- Adds sideloaded/provider subtitle handoff for SRT/VTT-style subtitle URLs when Swoop has subtitle metadata for the selected title.\n- Replaces the previous aggregated Top 100 logic with Snoak’s **Trakt’s Trending Movies** and **Trakt’s Trending Shows** MDBList feeds as the sole ranking sources, preserving source order and removing unrelated library filler.\n- Android versionName is **0.8.39** and versionCode is **839**.',
-    'v0.8.39 release notes Top 100 entry'
-  );
-  pending=replaceRequired(
-    pending,
-    '- [ ] **PLAYER-SUB-001:** embedded subtitles are selectable and provider/sideloaded subtitle URLs are attached when present.\\\n',
-    '- [ ] **PLAYER-SUB-001:** embedded subtitles are selectable and provider/sideloaded subtitle URLs are attached when present.\\\n- [ ] **TOP100-SOURCE-001:** Top 100 Movies/TV Shows come only from Snoak’s Trakt trending MDBList feeds, preserve feed order, and never pad with unrelated provider titles.\\\n',
-    'hardware Top 100 source verification'
-  );
+  const noteNeedle='- Adds sideloaded/provider subtitle handoff for SRT/VTT-style subtitle URLs when Swoop has subtitle metadata for the selected title.\n- Android versionName is **0.8.39** and versionCode is **839**.';
+  if(pending.includes(noteNeedle)){
+    pending=pending.replace(noteNeedle,'- Adds sideloaded/provider subtitle handoff for SRT/VTT-style subtitle URLs when Swoop has subtitle metadata for the selected title.\n- Replaces the previous aggregated Top 100 logic with Snoak’s **Trakt’s Trending Movies** and **Trakt’s Trending Shows** MDBList feeds as the sole ranking sources, preserving source order and removing unrelated library filler.\n- Android versionName is **0.8.39** and versionCode is **839**.');
+  }
   writeFileSync(pendingPath,pending);
 }
 
