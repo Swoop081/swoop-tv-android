@@ -135,11 +135,11 @@ if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error(
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
 if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.47';")) throw new Error('Current Android UI version marker missing');
 if (appSource.includes("id:'profile-main',name:'Swoop TV',avatar:'lion'")) throw new Error('Manufactured Swoop TV/lion first-run profile still exists');
-if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes('data-first-account-submit') || !appSource.includes('data-first-account-avatar')) throw new Error('Zero-account Sign In/avatar onboarding missing');
+if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes("firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider')") || !appSource.includes("let modal=(state.profiles.length||state.providers.length)?null:'provider'")) throw new Error('Zero-account provider-first onboarding missing');
 if (!appSource.includes('setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},15000)')) throw new Error('Cinema loading messages are not held for 15 seconds');
 if (!cssSource.includes('.first-account-avatar-grid') || !cssSource.includes('font-size:clamp(24px,2.6vw,38px)!important')) throw new Error('First-run avatar layout or smaller startup copy missing');
 if (!updaterSource.includes('ManageAppExternalSourcesActivity') || !updaterSource.includes('Intent.EXTRA_PACKAGE_NAME') || !updaterSource.includes('Toast.makeText')) throw new Error('Direct-app install-permission guidance/fallback missing');
-if (!appSource.includes('TV PROVIDER SIGN IN') || !appSource.includes('CHOOSE A LOGIN METHOD')) throw new Error('First provider Xtream/M3U onboarding copy missing');
+if (!appSource.includes('TV PROVIDER SIGN IN') || !appSource.includes('CHOOSE A LOGIN METHOD') || !appSource.includes('data-first-account-avatar') || !appSource.includes('completeFirstRunIfReady') || !appSource.includes('firstRunProviderBusy=true')) throw new Error('Provider-first background-loading avatar onboarding missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -347,3 +347,5 @@ if (!activitySource.includes('Audio and playback options')) throw new Error('Pre
 if (!appSource.includes('data-live-hero-now') || !appSource.includes('function scheduleLiveHeroNowPlaying(')) throw new Error('Live TV current-programme header/sync missing');
 if (!appSource.includes('currentProgramme(channel)') || !appSource.includes('ensureLiveEpg(channel)')) throw new Error('Live TV Now Playing is not sourced from the existing EPG cache/path');
 if (!appSource.includes('NOW PLAYING') || !cssSource.includes('.live-hub-now>strong')) throw new Error('Live TV Now Playing presentation missing');
+
+if (!profilesSource.includes("id:'cheetah'") || !profilesSource.includes("id:'cat'") || !profilesSource.includes("id:'red-panda'")) throw new Error('Supplied first-run avatar expansion missing');

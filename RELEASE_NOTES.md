@@ -1,3 +1,16 @@
+## v0.8.47 — Provider-First First Run + Guided TV Setup
+
+- Removes the manufactured **Swoop TV / lion** profile from clean first-run. With no real account, Swoop TV does not pretend one exists.
+- Reorders first-run to **TV provider first**: choose **Xtream Codes** or **M3U**, enter the provider details, then move to avatar selection.
+- Starts provider/library preparation before the avatar chooser appears. Heavy import, local library preparation and performance work continue **behind the avatar selection screen** while the customer makes the only required personal choice.
+- Adds the ten supplied avatar portraits to the chooser: **Cheetah, Seal, Triceratops, Capybara, Panda, Dinosaur, Red Panda, Kangaroo, Dog and Cat**, alongside the existing Swoop TV avatars.
+- No avatar is preselected. The customer deliberately chooses one; if loading is still finishing after that choice, Swoop TV continues automatically as soon as it is ready.
+- Existing provider data survives the migration: if an upgraded device already has a provider but only the old manufactured Swoop TV profile, it goes straight to avatar choice instead of asking for the provider again.
+- Startup cinema messages are smaller and remain on screen for **15 seconds each** so they can actually be read.
+- Improves Android/Google TV **Install unknown apps** routing with package-specific Settings attempts and explicit Swoop TV guidance when firmware still insists on showing the full app list.
+- Retains v0.8.46 credential privacy: secondary accounts remain Private by default and household provider sharing requires explicit opt-in.
+- Android versionName/versionCode: **0.8.47 / 847**.
+
 ## v0.8.46 — Account Credential Privacy Hotfix
 
 - Changes every newly created secondary account to **Private providers by default**. A second account no longer inherits the first account’s Xtream/M3U credentials automatically.
