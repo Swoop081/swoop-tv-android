@@ -2965,3 +2965,22 @@ html.android-tv .startup-cinema-card .boot-fun-progress{width:100%;max-width:760
 html.android-tv .startup-cinema-card .boot-fun-progress>i{display:block;height:24px!important;border-radius:999px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 10px 34px rgba(0,0,0,.28)}
 html.android-tv .startup-cinema-card .boot-fun-progress>i>b{transition:width .34s ease}
 html.android-tv .startup-cinema-card .boot-fun-caption{margin-top:14px;font-size:13px;font-weight:800;letter-spacing:.08em;color:#aeb2bd}
+
+
+/* v0.8.47 — zero-account first-run and readable cinema copy. */
+.first-account-shell{display:grid;justify-items:center}
+.first-account-avatar-grid{width:min(1180px,94vw);display:grid;grid-template-columns:repeat(5,minmax(100px,1fr));gap:16px 20px;margin:8px auto 26px}
+.first-account-avatar-choice{appearance:none;border:2px solid transparent;background:transparent;color:#fff;border-radius:18px;padding:8px 4px;display:grid;justify-items:center;gap:7px;cursor:pointer;opacity:.74}
+.first-account-avatar-choice.active,.first-account-avatar-choice:focus-visible{opacity:1;border-color:#fff;background:rgba(255,255,255,.07);outline:none}
+.profile-avatar-first-run{width:88px;height:88px;border-radius:20px}
+.profile-avatar-first-run img{width:100%;height:100%;object-fit:cover}
+.first-account-avatar-choice strong{font-size:12px}
+.first-account-signin{min-width:240px;font-size:18px;padding:15px 34px}
+.first-account-next{display:block;margin-top:12px;color:#858a95;font-size:11px}
+html.android-tv .first-account-page{padding:42px 4vw 28px!important}
+html.android-tv .first-account-page .profile-picker-shell h1{font-size:clamp(48px,5.5vw,72px)!important;margin:6px 0 10px!important}
+html.android-tv .first-account-page .profile-picker-shell>p{margin-bottom:18px!important;font-size:13px!important}
+html.android-tv .first-account-avatar-grid{grid-template-columns:repeat(10,minmax(78px,1fr));gap:12px;width:min(1320px,94vw);margin-bottom:22px}
+html.android-tv .profile-avatar-first-run{width:82px;height:82px;border-radius:18px}
+html.android-tv .first-account-avatar-choice{padding:7px 2px;gap:6px}
+html.android-tv .startup-cinema-card .boot-fun-title{font-size:clamp(24px,2.6vw,38px)!important;line-height:1.12!important;min-height:1.2em!important}

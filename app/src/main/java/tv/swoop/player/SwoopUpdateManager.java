@@ -2,6 +2,7 @@ package tv.swoop.player;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -13,6 +14,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 
@@ -209,26 +211,47 @@ final class SwoopUpdateManager {
     String openInstallPermissionSettings() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return statusJson();
         main.post(() -> {
-            Uri packageUri = Uri.parse("package:" + activity.getPackageName());
+            String packageName = activity.getPackageName();
+            Uri packageUri = Uri.parse("package:" + packageName);
+            try {
+                Toast.makeText(activity, "Turn on Swoop TV. If Android shows a full list, scroll to Swoop TV, switch it On, then press Back.", Toast.LENGTH_LONG).show();
+            } catch (Exception ignored) {}
+
+            Intent phoneSpecific = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUri)
+                    .setComponent(new ComponentName("com.android.settings", "com.android.settings.Settings$ManageAppExternalSourcesActivity"));
+            Intent tvLegacySpecific = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUri)
+                    .setComponent(new ComponentName("com.android.tv.settings", "com.android.tv.settings.device.apps.specialaccess.ManageExternalSourcesActivity"));
+            Intent tvCurrentSpecific = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUri)
+                    .setComponent(new ComponentName("com.android.tv.settings", "com.android.tv.settings.device.apps.specialaccess.ExternalSourcesActivity"));
+            Intent packageSpecific = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUri);
+            Intent generic = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+            Intent security = new Intent(Settings.ACTION_SECURITY_SETTINGS);
+            Intent appDetails = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri);
+
             Intent[] candidates = new Intent[] {
-                    new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUri),
-                    new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
-                    new Intent(Settings.ACTION_SECURITY_SETTINGS),
-                    new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri)
+                    phoneSpecific,
+                    tvLegacySpecific,
+                    tvCurrentSpecific,
+                    packageSpecific,
+                    generic,
+                    security,
+                    appDetails
             };
             Exception lastError = null;
             for (Intent intent : candidates) {
                 try {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    intent.putExtra(Intent.EXTRA_PACKAGE_NAME, packageName);
+                    intent.putExtra("android.provider.extra.APP_PACKAGE", packageName);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NO_HISTORY);
                     activity.startActivity(intent);
-                    Log.i(TAG, "Opened update install settings with " + intent.getAction());
+                    Log.i(TAG, "Opened update install settings with " + intent.getAction() + " component=" + intent.getComponent());
                     return;
                 } catch (Exception e) {
                     lastError = e;
-                    Log.w(TAG, "Update settings intent unavailable: " + intent.getAction(), e);
+                    Log.w(TAG, "Update settings intent unavailable: " + intent.getAction() + " component=" + intent.getComponent(), e);
                 }
             }
-            String message = "Could not open Android update-install settings. Open Settings > Apps > Special app access > Install unknown apps and allow Swoop TV.";
+            String message = "Could not open Android update-install settings. Open Settings > Apps > Special app access > Install unknown apps, choose Swoop TV and switch it On.";
             if (lastError != null) Log.e(TAG, message, lastError);
             setState("permission_required", message, 0);
         });
