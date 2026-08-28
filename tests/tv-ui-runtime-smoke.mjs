@@ -313,7 +313,7 @@ if (!fs.readFileSync(new URL('../app/src/main/assets/src/catalog-index-worker.js
 if (!appSource.includes('const STARMETER_PRELOGIN_BATCH_SIZE=12')) throw new Error('v0.8.34 STARmeter chunk size missing');
 if (!appSource.includes('offset+=STARMETER_PRELOGIN_BATCH_SIZE') || !appSource.includes("tvCatalogWorkerRequest('person-match-batch',{people:chunk},12000)")) throw new Error('v0.8.34 chunked STARmeter matching missing');
 if (appSource.includes("tvCatalogWorkerRequest('person-match-batch',{people},24000)")) throw new Error('All-100 STARmeter worker request regression returned');
-if (!appSource.includes('void prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('Profile selection still blocks on STARmeter preparation');
+if (!appSource.includes('setTimeout(()=>prepareStarmeterBeforeLogin().catch(()=>false),5000)')) throw new Error('STARmeter optimisation is not deferred until after profile entry');
 if (!appSource.includes("STARmeter is usable now · provider matching will retry in the background.")) throw new Error('STARmeter fail-open recovery state missing');
 if (!appSource.includes('const body=visible.length?visible.map(starmeterPersonSection).join')) throw new Error('STARmeter page is still hard-gated by background matching');
 
