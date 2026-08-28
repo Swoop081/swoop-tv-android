@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+const path='.promotion/promote-pending.mjs';
+let s=fs.readFileSync(path,'utf8');
+const oldAnchor='    "// v0.8.40 Live TV current-programme header.\\n",';
+const newAnchor='    "console.log(\'Google TV UI runtime smoke passed\');\\n",';
+if(!s.includes(oldAnchor))throw new Error('Could not locate stale v0.8.41 test anchor in promotion helper.');
+s=s.replace(oldAnchor,newAnchor);
+const oldTail='// v0.8.40 Live TV current-programme header.\n`,';
+const newTail="console.log('Google TV UI runtime smoke passed');\n`,";
+if(!s.includes(oldTail))throw new Error('Could not locate stale v0.8.41 test replacement tail.');
+s=s.replace(oldTail,newTail);
+fs.writeFileSync(path,s);
+fs.rmSync(new URL(import.meta.url));
+console.log('Patched v0.8.41 regression-test insertion anchor.');
