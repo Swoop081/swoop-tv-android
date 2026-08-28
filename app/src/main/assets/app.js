@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.45';
+const ANDROID_CURRENT_VERSION='0.8.46';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,8 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Privacy hotfix: every secondary account now defaults to Private providers and household Xtream/M3U credentials require explicit opt-in sharing.',
+  'Existing secondary accounts are migrated to Private once while retaining any private provider setup they already own.',
   'Turns the Google TV startup screen into a cinema-style experience with playful rotating lines instead of technical update, provider or cache messages.',
   'Makes the launch progress bar much larger and removes foreground percentages/status jargon while preserving the real underlying preparation progress.',
   'Caps the foreground update-check wait to about 2.8 seconds; the native verified updater continues safely underneath instead of holding the account chooser hostage.',
@@ -159,10 +161,15 @@ const loaded=loadState()||{};
 let savedProviderProfiles=(loadProviderProfiles()||[]).filter(p=>!isLegacyDemoProvider(p));
 let savedProviderProfile=savedProviderProfiles[0]||loadProviderProfile()||null;if(savedProviderProfile&&isLegacyDemoProvider(savedProviderProfile))savedProviderProfile=null;
 const state=Object.assign({},DEFAULT_STATE,loaded,{settings:{...DEFAULT_STATE.settings,...(loaded.settings||{})},webDiscovery:{...(loaded.webDiscovery||{})},metadataCache:{...(loaded.metadataCache||{})}});
-const PROVIDER_ACCOUNT_SCHEMA=1;
-if(Number(state.settings.providerAccountSchemaVersion||0)<PROVIDER_ACCOUNT_SCHEMA){
+const PROVIDER_ACCOUNT_SCHEMA=2;
+if(Number(state.settings.providerAccountSchemaVersion||0)<1){
   state.sharedProviders=(Array.isArray(state.providers)?state.providers:[]).map(p=>({...p,counts:p?.counts?{...p.counts}:p?.counts}));
-  state.settings.providerAccountSchemaVersion=PROVIDER_ACCOUNT_SCHEMA;
+}
+if(Number(state.settings.providerAccountSchemaVersion||0)<2){
+  // Privacy migration: only the first account may inherit the household provider set by default.
+  // Every secondary account is moved to Private while retaining any private providers it already owns.
+  if(Array.isArray(state.profiles))state.profiles=state.profiles.map((p,i)=>i===0?{...p,providerMode:'shared'}:{...p,providerMode:'private',privateProviders:Array.isArray(p?.privateProviders)?p.privateProviders:[]});
+  state.settings.providerAccountSchemaVersion=2;
 }
 if(!Array.isArray(state.sharedProviders))state.sharedProviders=[];
 // v0.8.13 — restore Chill as the cinematic black/red theme and move the
@@ -235,7 +242,7 @@ if(!loaded.settings?.homeRows&&state.mdblistRows.length)state.settings.homeRows.
 const PROFILE_SETTING_KEYS=['themeId','backgroundColor','backgroundOverride','movieSourcePreferences','homeRows','smartHomeOrder','lastWhatsNewVersion'];
 function profileSettingsSnapshot(){const out={};for(const key of PROFILE_SETTING_KEYS){const value=state.settings?.[key];out[key]=Array.isArray(value)?[...value]:value&&typeof value==='object'?{...value}:value}return out}
 function cloneProviderRecords(list=[]){return Array.isArray(list)?list.map(p=>({...p,counts:p?.counts?{...p.counts}:p?.counts})):[]}
-function profileProviderMode(profile=activeProfile()){const firstId=state.profiles?.[0]?.id||'';if(!profile||profile.id===firstId)return 'shared';return profile.providerMode==='private'?'private':'shared'}
+function profileProviderMode(profile=activeProfile()){const firstId=state.profiles?.[0]?.id||'';if(!profile||profile.id===firstId)return 'shared';return profile.providerMode==='shared'?'shared':'private'}
 function syncProviderScopeFromState(profile=activeProfile()){if(!profile)return;const mode=profileProviderMode(profile);if(mode==='private')profile.privateProviders=cloneProviderRecords(state.providers);else state.sharedProviders=cloneProviderRecords(state.providers)}
 function currentProfileSnapshot(base={}){const mode=profileProviderMode(base),privateProviders=mode==='private'?cloneProviderRecords(state.providers):cloneProviderRecords(base.privateProviders||[]);return normalizeProfile({...base,id:base.id||state.activeProfileId,name:base.name||'Swoop TV',avatar:base.avatar||'lion',kids:Boolean(base.kids),pinHash:base.pinHash||'',pinSalt:base.pinSalt||'',myList:[...(state.myList||[])],continueWatching:[...(state.continueWatching||[])],watchHistory:[...(state.watchHistory||[])],recentLive:[...(state.recentLive||[])],liveFavourites:[...(state.liveFavourites||[])],providerMode:mode,privateProviders,profileSettings:profileSettingsSnapshot()})}
 function activeProfile(){return state.profiles.find(p=>p.id===state.activeProfileId)||state.profiles[0]||null}
@@ -1456,7 +1463,7 @@ function profileEditorModal(){
             <label class="remember-row profile-option-card"><input type="checkbox" name="kids" ${p.kids?'checked':''}><span><strong>Kids profile</strong><small>Filters mature titles when provider metadata allows.</small></span></label>
             <label class="remember-row profile-option-card"><input type="checkbox" name="smartHome" ${p.profileSettings?.smartHomeOrder!==false?'checked':''}><span><strong>Smart Home</strong><small>Personalises optional Home rows from viewing history.</small></span></label>
           </div>
-          <div class="profile-provider-access"><div class="profile-editor-section-title"><span class="eyebrow">TV PROVIDERS</span><strong>Provider access</strong></div>${householdOwner?`<input type="hidden" name="providerMode" value="shared"><div class="profile-provider-owner"><strong>Household provider owner</strong><small>Providers connected to the first account become the shared household provider set.</small></div>`:`<div class="profile-provider-options"><label class="profile-provider-option ${providerMode==='shared'?'active':''}"><input type="radio" name="providerMode" value="shared" ${providerMode==='shared'?'checked':''}><span><strong>Shared household providers</strong><small>Use the first account’s saved Xtream/M3U providers and credentials.</small></span></label><label class="profile-provider-option ${providerMode==='private'?'active':''}"><input type="radio" name="providerMode" value="private" ${providerMode==='private'?'checked':''}><span><strong>Private providers</strong><small>Do not inherit household logins. Add separate Xtream/M3U providers visible only in this account.</small></span></label></div>`}</div>
+          <div class="profile-provider-access"><div class="profile-editor-section-title"><span class="eyebrow">TV PROVIDERS</span><strong>Provider access</strong></div>${householdOwner?`<input type="hidden" name="providerMode" value="shared"><div class="profile-provider-owner"><strong>Household provider owner</strong><small>Providers connected to the first account become the shared household provider set.</small></div>`:`<div class="profile-provider-options"><label class="profile-provider-option ${providerMode==='private'?'active':''}"><input type="radio" name="providerMode" value="private" ${providerMode==='private'?'checked':''}><span><strong>Private providers · Recommended</strong><small>Starts with no household login. Add separate Xtream/M3U providers visible only in this account.</small></span></label><label class="profile-provider-option ${providerMode==='shared'?'active':''}"><input type="radio" name="providerMode" value="shared" ${providerMode==='shared'?'checked':''}><span><strong>Use shared household providers</strong><small>Explicitly use the first account’s saved Xtream/M3U providers and credentials.</small></span></label></div>`}</div>
           <div class="field profile-pin-field"><label>${pinLabel} <span class="optional">Optional</span></label>${pinControl}<small class="form-hint">Require 4–8 digits before switching into this profile.</small></div>
           ${p.pinHash?`<label class="profile-remove-pin"><input type="checkbox" name="removePin"> Remove existing PIN</label>`:''}
         </section>

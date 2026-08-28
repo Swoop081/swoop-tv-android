@@ -1,3 +1,13 @@
+## v0.8.46 — Account Credential Privacy Hotfix
+
+- Changes every newly created secondary account to **Private providers by default**. A second account no longer inherits the first account’s Xtream/M3U credentials automatically.
+- Sharing household providers is now an **explicit opt-in** choice: **Use shared household providers**.
+- Adds a one-time privacy migration that moves all existing secondary accounts to Private while retaining any private-provider configuration they already own. Users who genuinely want sharing can opt back in deliberately.
+- Makes provider-mode resolution fail closed: any missing/unknown secondary-account mode resolves to Private, never Shared.
+- Keeps the first-created account as the household provider owner and preserves its existing provider credentials.
+- Retains all v0.8.45 cinematic startup and account-provider infrastructure.
+- Android versionName/versionCode: **0.8.46 / 846**.
+
 ## v0.8.45 — Cinema Startup + Non-Blocking Update Check
 
 - Replaces technical startup status copy with rotating cinema-style lines such as **Grabbing the popcorn**, **Ushers are checking tickets**, **Dimming the house lights**, and **Enhancing the cinematic experience**.

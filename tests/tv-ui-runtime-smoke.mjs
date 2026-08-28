@@ -123,13 +123,17 @@ if (!cssSource.includes('width:min(440px,54vw)') || !cssSource.includes('height:
 if (!profilesSource.includes("providerMode='shared'") || !profilesSource.includes('privateProviders=[]')) throw new Error('Profile provider ownership fields missing');
 if (!appSource.includes("Shared household providers") || !appSource.includes("Private providers") || !appSource.includes('function scopedProviderId(')) throw new Error('Shared/private account provider selection missing');
 if (!appSource.includes('state.sharedProviders=') || !appSource.includes("profile.providerMode==='private'")) throw new Error('Household/private provider scope migration missing');
+if (!profilesSource.includes("providerMode='private'")) throw new Error('Secondary account profile constructor is not privacy-first');
+if (!appSource.includes("const PROVIDER_ACCOUNT_SCHEMA=2") || !appSource.includes("i===0?{...p,providerMode:'shared'}:{...p,providerMode:'private'")) throw new Error('Secondary-account privacy migration missing');
+if (!appSource.includes("return profile.providerMode==='shared'?'shared':'private'")) throw new Error('Secondary account provider mode does not fail closed to private');
+if (!appSource.includes('Private providers · Recommended') || !appSource.includes('Use shared household providers')) throw new Error('Privacy-first provider choice UI missing');
 if (!appSource.includes("if(state.catalog.length){const enabled=new Set(enabledProviders().map(p=>p.id));base=base.filter")) throw new Error('Private account catalogue isolation guard missing');
 if (!updaterSource.includes('url + ".sha256"')) throw new Error('Stable APK checksum verification missing');
 if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateReceiverSource.includes('STATUS_SUCCESS')) throw new Error('Android install approval/success fallback handling missing');
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.45';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.46';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
