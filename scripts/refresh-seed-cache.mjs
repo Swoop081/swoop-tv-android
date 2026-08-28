@@ -142,6 +142,20 @@ async function fetchPublicTraktTrending(url,mediaType){
         console.log(`app.trakt.tv shell markers ${mediaType}: ${markerNames.filter(x=>html.toLowerCase().includes(x.toLowerCase())).join(',')||'(none)'}`);
         const scripts=[...html.matchAll(/<script\b[^>]*src=["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]).slice(0,30);
         console.log(`app.trakt.tv script src ${mediaType}: ${JSON.stringify(scripts)}`);
+        const jsPaths=[...new Set([...html.matchAll(/\/_app\/immutable\/[^\"'<>\s]+?\.js/g)].map(m=>m[0]))].slice(0,40);
+        console.log(`app.trakt.tv immutable js ${mediaType}: ${JSON.stringify(jsPaths)}`);
+        const jsSignals=[];
+        for(const jsPath of jsPaths.slice(0,20)){
+          try{
+            const js=execLocalFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','15','--connect-timeout','8','--http1.1','--compressed','https://app.trakt.tv'+jsPath],{encoding:'utf8',maxBuffer:20*1024*1024});
+            const lower=js.toLowerCase();
+            const needles=['api.trakt.tv','trakt-api-key','client-id','client_id','/users/','/lists/','list_items','list-items','lists/items','trakt-api-version'];
+            const hits=[];
+            for(const needle of needles){let at=lower.indexOf(needle.toLowerCase());if(at>=0)hits.push(needle+': '+js.slice(Math.max(0,at-350),Math.min(js.length,at+1100)).replace(/\s+/g,' '));}
+            if(hits.length)jsSignals.push({path:jsPath,size:js.length,hits});
+          }catch{}
+        }
+        console.log(`app.trakt.tv JS API signals ${mediaType}: ${JSON.stringify(jsSignals).slice(0,24000)}`);
         const hrefs=[...html.matchAll(/(?:href|content)=["'](https?:\/\/[^"']+|\/[^"']+)["']/gi)].map(m=>m[1]).filter((v,i,a)=>a.indexOf(v)===i).slice(0,50);
         console.log(`app.trakt.tv href/content ${mediaType}: ${JSON.stringify(hrefs)}`);
         const snippets=[];
