@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +29,8 @@ import android.util.Log;
 import android.util.Xml;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 import androidx.annotation.Nullable;
 import androidx.media3.common.MediaItem;
@@ -85,6 +88,7 @@ public class MainActivity extends Activity {
     private final ConcurrentHashMap<String, String> asyncFetchErrors = new ConcurrentHashMap<>();
 
     private volatile boolean nativePlayerVisible = false;
+    private boolean nativePlayerFillMode = false;
     private boolean selectKeyDown = false;
     private boolean selectLongPressCandidate = false;
     private boolean selectLongPressTriggered = false;
@@ -208,7 +212,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.40 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.41 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -363,6 +367,29 @@ public class MainActivity extends Activity {
         return id == 0 ? null : playerView.findViewById(id);
     }
 
+    private Button premiumPlayerButton(String label) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setTextColor(Color.WHITE);
+        button.setTextSize(12f);
+        button.setAllCaps(false);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(false);
+        button.setPadding(18, 6, 18, 6);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.argb(220, 24, 26, 34));
+        bg.setCornerRadius(16f);
+        bg.setStroke(1, Color.argb(100, 255, 255, 255));
+        button.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        lp.setMargins(6, 0, 6, 0);
+        button.setLayoutParams(lp);
+        return button;
+    }
+
     private void configurePremiumPlayerControls() {
         if (playerView == null) return;
         String[] ids = new String[]{"exo_rew","exo_play_pause","exo_ffwd","exo_subtitle","exo_settings"};
@@ -379,8 +406,39 @@ public class MainActivity extends Activity {
         }
         View bottomBar = media3Control("exo_bottom_bar");
         if (bottomBar != null) {
-            bottomBar.setBackgroundColor(Color.argb(188,7,8,14));
+            bottomBar.setBackgroundColor(Color.argb(210,7,8,14));
             bottomBar.setPadding(34,16,34,24);
+        }
+        View basicControls = media3Control("exo_basic_controls");
+        if (basicControls instanceof LinearLayout) {
+            LinearLayout group = (LinearLayout) basicControls;
+            Button audio = premiumPlayerButton("Audio & Speed");
+            audio.setContentDescription("Audio tracks and playback speed");
+            audio.setOnClickListener(v -> {
+                playerView.showController();
+                View settings = media3Control("exo_settings");
+                if (settings != null) settings.performClick();
+            });
+            Button subtitles = premiumPlayerButton("Subtitles");
+            subtitles.setContentDescription("Subtitle and closed caption tracks");
+            subtitles.setOnClickListener(v -> {
+                playerView.showController();
+                View cc = media3Control("exo_subtitle");
+                if (cc != null) cc.performClick();
+            });
+            Button fit = premiumPlayerButton("Fit");
+            fit.setContentDescription("Toggle video between fit and fill");
+            fit.setOnClickListener(v -> {
+                nativePlayerFillMode = !nativePlayerFillMode;
+                playerView.setResizeMode(nativePlayerFillMode
+                        ? AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        : AspectRatioFrameLayout.RESIZE_MODE_FIT);
+                fit.setText(nativePlayerFillMode ? "Fill" : "Fit");
+                playerView.showController();
+            });
+            group.addView(audio, 0);
+            group.addView(subtitles, 1);
+            group.addView(fit, 2);
         }
     }
 
@@ -485,8 +543,8 @@ public class MainActivity extends Activity {
             int state = player != null ? player.getPlaybackState() : Player.STATE_IDLE;
             Runtime runtime = Runtime.getRuntime();
             long usedBytes = runtime.totalMemory() - runtime.freeMemory();
-            out.put("version", "0.8.40");
-            out.put("versionCode", 840);
+            out.put("version", "0.8.41");
+            out.put("versionCode", 841);
             out.put("uptimeMs", SystemClock.elapsedRealtime());
             out.put("playing", nativePlayerVisible && usable && state != Player.STATE_IDLE);
             out.put("paused", player != null && !player.getPlayWhenReady());
@@ -518,7 +576,7 @@ public class MainActivity extends Activity {
             if (dir == null) dir = getFilesDir();
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("Could not create diagnostics folder.");
             String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
-            File file = new File(dir, "Swoop-TV-v0.8.40-Diagnostics-" + stamp + ".json");
+            File file = new File(dir, "Swoop-TV-v0.8.41-Diagnostics-" + stamp + ".json");
             byte[] bytes = String.valueOf(payloadJson == null ? "{}" : payloadJson).getBytes(StandardCharsets.UTF_8);
             try (FileOutputStream stream = new FileOutputStream(file, false)) {
                 stream.write(bytes);
@@ -599,7 +657,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.40 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.41 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -655,7 +713,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.40 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.41 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -719,7 +777,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.40"; }
+        public String version() { return "0.8.41"; }
 
         @JavascriptInterface
         public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }

@@ -1,3 +1,11 @@
+## v0.8.41 focused hardware checks
+
+- **TOP100-RESTORE-001:** Home shows populated Top 100 Movies and Top 100 TV Shows from Snoak trending sources after a fresh install/update; no empty pinned rows.
+- **HOME-CLEAN-001:** Home rail headers do not show Explore-all buttons.
+- **STAR-RAIL-001:** On a STARmeter person with more than eight provider matches, hold/right-browse past card 8 and confirm additional cards append smoothly.
+- **MYSWOOP-HERO-001:** My SwoopTV hero height/crop matches Home exactly.
+- **PLAYER-PREMIUM-001:** Native player exposes Audio & Speed, Subtitles and Fit/Fill; multi-audio files show Media3 audio track choices and subtitle tracks remain selectable.
+
 # Swoop TV v0.8.37 — Google TV Hardware Test Checklist
 
 Current test build: **v0.8.37 / versionCode 837**

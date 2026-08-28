@@ -6,7 +6,7 @@ import {nativeCatalogStatus,nativeCatalogReplaceProvider,nativeCatalogRemoveProv
 import {getMDBListItems, getMDBListOfficialItems, getMDBListStreamingChart, matchMDBListToCatalog, normalizeMediaTitle} from './src/mdblist.js';
 import {fetchTitleMetadata, fetchTitleImdbRating, fetchPersonCredits, fetchEpisodeMetadata, searchPeople, metadataServiceUrl} from './src/tmdb.js';
 import {fetchSwoopDiscovery, fetchSwoopCuratedList} from './src/discovery.js';
-import {loadInstallSeedCache, installSeedFresh, installSeedAgeHours, installSeedDiscovery, installSeedPerson, searchInstallSeedPeople, installSeedTitleMetadata, installSeedEpisodeMetadata} from './src/seedCache.js';
+import {loadInstallSeedCache, installSeedFresh, installSeedAgeHours, installSeedDiscovery, installSeedCuratedList, installSeedPerson, searchInstallSeedPeople, installSeedTitleMetadata, installSeedEpisodeMetadata} from './src/seedCache.js';
 import {bootstrapPerformancePack,syncProviderPerformancePack,removeProviderPerformancePack,performancePackProviderFingerprint,loadPerformancePackStarmeter,savePerformancePackStarmeter,performancePackStatus} from './src/performancePack.js';
 import {buildMovieStackIndex, collapseMovieSources, cleanDisplayTitle, rankSources, sourceTraits, qualityLabel} from './src/sourceStack.js';
 import {buildLiveStackIndex, selectLiveSource} from './src/liveStack.js';
@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.40';
+const ANDROID_CURRENT_VERSION='0.8.41';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Restores Top 100 Movies and Top 100 TV Shows from packaged Snoak Trakt Trending lists and removes the accidental Home Explore-all buttons.',
+  'STARmeter title rails now continue past the first eight results in memory-safe eight-card batches as you browse right.',
+  'Makes the My SwoopTV Favorites hero exactly the same height as Home and surfaces premium Audio/Speed, Subtitles and Fit/Fill controls in the native player.',
   'Shows the programme playing right now directly under the Live TV channel logo, updating as focus or the programme changes.',
   'Adds a visible pre-login preparation progress bar, cleans profile focus styling, restores true bottom breathing room on Home, and upgrades the native Google TV player controls.',
   'Pins Top 100 Movies and Top 100 TV Shows directly to Snoak’s Trakt Trending Movies/Shows lists and removes unrelated provider-library filler.',
@@ -424,7 +427,7 @@ const visibleArtworkRepairIds=new Set();
 let visibleMetadataActive=0,visibleMetadataObserver=null;
 const DISCOVERY_REFRESH_MS=4*60*60*1000;
 const DISCOVERY_FAST_REFRESH_MS=90*60*1000;
-const TOP100_RANKING_SCHEMA=4;
+const TOP100_RANKING_SCHEMA=5;
 const discoveryBundleMemory=new Map();
 let detailItem=null,detailPayload=null,detailLoading=false,detailError='',detailSeason='';
 let personView=null,personLoading=false,personError='',personMovies=[],personShows=[],personProgress=0,personStatus='',personScrollTop=0,personOpenToken=0;
@@ -458,7 +461,7 @@ let guideLimit=48,guideCategory='',liveCategory='',providerFilter='all',pageCate
 const LONG_RAIL_BATCH_SIZE=100,LONG_RAIL_INITIAL_RENDER=24,LONG_RAIL_RENDER_CHUNK=24,LONG_RAIL_PREFETCH_THRESHOLD=24;
 const LIVE_RAIL_CHANNEL_LIMIT=100,LIVE_RAIL_CATEGORY_BATCH=3;
 const MEDIA_RAIL_ITEM_LIMIT=100,MEDIA_RAIL_CATEGORY_BATCH=6;
-const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=2,STARMETER_PREFETCH_AHEAD=6,STARMETER_TITLE_RENDER_LIMIT=8,STARMETER_PATCH_BATCH=3,STARMETER_ACTIVE_RADIUS=7,STARMETER_ART_RADIUS=8;
+const STARMETER_INITIAL_VISIBLE=100,STARMETER_APPEND_BATCH=100,STARMETER_HYDRATE_CONCURRENCY=2,STARMETER_PREFETCH_AHEAD=6,STARMETER_TITLE_RENDER_LIMIT=8,STARMETER_TITLE_APPEND_BATCH=8,STARMETER_PATCH_BATCH=3,STARMETER_ACTIVE_RADIUS=7,STARMETER_ART_RADIUS=8;
 let liveRailCategoryLimit=LIVE_RAIL_CATEGORY_BATCH;
 const mediaRailCategoryLimit={movie:MEDIA_RAIL_CATEGORY_BATCH,series:MEDIA_RAIL_CATEGORY_BATCH};
 const liveRailCache=new Map(),liveRailRequests=new Map(),liveRailRenderLimits=new Map();
@@ -1306,16 +1309,16 @@ function completeTop100FromLibrary(id,list=[]){
 async function fetchBuiltInDiscovery(id,apiKey,force=false){
   const mediaType=discoveryRowMediaType(id),mode=discoveryRowMode(id),rowLimit=String(id).startsWith('top20-')?HOME_RANKED_ROW_LIMIT:HOME_STANDARD_ROW_LIMIT;
   if(mode==='snoak'){
-    const listKey=SNOAK_CURATED_ROWS.get(id);
-    try{
-      const payload=await fetchSwoopCuratedList({settings:state.settings,listKey});
+    const listKey=SNOAK_CURATED_ROWS.get(id),seed=await getInstallSeedCache();
+    let payload=installSeedCuratedList(seed,listKey),sourceName=payload?'snoak-seed':'',warning='';
+    if(force||!payload){try{payload=await fetchSwoopCuratedList({settings:state.settings,listKey});sourceName='snoak-live'}catch(err){warning=err.message||String(err)}}
+    if(payload){
       const source=payload?.items||[];
       const items=nativeCatalogMode?cacheNativeItems((await nativeCatalogMatchPayload(source,mediaType,{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT,providerIds:nativeEnabledProviderIds()})).items||[]):NATIVE_ANDROID?await androidMatchDiscoveryPayload(source,mediaType,{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT}):matchMDBListToCatalog(source,activeCatalog(),{sourceLimit:800,limit:HOME_STANDARD_ROW_LIMIT,mediaType});
-      return {items:items.slice(0,rowLimit),enhanced:true,snoak:true,source:'snoak',sourceUpdatedAt:Number(payload?.sourceUpdatedAt||0)};
-    }catch(err){
-      const fallback=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);
-      return {items:(fallback||[]).slice(0,rowLimit),enhanced:false,snoak:false,source:'local-fallback',warning:err.message||String(err)};
+      return {items:items.slice(0,rowLimit),enhanced:true,snoak:true,source:sourceName||'snoak',sourceUpdatedAt:Number(payload?.sourceUpdatedAt||0),warning};
     }
+    const previous=state.webDiscovery?.[id],previousItems=Array.isArray(previous?.items)?previous.items:[];
+    return {items:previousItems.slice(0,rowLimit),enhanced:Boolean(previous?.enhanced),snoak:true,source:previous?.source||'snoak-unavailable',warning:warning||'Snoak trending list unavailable.'};
   }
   try{
     const bundle=await discoveryBundle(mediaType,force);let items=nativeCatalogMode?await blendDiscoverySourcesNative(bundle,mediaType,mode,rowLimit):NATIVE_ANDROID?await blendDiscoverySourcesAndroid(bundle,mediaType,mode,rowLimit):blendDiscoverySources(bundle,mediaType,mode,rowLimit);
@@ -1474,7 +1477,7 @@ function rail(title,data,poster=false,meta='',opts={}){
     if(opts.rowId!=='continue')return markup;
     return `<div class="continue-card-shell" data-continue-options-id="${esc(x.id)}" data-continue-options-series="${esc(x.parentSeriesId||'')}">${markup}</div>`;
   }).join('');
-  return `<section class="section swoop-render-section ${poster?'poster-section':'landscape-section'} ${opts.ranked?'ranked-section':''} ${opts.priority?'home-priority-row':''}"${opts.rowId?` data-home-row-mounted="${esc(opts.rowId)}"`:''}${Number.isFinite(Number(opts.total))?` data-home-row-total="${Number(opts.total)}"`:''}><div class="section-head"><div><h2>${esc(title)}</h2>${meta?`<span class="section-meta">${esc(meta)}</span>`:''}</div>${opts.page?`<button class="section-link" data-page="${opts.page}">Explore all →</button>`:'<span class="rail-arrow">›</span>'}</div><div class="rail">${cards}</div></section>`;
+  return `<section class="section swoop-render-section ${poster?'poster-section':'landscape-section'} ${opts.ranked?'ranked-section':''} ${opts.priority?'home-priority-row':''}"${opts.rowId?` data-home-row-mounted="${esc(opts.rowId)}"`:''}${Number.isFinite(Number(opts.total))?` data-home-row-total="${Number(opts.total)}"`:''}><div class="section-head"><div><h2>${esc(title)}</h2>${meta?`<span class="section-meta">${esc(meta)}</span>`:''}</div>${opts.page&&!opts.rowId?`<button class="section-link" data-page="${opts.page}">Explore all →</button>`:'<span class="rail-arrow">›</span>'}</div><div class="rail">${cards}</div></section>`;
 }
 
 function homeRowMarkup(def,dataOverride=null){
@@ -2021,8 +2024,17 @@ function starmeterPersonTitles(cached){
 function starmeterPersonSection(entry={}){
   const key=starmeterNormalize(entry.name),cached=starmeterPersonCache.get(key),person=cached?.person||starmeterPersonSeed(entry),titles=starmeterPersonTitles(cached),renderKey=starmeterLibraryRenderKey(entry);
   const portrait=person.profile?`<img data-swoop-art="${esc(person.profile)}" alt="${esc(person.name||entry.name||'')}" loading="lazy">`:`<div class="starmeter-person-fallback">${esc((person.name||'?').slice(0,1))}</div>`;
-  const rail=titles.length?`<div class="rail starmeter-title-rail">${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><div class="starmeter-loading-copy"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div><div class="starmeter-loading-posters"><i></i><i></i><i></i><i></i></div></div>`);
+  const rail=titles.length?`<div class="rail starmeter-title-rail" data-starmeter-title-total="${titles.length}">${titles.slice(0,STARMETER_TITLE_RENDER_LIMIT).map(x=>card(x,true)).join('')}</div>`:(cached?`<div class="starmeter-empty-row">${cached.retryable?'Preparing your provider availability index…':'No connected-provider titles found.'}</div>`:`<div class="starmeter-row-loading" aria-hidden="true"><div class="starmeter-loading-copy"><span class="provider-spinner"></span><strong>Matching available movies & TV shows…</strong></div><div class="starmeter-loading-posters"><i></i><i></i><i></i><i></i></div></div>`);
   return `<section class="section starmeter-person-section" data-starmeter-rank="${Number(entry.rank||0)}" data-starmeter-name="${esc(entry.name||'')}"><div class="starmeter-person-column"><button class="starmeter-person-card" data-person-id="${esc(person.id||'')}" data-person-name="${esc(person.name||entry.name||'')}" data-person-profile="${esc(person.profile||'')}" data-person-department="${esc(person.knownForDepartment||'Person')}"><b>#${Number(entry.rank||0)}</b>${portrait}<strong>${esc(person.name||entry.name||'')}</strong></button></div><div class="starmeter-library-column" data-starmeter-render-key="${esc(renderKey)}"><div class="section-head"><div><span class="eyebrow">AVAILABLE ON YOUR PROVIDERS</span><h2>${cached?`${titles.length.toLocaleString()} ${titles.length===1?'title':'titles'}`:'Finding titles…'}</h2></div><span class="rail-arrow">›</span></div>${rail}</div></section>`;
+}
+function appendStarmeterTitleRail(section){
+  if(state.page!=='starmeter'||!section)return false;
+  const rank=Number(section.dataset.starmeterRank||0),entry=starmeterPeople.find(x=>Number(x.rank)===rank);if(!entry)return false;
+  const cached=starmeterPersonCache.get(starmeterNormalize(entry.name)),titles=starmeterPersonTitles(cached),rail=section.querySelector('.starmeter-title-rail');if(!rail||!titles.length)return false;
+  const rendered=rail.querySelectorAll(':scope > .card').length;if(rendered>=titles.length)return false;
+  const end=Math.min(titles.length,rendered+STARMETER_TITLE_APPEND_BATCH),html=titles.slice(rendered,end).map(x=>card(x,true)).join('');if(!html)return false;
+  rail.insertAdjacentHTML('beforeend',html);rail.dataset.starmeterTitleTotal=String(titles.length);
+  hydrateArtwork(rail);hydrateVisibleImdbRatings(rail);bindDynamicCards(rail);bindRailStability(section);return true;
 }
 function starmeterPage(){
   const visible=starmeterPeople.slice(0,100);
@@ -3528,6 +3540,7 @@ function tvTopbarDownTarget(current){
 function tvGenericRailDirectionalTarget(current,key){
   const card=current?.closest?.('.card,.live-rail-card'),section=tvRailSection(card);if(!card||!section)return null;
   let cards=tvRailCards(section),index=cards.indexOf(card);if(index<0)return null;
+  if(key==='ArrowRight'&&state.page==='starmeter'&&card.closest('.starmeter-title-rail')){if(index>=Math.max(0,cards.length-2))appendStarmeterTitleRail(section);cards=tvRailCards(section);index=cards.indexOf(card);return index<cards.length-1?cards[index+1]:null}
   if(key==='ArrowLeft')return index>0?cards[index-1]:null;
   if(key==='ArrowRight'){
     if(index>=Math.max(0,cards.length-16)){longRailAppend(card);longRailPrefetchForFocus(card)}cards=tvRailCards(section);index=cards.indexOf(card);

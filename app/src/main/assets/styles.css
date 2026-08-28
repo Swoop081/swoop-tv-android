@@ -2635,7 +2635,7 @@ html.android-tv .settings-list{
 }
 
 /* My SwoopTV inherits the approved Home cinematic hero language. */
-html.android-tv .myswoop-page .myswoop-cinematic-hero{min-height:clamp(600px,78vh,820px)!important}
+html.android-tv .myswoop-page .myswoop-cinematic-hero{height:440px!important;min-height:440px!important;max-height:440px!important}
 html.android-tv .myswoop-page .myswoop-cinematic-hero + .myswoop-content{margin-top:-74px!important;position:relative!important;z-index:8!important}
 
 /* Live TV: persistent channel identity on the left, large native preview on the

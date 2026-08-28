@@ -34,6 +34,10 @@ let discovery={};
 if(!OFFLINE){try{const [movie,tv]=await Promise.all([post({mode:'discovery',mediaType:'movie'},18000),post({mode:'discovery',mediaType:'tv'},18000)]);if(movie&&typeof movie==='object')discovery.movie=movie;if(tv&&typeof tv==='object')discovery.tv=tv;console.log('Seed discovery bundle refreshed.')}catch(err){console.warn(`Discovery seed refresh unavailable: ${err.message}`)}}
 if(!Object.keys(discovery).length&&previous?.discovery&&typeof previous.discovery==='object')discovery=previous.discovery;
 
+let curated={};
+if(!OFFLINE){try{const [movies,shows]=await Promise.all([post({mode:'snoak-list',listKey:'trending-movies'},18000),post({mode:'snoak-list',listKey:'trending-shows'},18000)]);if(movies&&typeof movies==='object')curated['trending-movies']=movies;if(shows&&typeof shows==='object')curated['trending-shows']=shows;console.log('Seed Snoak Top 100 source lists refreshed.')}catch(err){console.warn(`Snoak Top 100 seed refresh unavailable: ${err.message}`)}}
+if(!Object.keys(curated).length&&previous?.curated&&typeof previous.curated==='object')curated=previous.curated;
+
 const priorPeople=new Map((previous?.starmeter?.people||[]).map(p=>[normalize(p.name||p.person?.name),p]));
 const enriched=await mapLimit(people,IDENTITY_CONCURRENCY,async entry=>{
   const prior=priorPeople.get(normalize(entry.name));let person=compactPerson(prior?.person||{}, {name:entry.name});
@@ -63,6 +67,6 @@ if(!OFFLINE&&candidates.length){
 
 const episodeMetadata=Array.isArray(previous?.episodeMetadata)?previous.episodeMetadata:[];
 const search={people:enriched.map(x=>({rank:x.rank,id:x.person.id,name:x.person.name,aliases:x.aliases||[],profile:x.person.profile})),titles:titleMetadata.map(x=>({mediaType:x.mediaType,title:x.title,year:x.year,tmdbId:x.tmdbId,imdbId:x.imdbId}))};
-const seed={schema:2,sourceVersion:'0.8.40',builtAt:new Date().toISOString(),maxAgeHours:168,discovery,starmeter:{source:source.source||'IMDb STARmeter / Trending People',sourceUrl:source.sourceUrl||'https://www.imdb.com/chart/starmeter/',capturedAt:source.capturedAt||'',people:enriched},titleMetadata,episodeMetadata,search,static:{titleLookupSchema:4,discoveryMatchSchema:6,top100RankingSchema:4,note:'Provider-neutral warm-start data only. No IPTV credentials, provider catalogue, watch history or live EPG are bundled.'}};
+const seed={schema:2,sourceVersion:'0.8.41',builtAt:new Date().toISOString(),maxAgeHours:168,discovery,curated,starmeter:{source:source.source||'IMDb STARmeter / Trending People',sourceUrl:source.sourceUrl||'https://www.imdb.com/chart/starmeter/',capturedAt:source.capturedAt||'',people:enriched},titleMetadata,episodeMetadata,search,static:{titleLookupSchema:4,discoveryMatchSchema:6,top100RankingSchema:5,note:'Provider-neutral warm-start data only. No IPTV credentials, provider catalogue, watch history or live EPG are bundled.'}};
 fs.writeFileSync(assetPath,JSON.stringify(seed,null,2)+'\n');fs.writeFileSync(rootPath,JSON.stringify(seed,null,2)+'\n');
 console.log(`Wrote install seed cache: ${enriched.length} people, ${enriched.filter(x=>x.person?.id||x.person?.profile).length} identities, ${enriched.filter(x=>x.credits?.length).length} filmographies, ${titleMetadata.length} title metadata records, discovery ${Object.keys(discovery).join(',')||'not available in this environment'}.`);

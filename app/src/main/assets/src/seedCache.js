@@ -31,6 +31,9 @@ export function installSeedFresh(seed=cachedSeed){
 export function installSeedDiscovery(seed,mediaType='movie'){
   const key=mediaType==='show'||mediaType==='series'||mediaType==='tv'?'tv':'movie';const value=seed?.discovery?.[key];return value&&typeof value==='object'?value:null;
 }
+export function installSeedCuratedList(seed,listKey=''){
+  const value=seed?.curated?.[String(listKey||'')];return value&&typeof value==='object'?value:null;
+}
 
 function buildPeopleIndex(seed){
   if(peopleIndex)return peopleIndex;peopleIndex=new Map();

@@ -1,3 +1,12 @@
+## v0.8.41 — Top 100 Restore + Full STARmeter Rails + Player/Hub Parity
+
+- Restores **Top 100 Movies** and **Top 100 TV Shows** from packaged copies of Snoak’s Trakt Trending Movies/Shows feeds so the rows are populated immediately and are no longer dependent on a live discovery request at Home render time.
+- Removes the accidental **Explore all →** links from Home rail headers; Home returns to the clean title + arrow treatment.
+- Keeps STARmeter’s memory-safe initial eight title cards per person, but appends another eight as focus approaches the end so every matched title remains browsable without recreating the renderer-pressure problem.
+- Makes the **My SwoopTV** cinematic Favorites hero exactly the same 440 px Google TV masthead height as Home.
+- Surfaces premium native-player text controls for **Audio & Speed**, **Subtitles**, and **Fit/Fill** while retaining Media3 rewind, play/pause, fast-forward, timeline, buffering and embedded/external subtitle handling.
+- Bumps the Top 100 ranking cache schema to v5 so broken/empty v4 ranking caches are rejected.
+
 # Swoop TV Release Notes
 
 ## v0.8.40 — Live TV Now Playing
