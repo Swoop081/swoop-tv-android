@@ -38,9 +38,9 @@ app=replaceRequired(
   const progress=Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)));
   el.classList.toggle('ready',starmeterBackgroundComplete);
   const value=el.querySelector('[data-profile-starmeter-percent]'),copy=el.querySelector('[data-profile-starmeter-copy]'),bar=el.querySelector('[data-profile-starmeter-bar]');
-  if(value)value.textContent=starmeterBackgroundComplete?'✓':\`\${progress}%\`;
+  if(value)value.textContent=starmeterBackgroundComplete?'✓':\`${progress}%\`;
   if(copy)copy.textContent=starmeterBackgroundComplete?'Ready':'Please wait…';
-  if(bar)bar.style.width=\`\${progress}%\`;
+  if(bar)bar.style.width=\`${progress}%\`;
 }
 function setStarmeterBackgroundProgress`,
   'profile preparation progress patcher'
@@ -255,6 +255,7 @@ let tests=readFileSync(testPath,'utf8');
 tests=replaceRequired(tests,"if (!appSource.includes(\"const ANDROID_CURRENT_VERSION='0.8.38';\")) throw new Error('Current Android UI version marker missing');","if (!appSource.includes(\"const ANDROID_CURRENT_VERSION='0.8.39';\")) throw new Error('Current Android UI version marker missing');",'runtime current-version assertion');
 tests=replaceRequired(tests,"if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.38-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');","if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.39-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');",'diagnostic filename assertion');
 tests=replaceRequired(tests,"if (String(installSeed.sourceVersion||'') !== '0.8.38') throw new Error('Install seed source version is not v0.8.38');","if (String(installSeed.sourceVersion||'') !== '0.8.39') throw new Error('Install seed source version is not v0.8.39');",'install seed assertion');
+tests=replaceRequired(tests,"if (!activitySource.includes('SwoopTV/0.8.38 AndroidTV') || !activitySource.includes('public String version() { return \"0.8.38\"; }')) throw new Error('v0.8.38 native Android markers missing');","if (!activitySource.includes('SwoopTV/0.8.39 AndroidTV') || !activitySource.includes('public String version() { return \"0.8.39\"; }')) throw new Error('v0.8.39 native Android markers missing');",'native Android version assertion');
 tests += `
 if (!appSource.includes('data-profile-starmeter-bar') || !appSource.includes("copy.textContent=starmeterBackgroundComplete?'Ready':'Please wait…'")) throw new Error('Who’s Watching preparation progress bar missing');
 if (!cssSource.includes('html.android-tv .home-content,') || !cssSource.includes('padding-bottom:210px!important')) throw new Error('Home final-row breathing room missing');
