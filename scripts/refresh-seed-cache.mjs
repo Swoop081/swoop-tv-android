@@ -118,6 +118,17 @@ async function fetchPublicTraktTrending(url,mediaType){
       try{
         html=execLocalFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','25','--connect-timeout','10','--http1.1','--compressed','--user-agent','Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/142 Safari/537.36','--header','Accept: text/html,application/xhtml+xml',url],{encoding:'utf8',maxBuffer:20*1024*1024});
         console.log(`app.trakt.tv curl ${mediaType}: ${html.length} bytes.`);
+        const titleMatch=html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        console.log(`app.trakt.tv shell title ${mediaType}: ${titleMatch?decodeHtmlText(titleMatch[1]).replace(/\s+/g,' ').trim():'(none)'}`);
+        const markerNames=['__NEXT_DATA__','__remixContext','__sveltekit','data-router','api.trakt','graphql','snoak','trakt-s-trending','application/ld+json','vite','webpack'];
+        console.log(`app.trakt.tv shell markers ${mediaType}: ${markerNames.filter(x=>html.toLowerCase().includes(x.toLowerCase())).join(',')||'(none)'}`);
+        const scripts=[...html.matchAll(/<script\b[^>]*src=["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]).slice(0,30);
+        console.log(`app.trakt.tv script src ${mediaType}: ${JSON.stringify(scripts)}`);
+        const hrefs=[...html.matchAll(/(?:href|content)=["'](https?:\/\/[^"']+|\/[^"']+)["']/gi)].map(m=>m[1]).filter((v,i,a)=>a.indexOf(v)===i).slice(0,50);
+        console.log(`app.trakt.tv href/content ${mediaType}: ${JSON.stringify(hrefs)}`);
+        const snippets=[];
+        for(const needle of ['snoak','trakt-s-trending','api.trakt','graphql','__NEXT_DATA__','__remixContext']){const i=html.toLowerCase().indexOf(needle.toLowerCase());if(i>=0)snippets.push(needle+': '+html.slice(Math.max(0,i-350),Math.min(html.length,i+900)).replace(/\s+/g,' '));}
+        console.log(`app.trakt.tv structural snippets ${mediaType}: ${JSON.stringify(snippets).slice(0,8000)}`);
       }catch(curlErr){throw new Error(`Node fetch: ${fetchError}; curl: ${String(curlErr?.stderr||curlErr?.message||curlErr).trim()}`)}
     }
     const out=[],seen=new Set();
