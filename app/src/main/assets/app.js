@@ -19,13 +19,13 @@ const NATIVE_ANDROID=isNativeAndroid();
 const NATIVE_PLAYBACK=NATIVE_WINDOWS||NATIVE_ANDROID;
 if(NATIVE_ANDROID)document.documentElement.classList.add('android-tv');
 let tvHomeSnapshotActive=false,tvBackgroundRestoreStarted=false,tvSnapshotSaveTimer=null,tvMovieStackWorker=null,tvMovieStackedCache=null,tvMovieStackBuild=[],tvCatalogWorkerReady=false,tvCatalogWorkerSeq=0;
-let tvLastFocusedElement=null,tvLastActivationAt=0,androidLaunchChecksScheduled=false,androidLaunchChecksRunning=false,androidProviderLaunchCheckRunning=false,androidAppUpdateAvailable=null,androidLatestManifest=null;
+let tvLastFocusedElement=null,tvLastActivationAt=0,androidLaunchChecksScheduled=false,androidLaunchChecksRunning=false,androidProviderLaunchCheckRunning=false,androidAppUpdateAvailable=null,androidLatestManifest=null,androidUpdateRenderTimer=0;
 let tvVerticalQueue=0,tvVerticalFrame=0,tvVerticalProcessing=false;
 const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.41';
+const ANDROID_CURRENT_VERSION='0.8.42';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Adds native automatic GitHub updates on Google TV: Swoop TV checks the stable release at launch, downloads a newer APK and updates itself in place.',
+  'Verifies the published SHA-256 checksum plus application ID/version before installation, keeps Automatic Updates on by default, and falls back to Android approval when the TV requires it.',
+  'Adds Automatic Updates, Check for Update Now and one-time install-permission controls to Settings while keeping Downloader code 3682231 as the bootstrap/fallback installer.',
   'Restores Top 100 Movies and Top 100 TV Shows from packaged Snoak Trakt Trending lists and removes the accidental Home Explore-all buttons.',
   'STARmeter title rails now continue past the first eight results in memory-safe eight-card batches as you browse right.',
   'Makes the My SwoopTV Favorites hero exactly the same height as Home and surfaces premium Audio/Speed, Subtitles and Fit/Fill controls in the native player.',
@@ -2139,11 +2142,70 @@ function mySwoopPage(){
 function myListPage(){return mySwoopPage()}
 function empty(title,copy){return `<div class="empty"><div class="empty-mark">S</div><h3>${esc(title)}</h3><p>${esc(copy)}</p><button class="btn accent" data-modal="provider">Add TV Provider</button></div>`}
 function searchPage(){return `<main class="page search-page"><div class="search-hero"><div class="eyebrow">FIND SOMETHING GREAT</div><h1>Search Swoop TV</h1><div class="searchbox searchbox-large"><span>⌕</span><input id="searchInput" autofocus placeholder="Movies, TV shows, live channels, actors, actresses, directors…" /></div></div><div class="page-content"><div id="searchPeople" class="search-people"></div><div id="searchResults" class="content-grid search-results"></div></div></main>`}
+function androidUpdateBridgeCall(method,...args){
+  if(!NATIVE_ANDROID)return null;
+  try{
+    const fn=globalThis.SwoopAndroid?.[method];
+    if(typeof fn!=='function')return null;
+    const raw=fn(...args);
+    return typeof raw==='string'?JSON.parse(raw||'{}'):raw;
+  }catch{return null}
+}
+function androidUpdateStatusSync(){
+  return androidUpdateBridgeCall('updateStatus')||{
+    currentVersion:ANDROID_CURRENT_VERSION,
+    automaticUpdates:true,
+    phase:'idle',
+    progress:0,
+    updateAvailable:Boolean(androidAppUpdateAvailable),
+    latestVersion:androidAppUpdateAvailable?.version||''
+  };
+}
+function androidUpdateStatusCopy(s={}){
+  const phase=String(s.phase||'idle');
+  const latest=String(s.latestVersion||androidAppUpdateAvailable?.version||'');
+  const pct=Math.max(0,Math.min(100,Number(s.progress||0)));
+  if(phase==='checking')return 'Checking the stable GitHub release…';
+  if(phase==='downloading')return `Downloading and verifying the update… ${pct}%`;
+  if(phase==='installing')return 'Update verified. Android is installing it now…';
+  if(phase==='approval_required')return 'Android needs one confirmation to finish this update.';
+  if(phase==='permission_required')return 'One-time setup required: allow Swoop TV to install its own updates.';
+  if(phase==='error')return String(s.error||'The last update attempt failed.');
+  if(s.updateAvailable||androidAppUpdateAvailable)return `Version ${latest||androidAppUpdateAvailable?.version||''} is ready to install.`;
+  if(phase==='up_to_date')return 'Swoop TV is up to date.';
+  return s.automaticUpdates===false?'Automatic update checks are off.':'Swoop TV checks GitHub for updates when it launches.';
+}
+function androidUpdaterCardHtml(){
+  if(!NATIVE_ANDROID)return '';
+  const s=androidUpdateStatusSync();
+  const auto=s.automaticUpdates!==false;
+  const phase=String(s.phase||'idle');
+  const busy=['checking','downloading','installing'].includes(phase);
+  const available=Boolean(s.updateAvailable||androidAppUpdateAvailable);
+  const permission=Boolean(s.canInstallPackages);
+  const current=String(s.currentVersion||ANDROID_CURRENT_VERSION);
+  const latest=String(s.latestVersion||androidAppUpdateAvailable?.version||current);
+  const permissionButton=!permission?'<button class="btn secondary" data-android-update-permission>Allow Update Installs</button>':'';
+  const installButton=available?`<button class="btn accent" data-android-update-install ${busy?'disabled':''}>Install Update</button>`:'';
+  return `<section class="setting-card app-update-card"><div class="setting-icon">↑</div><div class="setting-main"><h3>Automatic Updates</h3><p>${esc(androidUpdateStatusCopy(s))}</p><div class="setting-stats"><span><strong>v${esc(current)}</strong> Installed</span><span><strong>v${esc(latest)}</strong> Latest</span><span><strong>${auto?'ON':'OFF'}</strong> Auto update</span></div><div class="cta-row"><button class="btn ${auto?'accent':'secondary'}" data-android-auto-update="${auto?'off':'on'}">Automatic Updates: ${auto?'On':'Off'}</button><button class="btn secondary" data-android-update-check ${busy?'disabled':''}>Check for Update Now</button>${installButton}${permissionButton}</div><small>Updates install over the existing Swoop TV app so providers, playlists, Favorites, Continue Watching and profile settings stay on this device. Downloader 3682231 remains the fallback installer.</small></div></section>`;
+}
+if(NATIVE_ANDROID)window.addEventListener('swoop-update-status',event=>{
+  const detail=event?.detail||{};
+  if(detail.updateAvailable)androidAppUpdateAvailable={version:String(detail.latestVersion||''),versionCode:Number(detail.latestVersionCode||0)};
+  else if(detail.phase==='up_to_date')androidAppUpdateAvailable=null;
+  if(detail.phase==='error'&&detail.error)toast(String(detail.error));
+  if(state?.page==='settings'&&!modal&&!profilePickerOpen&&!androidUpdateRenderTimer){
+    androidUpdateRenderTimer=setTimeout(()=>{
+      androidUpdateRenderTimer=0;
+      if(state.page==='settings'&&!modal&&!profilePickerOpen)render();
+    },650);
+  }
+});
 function settingsPage(){
   const counts={live:nativeCatalogMode?nativeTotal('live'):items('live').length,movie:nativeCatalogMode?nativeTotal('movie'):items('movie').length,series:nativeCatalogMode?nativeTotal('series'):items('series').length};
   return `<main class="page settings-page"><div class="settings-hero"><div class="eyebrow">${esc(activeProfile()?.name||'SWOOP TV')} · PROFILE SETTINGS</div><h1>Settings</h1><p>Manage your profile, TV providers, Home screen and playback.</p></div><div class="page-content settings-list">
   <section class="setting-card setting-card-feature"><div class="setting-icon">TV</div><div class="setting-main"><h3>TV Providers</h3><p>${state.providers.length?`${enabledProviders().length} enabled · ${state.providers.length} connected`:'No provider connected'}</p><div class="setting-stats"><span><strong>${counts.live.toLocaleString()}</strong> Live Streams</span><span><strong>${counts.movie.toLocaleString()}</strong> Unique Movies</span><span><strong>${counts.series.toLocaleString()}</strong> Shows</span></div><div class="cta-row"><button class="btn accent" data-modal="provider">Manage Providers</button>${state.providers.length?'<button class="btn secondary" data-provider-refresh-all>Refresh All</button>':''}</div></div></section>
-  ${NATIVE_ANDROID&&androidAppUpdateAvailable?`<section class="setting-card app-update-card"><div class="setting-icon">↑</div><div class="setting-main"><h3>Swoop TV update available</h3><p>Version ${esc(androidAppUpdateAvailable.version)} is ready for Google TV.</p><div class="cta-row"><span class="btn secondary">Downloader code 3682231</span></div></div></section>`:''}
+  ${androidUpdaterCardHtml()}
   <section class="setting-card profile-setting-card"><div class="setting-icon profile-setting-avatar">${profileAvatarHtml(activeProfile(),'profile-avatar-lg')}</div><div class="setting-main"><h3>${esc(activeProfile()?.name||'Profile')}</h3><p>${activeProfile()?.kids?'Kids restrictions are enabled.':'Personal viewing profile.'} Continue Watching, My SwoopTV, recommendations, favorite channels, Home order and theme are private to this profile.</p><div class="setting-stats"><span><strong>${state.profiles.length}</strong> Household profiles</span><span><strong>${state.watchHistory.length}</strong> Watched</span><span><strong>${state.liveFavourites.length}</strong> Live favorites</span></div><div class="cta-row"><button class="btn accent" data-profile-picker>Switch Profile</button><button class="btn secondary" data-profile-edit="${esc(activeProfile()?.id||'')}">Edit Profile</button></div></div></section>
   <section class="setting-card"><div class="setting-icon">NEW</div><div class="setting-main"><h3>What's New</h3><p>See what changed in Swoop TV v${esc(ANDROID_CURRENT_VERSION)} and reopen the latest release notes at any time.</p><div class="cta-row"><button class="btn secondary" data-show-whats-new>Open What's New</button></div></div></section>
   <section class="setting-card performance-setting-card"><div class="setting-icon">⚡</div><div class="setting-main"><h3>Performance</h3><p>${performanceLabel()}. ${esc(performancePackSummary())}</p><div class="cta-row"><button class="btn ${state.settings.performanceMode!=='cinematic'?'accent':'secondary'}" data-performance-mode="auto">Auto / Recommended</button><button class="btn ${state.settings.performanceMode==='cinematic'?'accent':'secondary'}" data-performance-mode="cinematic">Full Cinematic</button>${NATIVE_ANDROID&&state.catalog.length?'<button class="btn secondary" data-performance-pack-optimize>Optimise Library Now</button>':''}</div></div></section>
@@ -2391,7 +2453,7 @@ async function checkAndroidAppUpdateOnLaunch(){
   const manifestUrl=`https://github.com/${repo}/releases/download/${ANDROID_UPDATE_RELEASE_TAG}/swoop-tv-latest.json`;
   try{
     const raw=await nativeFetchText(manifestUrl),manifest=JSON.parse(String(raw||'{}'));if(manifest?.version){androidLatestManifest=manifest;const latest=String(manifest.version||'0.0.0');
-      if(compareVersions(latest,current)>0){androidAppUpdateAvailable={version:latest,versionCode:Number(manifest.versionCode||0),url:String(manifest.updateUrl||`https://github.com/${repo}/releases/download/${ANDROID_UPDATE_RELEASE_TAG}/Swoop-TV-v0.8.1-Google-TV-Test.apk`)};toast(`Swoop TV v${latest} is available · Downloader 3682231`);if(state.page==='settings'&&!modal&&!profilePickerOpen)render();return androidAppUpdateAvailable;}
+      if(compareVersions(latest,current)>0){androidAppUpdateAvailable={version:latest,versionCode:Number(manifest.versionCode||0),url:String(manifest.updateUrl||`https://github.com/${repo}/releases/download/${ANDROID_UPDATE_RELEASE_TAG}/Swoop-TV-v0.8.1-Google-TV-Test.apk`)};if(state.page==='settings'&&!modal&&!profilePickerOpen)render();return androidAppUpdateAvailable;}
       androidAppUpdateAvailable=null;return null;}
   }catch{}
   // Compatibility fallback for an older test release that does not yet publish the manifest.
@@ -3318,6 +3380,10 @@ function bind(){
   document.querySelectorAll('[data-provider-up]').forEach(el=>el.onclick=()=>moveProvider(el.dataset.providerUp,-1));
   document.querySelectorAll('[data-provider-down]').forEach(el=>el.onclick=()=>moveProvider(el.dataset.providerDown,1));
   document.querySelectorAll('[data-provider-refresh-all]').forEach(el=>el.onclick=()=>refreshAllProviders());
+  document.querySelectorAll('[data-android-auto-update]').forEach(el=>el.onclick=()=>{const enabled=el.dataset.androidAutoUpdate==='on';androidUpdateBridgeCall('setAutomaticUpdates',enabled);toast(enabled?'Automatic updates enabled':'Automatic updates disabled');render()});
+  document.querySelector('[data-android-update-check]')?.addEventListener('click',()=>{androidUpdateBridgeCall('checkForUpdate',false);toast('Checking GitHub for a Swoop TV update…');setTimeout(()=>{if(state.page==='settings')render()},800)});
+  document.querySelector('[data-android-update-install]')?.addEventListener('click',()=>{const result=androidUpdateBridgeCall('installAvailableUpdate');if(result?.phase==='permission_required')toast('Allow Swoop TV to install updates once, then the update will continue.');else toast('Preparing the Swoop TV update…');setTimeout(()=>{if(state.page==='settings')render()},500)});
+  document.querySelector('[data-android-update-permission]')?.addEventListener('click',()=>{androidUpdateBridgeCall('openUpdatePermissionSettings');toast('Enable “Allow from this source” for Swoop TV.')});
   document.querySelector('[data-action="clear-history"]')?.addEventListener('click',()=>{state.continueWatching=[];persist();render();toast('Continue Watching cleared')});
   document.querySelector('[data-action="clear-viewing"]')?.addEventListener('click',()=>{state.watchHistory=[];persist();render();toast('Recommendation history reset')});
   document.querySelector('[data-action="clear-source-preferences"]')?.addEventListener('click',()=>{state.settings.movieSourcePreferences={};persist();render();toast('Remembered movie source choices cleared')});

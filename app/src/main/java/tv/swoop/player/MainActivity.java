@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> filePathCallback;
     private WebViewAssetLoader assetLoader;
     private final ExecutorService networkExecutor = Executors.newFixedThreadPool(2);
+    private SwoopUpdateManager updateManager;
     private final ConcurrentHashMap<String, String> asyncFetchResults = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> asyncFetchErrors = new ConcurrentHashMap<>();
 
@@ -115,7 +116,9 @@ public class MainActivity extends Activity {
         loadDiagnosticState();
         buildUi();
         configureWebView();
+        updateManager = new SwoopUpdateManager(this, detail -> emitNativeEvent("swoop-update-status", detail));
         webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+        updateManager.scheduleLaunchCheck();
     }
 
     private void loadDiagnosticState() {
@@ -212,7 +215,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.41 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.42 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -543,7 +546,7 @@ public class MainActivity extends Activity {
             int state = player != null ? player.getPlaybackState() : Player.STATE_IDLE;
             Runtime runtime = Runtime.getRuntime();
             long usedBytes = runtime.totalMemory() - runtime.freeMemory();
-            out.put("version", "0.8.41");
+            out.put("version", "0.8.42");
             out.put("versionCode", 841);
             out.put("uptimeMs", SystemClock.elapsedRealtime());
             out.put("playing", nativePlayerVisible && usable && state != Player.STATE_IDLE);
@@ -576,7 +579,7 @@ public class MainActivity extends Activity {
             if (dir == null) dir = getFilesDir();
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("Could not create diagnostics folder.");
             String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
-            File file = new File(dir, "Swoop-TV-v0.8.41-Diagnostics-" + stamp + ".json");
+            File file = new File(dir, "Swoop-TV-v0.8.42-Diagnostics-" + stamp + ".json");
             byte[] bytes = String.valueOf(payloadJson == null ? "{}" : payloadJson).getBytes(StandardCharsets.UTF_8);
             try (FileOutputStream stream = new FileOutputStream(file, false)) {
                 stream.write(bytes);
@@ -657,7 +660,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.41 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.42 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -713,7 +716,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.41 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.42 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -777,10 +780,25 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.41"; }
+        public String version() { return "0.8.42"; }
 
         @JavascriptInterface
         public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }
+
+        @JavascriptInterface
+        public String updateStatus() { return updateManager == null ? "{\"phase\":\"unavailable\"}" : updateManager.statusJson(); }
+
+        @JavascriptInterface
+        public String setAutomaticUpdates(boolean enabled) { return updateManager == null ? "{\"phase\":\"unavailable\"}" : updateManager.setAutomaticUpdates(enabled); }
+
+        @JavascriptInterface
+        public String checkForUpdate(boolean installIfAvailable) { return updateManager == null ? "{\"phase\":\"unavailable\"}" : updateManager.checkForUpdate(installIfAvailable, true); }
+
+        @JavascriptInterface
+        public String installAvailableUpdate() { return updateManager == null ? "{\"phase\":\"unavailable\"}" : updateManager.installAvailableUpdate(true); }
+
+        @JavascriptInterface
+        public String openUpdatePermissionSettings() { return updateManager == null ? "{\"phase\":\"unavailable\"}" : updateManager.openInstallPermissionSettings(); }
 
         @JavascriptInterface
         public String play(String payloadJson) {
@@ -1071,6 +1089,12 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (updateManager != null) updateManager.onResume();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         if (player != null && player.isPlaying()) player.pause();
@@ -1081,6 +1105,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         stopPreviewPlayer();
         releasePlayerOnly();
+        if (updateManager != null) updateManager.shutdown();
         try { networkExecutor.shutdownNow(); } catch (Exception ignored) {}
         asyncFetchResults.clear();
         asyncFetchErrors.clear();

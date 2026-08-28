@@ -1,3 +1,15 @@
+## v0.8.42 — Automatic GitHub Updates
+
+- Adds a native Google TV self-update pipeline that checks the stable GitHub release shortly after Swoop TV launches.
+- **Automatic Updates** are enabled by default. When a newer stable version is available, Swoop TV downloads the existing stable APK URL and updates the installed app in place rather than uninstalling it.
+- Verifies the published **SHA-256 checksum**, Android application ID and newer versionCode before handing an APK to Android for installation. A mismatched or incomplete APK is rejected.
+- Uses Android PackageInstaller and requests a no-user-action self-update on Android 12+ where the TV permits it, while correctly handling Android’s confirmation fallback when user action is still required.
+- Adds one-time **Allow Update Installs** setup for TVs that require Swoop TV itself to be trusted as an install source. Once granted, later updates can continue automatically where Android permits.
+- Adds **Automatic Updates**, **Check for Update Now**, installed/latest version status, live download state and manual Install Update controls to Settings.
+- Keeps TV providers, Xtream/M3U details, playlists, Favorites, Continue Watching, watch history and profile settings intact because updates retain application ID `tv.swoop.player`, signing identity and app data.
+- Keeps permanent Downloader code **3682231** and the stable `Swoop-TV-v0.8.1-Google-TV-Test.apk` URL as the bootstrap/fallback installation route.
+- Android versionName is **0.8.42** and versionCode is **842**.
+
 ## v0.8.41 — Top 100 Restore + Full STARmeter Rails + Player/Hub Parity
 
 - Restores **Top 100 Movies** and **Top 100 TV Shows** from packaged copies of Snoak’s Trakt Trending Movies/Shows feeds so the rows are populated immediately and are no longer dependent on a live discovery request at Home render time.

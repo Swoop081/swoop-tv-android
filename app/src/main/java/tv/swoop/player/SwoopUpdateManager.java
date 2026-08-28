@@ -245,7 +245,7 @@ final class SwoopUpdateManager {
         if (part.exists()) part.delete();
 
         HttpURLConnection connection = open(url, "application/vnd.android.package-archive,*/*");
-        long total = connection.getContentLengthLong();
+        long total = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? connection.getContentLengthLong() : connection.getContentLength();
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         long done = 0L;
         int lastEmitted = -1;

@@ -1,16 +1,16 @@
 {
-  "version": "0.8.37",
-  "versionCode": 837,
-  "versionedApk": "Swoop-TV-v0.8.37-Google-TV-Test.apk",
+  "version": "0.8.42",
+  "versionCode": 842,
+  "versionedApk": "Swoop-TV-v0.8.42-Google-TV-Test.apk",
   "stableApk": "Swoop-TV-v0.8.1-Google-TV-Test.apk",
   "changes": [
-    "Fixes the physical-TV STARmeter WebView renderer restart seen in IMG_1142.mp4 by reducing Android decoded-artwork retention from 260 surfaces to 48, eliminating STARmeter backdrop prewarm, limiting STARmeter prewarm to the first 12 people, reducing concurrent person hydration from 3 to 2, lowering lookahead from 18 to 6 and rendering at most 8 provider-title cards per person.",
-    "Compacts STARmeter to a fixed 136 px person row so the Top 5 are visible in the first 1080p viewport. Portraits, ranks, names and provider title cards are all reduced while preserving stable paint containment, held-D-pad mutation freeze and fixed identity anchors.",
-    "Removes the redundant MY LIST poster badge and standardises saved-content UI language on Favorites. TV series remain eligible for Favorites and appear in My SwoopTV alongside movies; favorite channels remain available there too.",
-    "Replaces the compact My SwoopTV header with the Home-style cinematic hero, rotating through saved movie/TV Favorites. Continue Watching, Favorites, Favorite Channels and Recently Watched remain below it.",
-    "Recently Watched episode entries now present the parent TV-series poster/title identity instead of episode still imagery when that series art is available.",
-    "Redesigns Live TV around a sticky two-column TV header: large current-channel branding on the left, a substantially larger native preview on the right, and focus-driven logo/preview switching as the remote moves through channel rows. Media3 preview uses zoom fill to remove oversized letterbox side bars.",
-    "Adds a 180 px bottom safe-space tail to browsing pages so the final rail does not stop flush against the bottom edge. The TV Guide layout and geometry are deliberately unchanged.",
-    "Simplifies What’s New to one visible close action: Got it."
+    "Adds a native Google TV self-update pipeline that checks the stable GitHub release shortly after Swoop TV launches.",
+    "Automatic Updates are enabled by default. When a newer stable version is available, Swoop TV downloads the existing stable APK URL and updates the installed app in place rather than uninstalling it.",
+    "Verifies the published SHA-256 checksum, Android application ID and newer versionCode before handing an APK to Android for installation. A mismatched or incomplete APK is rejected.",
+    "Uses Android PackageInstaller and requests a no-user-action self-update on Android 12+ where the TV permits it, while correctly handling Android’s confirmation fallback when user action is still required.",
+    "Adds one-time Allow Update Installs setup for TVs that require Swoop TV itself to be trusted as an install source. Once granted, later updates can continue automatically where Android permits.",
+    "Adds Automatic Updates, Check for Update Now, installed/latest version status, live download state and manual Install Update controls to Settings.",
+    "Keeps TV providers, Xtream/M3U details, playlists, Favorites, Continue Watching, watch history and profile settings intact because updates retain application ID tv.swoop.player, signing identity and app data.",
+    "Keeps permanent Downloader code 3682231 and the stable Swoop-TV-v0.8.1-Google-TV-Test.apk URL as the bootstrap/fallback installation route."
   ]
 }
