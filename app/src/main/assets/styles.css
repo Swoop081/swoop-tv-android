@@ -2955,3 +2955,13 @@ html.android-tv .startup-boot-card h1{margin-top:10px}
 .profile-provider-option small,.profile-provider-owner small{display:block;margin-top:5px;color:var(--muted);line-height:1.35}
 .profile-provider-option.active,.profile-provider-option:focus-within{border-color:color-mix(in srgb,var(--accent) 64%,white 10%);background:color-mix(in srgb,var(--accent) 10%,rgba(255,255,255,.035))}
 html.android-tv .profile-provider-option:focus-within{outline:3px solid #fff;outline-offset:3px}
+
+/* v0.8.45 — cinema-style startup presentation. */
+html.android-tv .startup-cinema-card{min-width:min(900px,80vw);padding:48px 64px 56px;text-align:center}
+html.android-tv .startup-cinema-card .startup-swoop-logo{margin-bottom:18px}
+html.android-tv .startup-cinema-card .boot-fun-kicker{font-size:12px;letter-spacing:.3em;color:var(--accent-2)}
+html.android-tv .startup-cinema-card .boot-fun-title{font-size:clamp(36px,4.2vw,60px);line-height:1.02;min-height:1.08em;margin:14px 0 0;letter-spacing:-.045em}
+html.android-tv .startup-cinema-card .boot-fun-progress{width:100%;max-width:760px;margin:34px auto 0}
+html.android-tv .startup-cinema-card .boot-fun-progress>i{display:block;height:24px!important;border-radius:999px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 10px 34px rgba(0,0,0,.28)}
+html.android-tv .startup-cinema-card .boot-fun-progress>i>b{transition:width .34s ease}
+html.android-tv .startup-cinema-card .boot-fun-caption{margin-top:14px;font-size:13px;font-weight:800;letter-spacing:.08em;color:#aeb2bd}

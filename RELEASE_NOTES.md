@@ -1,3 +1,13 @@
+## v0.8.45 — Cinema Startup + Non-Blocking Update Check
+
+- Replaces technical startup status copy with rotating cinema-style lines such as **Grabbing the popcorn**, **Ushers are checking tickets**, **Dimming the house lights**, and **Enhancing the cinematic experience**.
+- Keeps one clean Swoop TV logo/progress experience and hides GitHub, update-download, provider, cache, library-count and percentage jargon from the Google TV boot screen.
+- Enlarges the Google TV startup progress bar to a prominent 24px theatre-style track while preserving the real monotonic preparation progress underneath.
+- Caps the foreground update-check wait at roughly **2.8 seconds** so a slow GitHub response no longer holds the user on the boot screen; the verified native updater continues safely underneath.
+- Preserves the automatic one-time Android install-permission prompt and in-place self-update path when an update is found.
+- Preserves v0.8.44 shared-household/private-provider account isolation and existing user data migration.
+- Android versionName/versionCode are **0.8.45/845**.
+
 ## v0.8.44 — Branded Boot Pipeline + Account Provider Privacy
 
 - Replaces the immediate profile-picker launch with a branded Google TV boot sequence: a large Swoop TV logo, **Checking for updates**, real update/download status, **Loading your library**, and only then **Who’s Watching?**.

@@ -118,8 +118,8 @@ if (!updaterSource.includes('PackageInstaller.SessionParams.USER_ACTION_NOT_REQU
 if (!updaterSource.includes('Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES') || !updaterSource.includes('Settings.ACTION_SECURITY_SETTINGS') || !updaterSource.includes('Settings.ACTION_APPLICATION_DETAILS_SETTINGS')) throw new Error('Google TV update-permission settings fallbacks missing');
 if (!updaterSource.includes('installAfterPermission') || !updaterSource.includes('pendingManual || automaticUpdates()')) throw new Error('Updater permission-return continuation missing');
 if (!updaterSource.includes('requestAutomaticInstallPermission') || !updaterSource.includes('lastPermissionPromptVersionCode')) throw new Error('Launch-time automatic update permission prompt missing');
-if (!appSource.includes('async function bootstrapAndroidPreLogin()') || !appSource.includes("title:'Checking for updates…'") || !appSource.includes("title:'Loading your library…'")) throw new Error('Branded pre-login update/library boot pipeline missing');
-if (!cssSource.includes('width:min(440px,54vw)')) throw new Error('Large Swoop TV boot logo missing');
+if (!appSource.includes('async function bootstrapAndroidPreLogin()') || !appSource.includes('ANDROID_BOOT_FUN_LINES') || !appSource.includes('startupBootFunTitle') || !appSource.includes('while(Date.now()-started<2800)')) throw new Error('Cinema-style non-blocking pre-login boot pipeline missing');
+if (!cssSource.includes('width:min(440px,54vw)') || !cssSource.includes('height:24px!important') || !cssSource.includes('.startup-cinema-card')) throw new Error('Large Swoop TV cinema boot presentation missing');
 if (!profilesSource.includes("providerMode='shared'") || !profilesSource.includes('privateProviders=[]')) throw new Error('Profile provider ownership fields missing');
 if (!appSource.includes("Shared household providers") || !appSource.includes("Private providers") || !appSource.includes('function scopedProviderId(')) throw new Error('Shared/private account provider selection missing');
 if (!appSource.includes('state.sharedProviders=') || !appSource.includes("profile.providerMode==='private'")) throw new Error('Household/private provider scope migration missing');
@@ -129,7 +129,7 @@ if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateRecei
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.44';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.45';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');

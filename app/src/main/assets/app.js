@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.44';
+const ANDROID_CURRENT_VERSION='0.8.45';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,6 +37,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Turns the Google TV startup screen into a cinema-style experience with playful rotating lines instead of technical update, provider or cache messages.',
+  'Makes the launch progress bar much larger and removes foreground percentages/status jargon while preserving the real underlying preparation progress.',
+  'Caps the foreground update-check wait to about 2.8 seconds; the native verified updater continues safely underneath instead of holding the account chooser hostage.',
   'Adds a full launch sequence: large Swoop TV branding, automatic update check/permission handling, real library-load progress, then Who’s Watching only after launch preparation completes.',
   'Adds account-level provider privacy: additional accounts can choose Shared household providers or Private providers with separate Xtream/M3U logins and isolated provider libraries.',
   'Makes the first-created account the household provider owner while preserving existing provider logins as the shared provider set during migration.',
@@ -2433,8 +2436,28 @@ function scheduleHeroRotation(){
   heroRotationTimer=setInterval(()=>{if(document.hidden||state.page!=='home'||modal||detailItem||playerItem)return;const pool=heroCandidates();if(pool.length<2)return;heroRotationIndex=(heroRotationIndex+1)%pool.length;replaceHomeHero()},HERO_ROTATION_MS);
 }
 
+const ANDROID_BOOT_FUN_LINES=[
+  'Grabbing the popcorn…',
+  'Ushers are checking tickets…',
+  'Polishing the big screen…',
+  'Dimming the house lights…',
+  'Finding the best seats…',
+  'Tuning the surround sound…',
+  'Enhancing the cinematic experience…',
+  'Rolling the opening credits…'
+];
+let androidBootFunIndex=0,androidBootFunTimer=null;
+function androidBootFunLine(){return ANDROID_BOOT_FUN_LINES[androidBootFunIndex%ANDROID_BOOT_FUN_LINES.length]}
+function startAndroidBootFunTicker(){
+  if(androidBootFunTimer)clearInterval(androidBootFunTimer);androidBootFunIndex=0;
+  const tick=()=>{const el=document.querySelector('#startupBootFunTitle');if(el)el.textContent=androidBootFunLine()};
+  tick();androidBootFunTimer=setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},1350);
+}
+function stopAndroidBootFunTicker(){if(androidBootFunTimer){clearInterval(androidBootFunTimer);androidBootFunTimer=null}}
+
 function startupRefreshPage(){
   const pct=Math.max(0,Math.min(100,Number(startupRefreshState.progress||0)));
+  if(androidBootSequenceActive)return `<main class="page restoring-page"><div class="restore-card startup-refresh-card startup-boot-card startup-cinema-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo-transparent.png" alt="Swoop TV" /><div class="eyebrow boot-fun-kicker">SWOOP TV PRESENTS</div><h1 class="boot-fun-title" id="startupBootFunTitle">${esc(androidBootFunLine())}</h1><div class="restore-progress boot-fun-progress"><i><b id="startupRefreshBar" style="width:${pct}%"></b></i></div><div class="boot-fun-caption">Almost showtime.</div></div></main>`;
   return `<main class="page restoring-page"><div class="restore-card startup-refresh-card startup-boot-card"><img class="startup-swoop-logo" src="./assets/swoop-tv-logo-transparent.png" alt="Swoop TV" /><div class="eyebrow" id="startupRefreshKicker">${esc(startupRefreshState.kicker||'SWOOP TV')}</div><h1 id="startupRefreshTitle">${esc(startupRefreshState.title||'Starting Swoop TV…')}</h1><p id="startupRefreshText">${esc(startupRefreshState.detail||'Getting everything ready.')}</p><div class="restore-progress"><div><span id="startupRefreshCount">${esc(startupRefreshState.provider||'Preparing…')}</span><strong id="startupRefreshPercent">${Math.round(pct)}%</strong></div><i><b id="startupRefreshBar" style="width:${pct}%"></b></i></div><small id="startupRefreshSummary">${esc(startupRefreshState.summary||'Preparing your Swoop TV experience.')}</small></div></main>`;
 }
 function updateStartupRefreshProgress({progress,kicker,title,detail,provider,summary}={}){
@@ -3421,7 +3444,7 @@ function bind(){
   document.querySelector('[data-action="clear-live-favourites"]')?.addEventListener('click',()=>{state.liveFavourites=[];persist();render();toast('Favorite channels cleared')});
   document.querySelectorAll('[data-continue-resume]').forEach(el=>el.onclick=()=>{const item=savedItem(el.dataset.continueResume);modal=null;continueOptionsTarget=null;if(item){if(item.kind==='episode'||item.kind==='live')play(item);else openDetail(item)}else render()});
   document.querySelectorAll('[data-whats-new-done]').forEach(el=>el.onclick=()=>{state.settings.lastWhatsNewVersion=ANDROID_CURRENT_VERSION;modal=null;persist();render()});
-  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:844,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
+  document.querySelectorAll('[data-show-whats-new]').forEach(el=>el.onclick=()=>{androidLatestManifest={version:ANDROID_CURRENT_VERSION,versionCode:845,changes:[...ANDROID_CURRENT_CHANGELOG]};modal='whatsNew';render()});
   document.querySelectorAll('[data-remove-row]').forEach(el=>el.onclick=()=>{const row=state.mdblistRows[Number(el.dataset.removeRow)];if(row)state.settings.homeRows=state.settings.homeRows.filter(id=>id!==`custom:${row.uid}`);state.mdblistRows.splice(Number(el.dataset.removeRow),1);persist('cache');render()});
   const search=document.querySelector('#searchInput');if(search)search.oninput=e=>scheduleSearch(e.target.value);
   document.querySelectorAll('[data-provider-tab]').forEach(el=>el.onclick=()=>{document.querySelectorAll('[data-provider-tab]').forEach(x=>x.classList.toggle('active',x===el));document.querySelector('#m3uForm').hidden=el.dataset.providerTab!=='m3u';document.querySelector('#xtreamForm').hidden=el.dataset.providerTab!=='xtream';document.querySelector('#providerStatus').innerHTML=''});
@@ -4023,42 +4046,27 @@ async function runAndroidStartupGate(){
 
 const androidBootWait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function runAndroidBootUpdateCheck(){
-  updateStartupRefreshProgress({progress:8,kicker:'AUTOMATIC UPDATES',title:'Checking for updates…',detail:'Checking the stable Swoop TV release on GitHub.',provider:'Connecting to update service…',summary:'Swoop TV verifies every update before Android installs it.'});
+  updateStartupRefreshProgress({progress:8});
   let status=androidUpdateStatusSync(),auto=status.automaticUpdates!==false;
   androidUpdateBridgeCall('checkForUpdate',auto);
-  const started=Date.now();let permissionSeenAt=0,installTriggered=false;
-  while(Date.now()-started<30000){
+  const started=Date.now();let permissionSeenAt=0;
+  while(Date.now()-started<2800){
     status=androidUpdateStatusSync();const phase=String(status.phase||'idle'),download=Math.max(0,Math.min(100,Number(status.progress||0)));
-    if(phase==='checking'||phase==='idle'){
-      const elapsed=Math.min(1,(Date.now()-started)/5000);
-      updateStartupRefreshProgress({progress:8+elapsed*12,kicker:'AUTOMATIC UPDATES',title:'Checking for updates…',detail:'Comparing this TV with the latest stable Swoop TV build.',provider:'Checking GitHub…'});
-    }else if(phase==='downloading'){
-      updateStartupRefreshProgress({progress:12+(download/100)*18,kicker:'AUTOMATIC UPDATES',title:'Downloading update…',detail:'Downloading and verifying the new Swoop TV APK.',provider:`${Math.round(download)}% downloaded and verified`,summary:'Your providers, profiles, Favorites and viewing history stay on this TV.'});
-    }else if(phase==='installing'||phase==='approval_required'){
-      updateStartupRefreshProgress({progress:31,kicker:'AUTOMATIC UPDATES',title:'Installing update…',detail:phase==='approval_required'?'Android needs one confirmation to finish the update.':'The update is verified and Android is installing it.',provider:'Finishing update…'});
-    }else if(phase==='permission_required'){
-      if(!permissionSeenAt)permissionSeenAt=Date.now();
-      updateStartupRefreshProgress({progress:20,kicker:'ONE-TIME UPDATE SETUP',title:'Allow Swoop TV updates',detail:'Android is asking you to allow Swoop TV to install its own verified updates. Turn on “Allow from this source”, then return to Swoop TV.',provider:'Waiting for Android permission…',summary:'This permission is normally needed only once.'});
-      if(status.canInstallPackages){permissionSeenAt=0;await androidBootWait(180);continue}
-      if(Date.now()-permissionSeenAt>1800)break;
-    }else if(phase==='available'){
-      if(auto&&!installTriggered){installTriggered=true;androidUpdateBridgeCall('installAvailableUpdate');}
-      else break;
-    }else if(phase==='up_to_date'){
-      updateStartupRefreshProgress({progress:32,kicker:'AUTOMATIC UPDATES',title:'Swoop TV is up to date',detail:'No newer stable build is waiting.',provider:`Version ${status.currentVersion||ANDROID_CURRENT_VERSION} is current`});
-      break;
-    }else if(phase==='error'){
-      updateStartupRefreshProgress({progress:32,kicker:'AUTOMATIC UPDATES',title:'Update check finished',detail:String(status.error||'The update service could not be reached. Swoop TV will continue with the saved app and library.'),provider:'Continuing with installed version…'});
-      break;
-    }else break;
-    await androidBootWait(180);
+    if(phase==='checking'||phase==='idle'){const elapsed=Math.min(1,(Date.now()-started)/2200);updateStartupRefreshProgress({progress:8+elapsed*12});}
+    else if(phase==='downloading')updateStartupRefreshProgress({progress:18+(download/100)*14});
+    else if(phase==='installing'||phase==='approval_required')updateStartupRefreshProgress({progress:32});
+    else if(phase==='permission_required'){if(!permissionSeenAt)permissionSeenAt=Date.now();updateStartupRefreshProgress({progress:20});if(status.canInstallPackages){permissionSeenAt=0;await androidBootWait(120);continue}if(Date.now()-permissionSeenAt>900)break;}
+    else if(phase==='available'){updateStartupRefreshProgress({progress:30});break;}
+    else if(phase==='up_to_date'||phase==='error')break;
+    else break;
+    await androidBootWait(120);
   }
-  updateStartupRefreshProgress({progress:34,kicker:'YOUR LIBRARY',title:'Loading your library…',detail:'Loading saved channels, movies, TV shows and account provider scopes.',provider:'Opening local library…',summary:'Preparing everything before Who’s Watching appears.'});
+  updateStartupRefreshProgress({progress:34});
 }
 async function bootstrapAndroidPreLogin(){
   androidBootSequenceActive=true;profilePickerOpen=true;startupRefreshActive=true;
   startupRefreshState={progress:3,kicker:'SWOOP TV',title:'Starting Swoop TV…',detail:'Preparing your TV experience.',provider:'Starting secure app services…',summary:'Updates and your library load before account selection.'};
-  render();
+  render();startAndroidBootFunTicker();
   setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)},0);
   await androidBootWait(220);
   await runAndroidBootUpdateCheck().catch(()=>null);
@@ -4066,7 +4074,7 @@ async function bootstrapAndroidPreLogin(){
   if(state.catalog.length)updateStartupRefreshProgress({progress:82,kicker:'PREPARING HOME',title:'Preparing Swoop TV…',detail:'Preloading your Home screen and priority artwork.',provider:'Finishing launch preparation…',summary:'Who’s Watching is next.'});
   else updateStartupRefreshProgress({progress:40,kicker:'LOADING LIBRARY',title:'Loading your library…',detail:'No complete saved library was found. Checking your connected providers.',provider:'Preparing providers…'});
   await runAndroidStartupGate().catch(()=>false);
-  androidBootSequenceActive=false;startupRefreshActive=false;profilePickerOpen=true;state.page='home';render();
+  stopAndroidBootFunTicker();androidBootSequenceActive=false;startupRefreshActive=false;profilePickerOpen=true;state.page='home';render();
 }
 
 async function bootstrapApp(){
