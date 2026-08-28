@@ -133,12 +133,17 @@ if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateRecei
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.50';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.51';")) throw new Error('Current Android UI version marker missing');
 if (!activitySource.includes('InputMethodManager') || !activitySource.includes('isWebTextInputActive()') || !activitySource.includes('imm.isAcceptingText()') || !activitySource.includes('&& !isWebTextInputActive())') ) throw new Error('First-run TV keyboard Select/Enter pass-through missing');
 if (!appSource.includes("event.key==='Enter'") || !appSource.includes('form.requestSubmit')) throw new Error('First-run keyboard Enter/Done handling missing');
 if (!appSource.includes('submit.disabled=false') || !appSource.includes("submit.removeAttribute('disabled')")) throw new Error('First-run avatar Continue enable hotfix missing');
 if (!appSource.includes('function tvProfileAvatarChoices()') || !appSource.includes('tvProfileAvatarChoices().map')) throw new Error('Sharp TV avatar chooser filter missing');
-if (!swSource.includes('swoop-tv-v0850-shell')) throw new Error('v0.8.50 service-worker cache marker missing');
+if (!appSource.includes('let androidProfileEntryCommitted=false;')) throw new Error('Android profile-entry commitment latch missing');
+if (!appSource.includes('if(NATIVE_ANDROID)androidProfileEntryCommitted=true;')) throw new Error('Profile selection does not commit Android Home entry');
+if (appSource.includes('refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('STARmeter still launches before profile selection');
+if (!appSource.includes('if(androidProfileEntryCommitted){profilePickerOpen=false;render();requestAnimationFrame(()=>forceAndroidHomeEntry())')) throw new Error('Android pre-login completion can still reopen Who’s Watching after Home entry');
+if (!cssSource.includes('html.android-tv .profile-starmeter-prep{display:none!important}')) throw new Error('Who’s Watching still exposes optional STARmeter progress as a loading gate');
+if (!swSource.includes('swoop-tv-v0851-shell')) throw new Error('v0.8.51 service-worker cache marker missing');
 if (appSource.includes("id:'profile-main',name:'Swoop TV',avatar:'lion'")) throw new Error('Manufactured Swoop TV/lion first-run profile still exists');
 if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes("firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider')") || !appSource.includes("let modal=(state.profiles.length||state.providers.length)?null:'provider'")) throw new Error('Zero-account provider-first onboarding missing');
 if (!appSource.includes('setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},15000)')) throw new Error('Cinema loading messages are not held for 15 seconds');
@@ -357,6 +362,6 @@ if (!profilesSource.includes("id:'cheetah'") || !profilesSource.includes("id:'ca
 
 
 // v0.8.49 full-size first-run TV onboarding.
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.50';")) throw new Error('v0.8.50 Android web runtime version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.51';")) throw new Error('v0.8.51 Android web runtime version marker missing');
 if (!cssSource.includes('v0.8.49 — 80% TV-first onboarding wizard') || !cssSource.includes('width:80vw!important') || !cssSource.includes('height:80vh!important')) throw new Error('First-run provider wizard is not using the 80% TV viewport canvas');
 if (!cssSource.includes('.first-run-provider-wizard .provider-method strong{font-size:clamp') || !cssSource.includes('.first-run-provider-wizard .field input,') || !cssSource.includes('.first-run-provider-wizard .cta-row .btn{')) throw new Error('First-run wizard typography/inputs/actions are not responsively TV-scaled');

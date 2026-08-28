@@ -1,3 +1,11 @@
+## v0.8.51 — Profile Entry Race + Background Optimisation Hotfix
+
+- Fixes the Android/Google TV launch race that could successfully enter Home and then kick the viewer back to **Who’s watching?** when the original pre-login task completed.
+- Adds a launch-session profile-entry latch: once a profile or first-run account commits to Home, the boot sequence is no longer allowed to reopen the profile picker.
+- Removes STARmeter preparation from the pre-login critical path. It now starts several seconds after Home entry and remains optional/background work.
+- Hides the STARmeter optimisation percentage from **Who’s watching?**, so account selection is never presented as waiting on a 50–80% retry loop.
+- Retains v0.8.50 remote keyboard Enter/Done and sharp-avatar onboarding fixes.
+
 ## v0.8.50 — First-Run Remote Input + Avatar Hotfix
 
 - Fixes Google TV first-run text entry so the on-screen keyboard Enter / Done action reaches the WebView instead of being swallowed by the native TV Select-key handler.

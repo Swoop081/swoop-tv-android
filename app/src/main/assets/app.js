@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0,liveHeroProgrammeTimer=null;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.50';
+const ANDROID_CURRENT_VERSION='0.8.51';
 const TV_SHARP_PROFILE_AVATAR_IDS=new Set(['lion','elephant','giraffe','zebra','rhino','turtle','monkey','meerkat','parrot','tiger']);
 function tvProfileAvatarChoices(){return PROFILE_AVATARS.filter(av=>TV_SHARP_PROFILE_AVATAR_IDS.has(av.id))}
 function updateAndroidTvViewportProfile(){
@@ -39,6 +39,9 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
+  'Fixes the Google TV launch race that could reopen Who’s Watching after a profile had already entered Home.',
+  'Who’s Watching no longer exposes STARmeter optimisation as a loading gate; STARmeter preparation now runs after profile entry in the background.',
+  'Prevents the profile-screen progress indicator from cycling indefinitely while optional background matching retries.',
   'Fixes first-run Google TV keyboard Enter/Done so each provider field advances without pressing Back.',
   'Fixes avatar selection so Use this avatar / Continue becomes enabled immediately after a choice.',
   'Keeps only production-resolution avatar artwork selectable on TV until the low-resolution secondary batch is replaced.',
@@ -632,6 +635,7 @@ let sessionXtream=providerConfigById(state.provider?.id)||{server:'',username:''
 let storageRestoring=false;
 let startupRefreshActive=false;
 let androidBootSequenceActive=false;
+let androidProfileEntryCommitted=false;
 let startupRefreshState={progress:2,kicker:'SWOOP TV',title:'Starting Swoop TV…',detail:'Getting Swoop TV ready.',provider:'',summary:''};
 let libraryRestored=Boolean(state.catalog.length&&!tvHomeSnapshotActive);
 let libraryRestorePromise=null;
@@ -1467,6 +1471,7 @@ async function completeFirstRunIfReady(){
   firstRunProviderBusy=false;
   firstRunAvatarConfirmed=false;
   profilePickerOpen=false;
+  if(NATIVE_ANDROID)androidProfileEntryCommitted=true;
   profileEditId='';
   modal=null;
   state.page='home';
@@ -1537,7 +1542,7 @@ function randomSalt(){try{return [...crypto.getRandomValues(new Uint8Array(12))]
 async function switchProfile(id,{skipPin=false}={}){
   const target=state.profiles.find(p=>p.id===id);if(!target)return;
   if(target.pinHash&&!skipPin){pendingProfileId=id;profilePinError='';modal='pin';profilePickerOpen=false;render();return}
-  if(NATIVE_ANDROID&&!starmeterBackgroundComplete)void prepareStarmeterBeforeLogin().catch(()=>false);
+  if(NATIVE_ANDROID)androidProfileEntryCommitted=true;
   if(playerItem)await stopPlayback(true);
   const changed=target.id!==state.activeProfileId;
   if(changed){clearPersistentPageViews();syncActiveProfileFromState();state.activeProfileId=target.id;applyProfileToState(target);providerFilter='all';activeCatalogSourceRef=null;activeCatalogContext='';activeCatalogCache=[];resetAndroidFastCatalog();detailItem=null;sourceChoiceItem=null;heroRotationIndex=0;}
@@ -1547,7 +1552,7 @@ async function switchProfile(id,{skipPin=false}={}){
     storageRestoring=true;render();const nativeReady=await activateNativeCatalogIfAvailable().catch(()=>false);if(!nativeReady)await ensureDurableLibraryRestored();storageRestoring=false;
   }
   else if(nativeCatalogMode)await hydrateNativeProfileItems();
-  await persist();render();if(NATIVE_ANDROID)forceAndroidHomeEntry();toast(changed?`Switched to ${target.name}`:`Welcome, ${target.name}`);if(NATIVE_ANDROID)setTimeout(maybeShowWhatsNewOnLogin,120);
+  await persist();render();if(NATIVE_ANDROID){forceAndroidHomeEntry();setTimeout(()=>prepareStarmeterBeforeLogin().catch(()=>false),5000)}toast(changed?`Switched to ${target.name}`:`Welcome, ${target.name}`);if(NATIVE_ANDROID)setTimeout(maybeShowWhatsNewOnLogin,120);
 }
 function nav(){
   const desktop=[['home','Home'],['myswoop','My SwoopTV'],['live','Live TV'],['guide','Guide'],['starmeter','STARmeter'],['movies','Movies'],['series','TV Shows']];
@@ -4180,14 +4185,16 @@ async function bootstrapAndroidPreLogin(){
   androidBootSequenceActive=true;profilePickerOpen=true;startupRefreshActive=true;
   startupRefreshState={progress:3,kicker:'SWOOP TV',title:'Starting Swoop TV…',detail:'Preparing your TV experience.',provider:'Starting secure app services…',summary:'Updates and your library load before account selection.'};
   render();startAndroidBootFunTicker();
-  setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)},0);
+  setTimeout(()=>{refreshPerformancePackInfo().catch(()=>null)},0);
   await androidBootWait(220);
   await runAndroidBootUpdateCheck().catch(()=>null);
   await ensureDurableLibraryRestored().catch(()=>false);
   if(state.catalog.length)updateStartupRefreshProgress({progress:82,kicker:'PREPARING HOME',title:'Preparing Swoop TV…',detail:'Preloading your Home screen and priority artwork.',provider:'Finishing launch preparation…',summary:'Who’s Watching is next.'});
   else updateStartupRefreshProgress({progress:40,kicker:'LOADING LIBRARY',title:'Loading your library…',detail:'No complete saved library was found. Checking your connected providers.',provider:'Preparing providers…'});
   await runAndroidStartupGate().catch(()=>false);
-  stopAndroidBootFunTicker();androidBootSequenceActive=false;startupRefreshActive=false;profilePickerOpen=true;state.page='home';render();
+  stopAndroidBootFunTicker();androidBootSequenceActive=false;startupRefreshActive=false;state.page='home';
+  if(androidProfileEntryCommitted){profilePickerOpen=false;render();requestAnimationFrame(()=>forceAndroidHomeEntry());setTimeout(()=>prepareStarmeterBeforeLogin().catch(()=>false),5000)}
+  else{profilePickerOpen=true;render()}
 }
 
 async function bootstrapApp(){

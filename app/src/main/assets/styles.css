@@ -3102,3 +3102,6 @@ html.android-tv .first-run-provider-wizard :is(.provider-method,.btn,input):focu
   html.android-tv .first-run-provider-wizard .provider-methods{grid-template-columns:1fr!important}
   html.android-tv .first-run-provider-wizard .provider-method{min-height:clamp(86px,14vh,118px)!important}
 }
+
+/* v0.8.51: profile choice is never blocked by optional STARmeter optimisation. */
+html.android-tv .profile-starmeter-prep{display:none!important}
