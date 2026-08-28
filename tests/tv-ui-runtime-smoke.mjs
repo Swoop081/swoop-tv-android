@@ -120,7 +120,7 @@ if (!updaterSource.includes('installAfterPermission') || !updaterSource.includes
 if (!updaterSource.includes('requestAutomaticInstallPermission') || !updaterSource.includes('lastPermissionPromptVersionCode')) throw new Error('Launch-time automatic update permission prompt missing');
 if (!appSource.includes('async function bootstrapAndroidPreLogin()') || !appSource.includes('ANDROID_BOOT_FUN_LINES') || !appSource.includes('startupBootFunTitle') || !appSource.includes('while(Date.now()-started<2800)')) throw new Error('Cinema-style non-blocking pre-login boot pipeline missing');
 if (!cssSource.includes('width:min(440px,54vw)') || !cssSource.includes('height:24px!important') || !cssSource.includes('.startup-cinema-card')) throw new Error('Large Swoop TV cinema boot presentation missing');
-if (!profilesSource.includes("providerMode='shared'") || !profilesSource.includes('privateProviders=[]')) throw new Error('Profile provider ownership fields missing');
+if (!profilesSource.includes("providerMode='private'") || !profilesSource.includes('privateProviders=[]')) throw new Error('Privacy-first profile provider ownership fields missing');
 if (!appSource.includes("Shared household providers") || !appSource.includes("Private providers") || !appSource.includes('function scopedProviderId(')) throw new Error('Shared/private account provider selection missing');
 if (!appSource.includes('state.sharedProviders=') || !appSource.includes("profile.providerMode==='private'")) throw new Error('Household/private provider scope migration missing');
 if (!profilesSource.includes("providerMode='private'")) throw new Error('Secondary account profile constructor is not privacy-first');
