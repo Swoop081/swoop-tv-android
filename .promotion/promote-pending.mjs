@@ -106,8 +106,8 @@ function focusDefaultProfileChoice(){`,
 
 app=replaceOnce(
   app,
-  "if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select],[data-first-account-avatar].active,[data-first-account-submit]');if(!first)return false;",
-  "if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select],[data-first-account-avatar].active,[data-first-account-avatar],[data-first-account-submit],[data-first-provider-open]');if(!first)return false;",
+  "  if(!NATIVE_ANDROID||!profilePickerOpen)return false;\n  const first=document.querySelector('[data-profile-select],[data-first-account-avatar].active,[data-first-account-submit]');\n  if(!first)return false;",
+  "  if(!NATIVE_ANDROID||!profilePickerOpen)return false;\n  const first=document.querySelector('[data-profile-select],[data-first-account-avatar].active,[data-first-account-avatar],[data-first-account-submit],[data-first-provider-open]');\n  if(!first)return false;",
   'first-run focus target'
 );
 
@@ -128,21 +128,21 @@ app=replaceRegex(
 
 app=replaceOnce(
   app,
-  "function providerModal(){\n  const visibleProviderIds=new Set(state.providers.map(p=>String(p.id)));",
-  "function providerModal(){\n  const firstRun=!state.profiles.length;\n  const visibleProviderIds=new Set(state.providers.map(p=>String(p.id)));",
+  "  const firstProvider=!providers.length;",
+  "  const firstProvider=!providers.length,firstRun=!state.profiles.length;",
   'provider modal first-run flag'
 );
 
 app=replaceOnce(
   app,
-  'return `<div class="modal-backdrop" data-close-modal><div class="modal provider-modal multi-provider-modal" data-modal-card><div class="modal-head provider-modal-head"><div><div class="eyebrow">TV PROVIDERS</div><h2>Provider Manager</h2><p>Add, update or remove your TV providers.</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body provider-modal-body">${providerCards}<div id="providerSetup">',
+  'return `<div class="modal-backdrop" data-close-modal><div class="modal provider-modal multi-provider-modal" data-modal-card><div class="modal-head provider-modal-head"><div><div class="eyebrow">${firstProvider?\'TV PROVIDER SIGN IN\':\'TV PROVIDERS\'}</div><h2>${firstProvider?\'Connect your TV provider\':\'Provider Manager\'}</h2><p>${firstProvider?\'Choose Xtream Codes or M3U Playlist to continue.\':\'Add, update or remove your TV providers.\'}</p></div><button class="icon-btn" data-close aria-label="Close">✕</button></div><div class="modal-body provider-modal-body">${providerCards}<div id="providerSetup">',
   'return `<div class="modal-backdrop" ${firstRun?\'\':\'data-close-modal\'}><div class="modal provider-modal multi-provider-modal" data-modal-card><div class="modal-head provider-modal-head"><div><div class="eyebrow">${firstRun?\'TV PROVIDER SIGN IN\':\'TV PROVIDERS\'}</div><h2>${firstRun?\'Connect your TV provider\':\'Provider Manager\'}</h2><p>${firstRun?\'Choose Xtream Codes or M3U. Once accepted, your library starts loading while you choose an avatar.\':\'Add, update or remove your TV providers.\'}</p></div>${firstRun?\'\':\'<button class="icon-btn" data-close aria-label="Close">✕</button>\'}</div><div class="modal-body provider-modal-body">${firstRun?\'\':providerCards}<div id="providerSetup">',
   'provider modal first-run shell'
 );
 
 app=replaceOnce(
   app,
-  '<div class="provider-add-heading"><span class="eyebrow">ADD ANOTHER PROVIDER</span><h3>Connect a TV service</h3><p>Add another provider to your Swoop TV library.</p></div>',
+  '<div class="provider-add-heading"><span class="eyebrow">${firstProvider?\'CHOOSE A LOGIN METHOD\':\'ADD ANOTHER PROVIDER\'}</span><h3>${firstProvider?\'Sign in to your TV service\':\'Connect a TV service\'}</h3><p>${firstProvider?\'Select the login format supplied by your TV provider.\':\'Add another provider to your Swoop TV library.\'}</p></div>',
   '<div class="provider-add-heading"><span class="eyebrow">${firstRun?\'CHOOSE A LOGIN METHOD\':\'ADD ANOTHER PROVIDER\'}</span><h3>${firstRun?\'How do you sign in?\':\'Connect a TV service\'}</h3><p>${firstRun?\'Enter your provider details first. Swoop TV will do the heavy loading behind the avatar screen.\':\'Add another provider to your Swoop TV library.\'}</p></div>',
   'provider modal first-run login copy'
 );
