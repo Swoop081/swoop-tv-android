@@ -52,16 +52,18 @@ function parsePublicMdbList(html,mediaType='movie'){
   return out;
 }
 async function fetchPublicMdbList(url,mediaType){
-  const items=[],seen=new Set();
-  for(let page=0;page<6&&items.length<120;page++){
-    const pageUrl=new URL(url);pageUrl.searchParams.set('page',String(page));
+  const items=[],seen=new Set(),pages=[null,1,2,3,4,5,6];
+  for(const page of pages){
+    if(items.length>=120)break;
+    const pageUrl=new URL(url);if(page!==null)pageUrl.searchParams.set('page',String(page));
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
     try{
       const res=await fetch(pageUrl,{headers:{'user-agent':'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
-      if(!res.ok)throw new Error(`MDBList page ${page} HTTP ${res.status}`);
+      if(!res.ok)throw new Error(`MDBList page ${page??'base'} HTTP ${res.status}`);
       const html=await res.text(),pageItems=parsePublicMdbList(html,mediaType);let added=0;
       for(const item of pageItems){const key=`${normalize(item.title)}|${item.year}`;if(!normalize(item.title)||seen.has(key))continue;seen.add(key);items.push(item);added++;}
-      if(!pageItems.length||(page>0&&!added))break;
+      console.log(`MDBList ${mediaType} page ${page??'base'}: ${pageItems.length} parsed, ${added} new, ${items.length} total.`);
+      if(!pageItems.length)break;
     }finally{clearTimeout(timer)}
   }
   if(items.length<100)throw new Error(`MDBList paged parser found only ${items.length} ${mediaType} entries`);
