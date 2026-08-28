@@ -67,6 +67,29 @@ async function fetchPublicMdbList(url,mediaType){
   if(items.length<100)throw new Error(`MDBList paged parser found only ${items.length} ${mediaType} entries`);
   return {items:items.slice(0,100),source:'Snoak · Trakt Trending via MDBList',sourceUrl:url,sourceUpdatedAt:Date.now()};
 }
+async function fetchPublicTraktTrending(url,mediaType){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
+  try{
+    const res=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 (compatible; SwoopTV-Seed/0.8.41; +https://github.com/Swoop081/swoop-tv-android)','accept':'text/html,application/xhtml+xml'},signal:controller.signal,redirect:'follow'});
+    if(!res.ok)throw new Error(`Trakt trending HTTP ${res.status}`);
+    const html=await res.text();
+    const text=decodeHtmlText(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,'\n'));
+    const out=[],seen=new Set();
+    for(const rawLine of text.split(/\r?\n/)){
+      const line=rawLine.replace(/\s+/g,' ').trim();
+      const m=line.match(/^(.{1,140}?)\s+((?:19|20)\d{2})$/);
+      if(!m)continue;
+      const title=m[1].trim(),year=m[2],norm=normalize(title);
+      if(!norm||seen.has(`${norm}|${year}`))continue;
+      if(/^(movies?|shows?|trakt|image|available to watch on)$/i.test(title)||/watchers?|plays?|comments?|followers?/i.test(title))continue;
+      seen.add(`${norm}|${year}`);out.push({title,year,media_type:mediaType,ids:{}});
+      if(out.length>=100)break;
+    }
+    if(out.length<100)throw new Error(`Trakt trending parser found only ${out.length} ${mediaType} entries`);
+    return {items:out.slice(0,100),source:'Snoak · Trakt Trending direct fallback',sourceUrl:url,sourceUpdatedAt:Date.now()};
+  }finally{clearTimeout(timer)}
+}
+
 let curated={};
 if(!OFFLINE){
   const jobs=[
@@ -80,8 +103,14 @@ if(!OFFLINE){
       curated[key]={...payload,listKey:key,items:items.slice(0,100)};
       console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
     }catch(workerErr){
-      try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} public fallback entries.`)}
-      catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; public fallback: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+      try{
+        const traktUrl=type==='movie'?'https://media-og.trakt.tv/movies/trending':'https://trakt.tv/shows/trending';
+        curated[key]=await fetchPublicTraktTrending(traktUrl,type);
+        console.log(`Seed Snoak ${key}: ${curated[key].items.length} direct Trakt fallback entries.`);
+      }catch(traktErr){
+        try{curated[key]=await fetchPublicMdbList(url,type);console.log(`Seed Snoak ${key}: ${curated[key].items.length} MDBList public fallback entries.`)}
+        catch(publicErr){console.warn(`Snoak ${key} seed refresh unavailable: ${workerErr.message}; Trakt fallback: ${traktErr.message}; MDBList fallback: ${publicErr.message}`);if(previous?.curated?.[key]?.items?.length>=100)curated[key]=previous.curated[key]}
+      }
     }
   }
 }
