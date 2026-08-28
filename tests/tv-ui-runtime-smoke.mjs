@@ -357,6 +357,6 @@ if (!profilesSource.includes("id:'cheetah'") || !profilesSource.includes("id:'ca
 
 
 // v0.8.49 full-size first-run TV onboarding.
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.49';")) throw new Error('v0.8.49 Android web runtime version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.50';")) throw new Error('v0.8.50 Android web runtime version marker missing');
 if (!cssSource.includes('v0.8.49 — 80% TV-first onboarding wizard') || !cssSource.includes('width:80vw!important') || !cssSource.includes('height:80vh!important')) throw new Error('First-run provider wizard is not using the 80% TV viewport canvas');
 if (!cssSource.includes('.first-run-provider-wizard .provider-method strong{font-size:clamp') || !cssSource.includes('.first-run-provider-wizard .field input,') || !cssSource.includes('.first-run-provider-wizard .cta-row .btn{')) throw new Error('First-run wizard typography/inputs/actions are not responsively TV-scaled');
