@@ -44,7 +44,7 @@ if (output.filter(x=>x.name==='Villains Unite').length !== 2) throw new Error('K
 if (!appSource.includes("if(id==='top20-movies'||id==='top20-shows')return '';")) throw new Error('Top 100 availability label suppression missing');
 if (!appSource.includes("if(String(id).startsWith('top20-'))return'hot';")) throw new Error('Top 100 hot/trending mode missing');
 if (!appSource.includes('const HOME_RANKED_ROW_LIMIT=100;')) throw new Error('Top 100 100-title cap missing');
-if (!appSource.includes('const TOP100_RANKING_SCHEMA=3;')) throw new Error('Top 100 ranking cache schema missing');
+if (!appSource.includes('const TOP100_RANKING_SCHEMA=4;')) throw new Error('Top 100 ranking cache schema missing');
 
 // v0.8.23+ deterministic remote/focus system.
 if (!appSource.includes('function tvQueueVerticalMove(key)')) throw new Error('Queued vertical D-pad navigation missing');
@@ -109,7 +109,7 @@ if (!appSource.includes('loadAndroidPersonData')) throw new Error('Actor/person 
 if (!appSource.includes('swoop-tv-latest.json')) throw new Error('GitHub build manifest update check missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.38';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.39';")) throw new Error('Current Android UI version marker missing');
 if (!appSource.includes('function tvModalRoot()')) throw new Error('TV modal focus scope missing');
 if (!appSource.includes("document.documentElement.classList.toggle('tv-modal-open'")) throw new Error('TV modal scroll lock class missing');
 if (!appSource.includes('data-whats-new-done autofocus')) throw new Error('What’s New primary-action autofocus missing');
@@ -142,14 +142,14 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.38-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.39-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
 // v0.8.28 packaged warm-start seed cache.
 const installSeed = JSON.parse(fs.readFileSync(new URL('../app/src/main/assets/seed-cache.json', import.meta.url), 'utf8'));
 if (Number(installSeed.schema||0) < 2) throw new Error('Install seed cache schema 2+ missing');
-if (String(installSeed.sourceVersion||'') !== '0.8.38') throw new Error('Install seed source version is not v0.8.38');
+if (String(installSeed.sourceVersion||'') !== '0.8.39') throw new Error('Install seed source version is not v0.8.39');
 if (!Array.isArray(installSeed?.starmeter?.people) || installSeed.starmeter.people.length !== 100) throw new Error('Install seed must carry the full STARmeter Top 100');
 if (!appSource.includes("from './src/seedCache.js'")) throw new Error('Install seed cache runtime module is not wired into app.js');
 if (!appSource.includes('installSeedDiscovery(seed,key)')) throw new Error('Discovery seed-first path missing');
@@ -291,4 +291,16 @@ if (!appSource.includes('function trimStarmeterArtwork()')) throw new Error('v0.
 if (!appSource.includes('let budget=STARMETER_PATCH_BATCH')) throw new Error('v0.8.38 bounded STARmeter deferred patch flush missing');
 if (!cssSource.includes('v0.8.38 — STARmeter viewport-budget hotfix')) throw new Error('v0.8.38 STARmeter CSS guard missing');
 if (!cssSource.includes('grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important')) throw new Error('v0.8.38 STARmeter rail must stay single-row');
-if (!activitySource.includes('SwoopTV/0.8.38 AndroidTV') || !activitySource.includes('public String version() { return "0.8.38"; }')) throw new Error('v0.8.38 native Android markers missing');
+if (!activitySource.includes('SwoopTV/0.8.39 AndroidTV') || !activitySource.includes('public String version() { return "0.8.39"; }')) throw new Error('v0.8.39 native Android markers missing');
+
+// v0.8.39 direct Snoak/Trakt Top 100 sources.
+if (!appSource.includes("['top20-movies','trending-movies']") || !appSource.includes("['top20-shows','trending-shows']")) throw new Error('Top 100 rows are not pinned to Snoak Trakt trending lists');
+if (!appSource.includes("?filtered.slice(0,HOME_RANKED_ROW_LIMIT):filtered")) throw new Error('Top 100 rows still use aggregate provider-library filler');
+if (!appSource.includes("!String(id).startsWith('top20-')")) throw new Error('Top 100 local fallback guard missing');
+
+if (!appSource.includes('data-profile-starmeter-bar') || !appSource.includes("copy.textContent=starmeterBackgroundComplete?'Ready':'Please wait…'")) throw new Error('Who’s Watching preparation progress bar missing');
+if (!cssSource.includes('html.android-tv .home-content,') || !cssSource.includes('padding-bottom:210px!important')) throw new Error('Home final-row breathing room missing');
+if (!cssSource.includes('html.android-tv .profile-choice:focus-visible') || !cssSource.includes('.profile-choice:focus-visible .profile-avatar-xl')) throw new Error('Avatar-only profile focus treatment missing');
+if (!activitySource.includes('setShowSubtitleButton(true)') || !activitySource.includes('setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)') || !activitySource.includes('setTimeBarScrubbingEnabled(true)')) throw new Error('Premium Media3 playback controls missing');
+if (!activitySource.includes('buildSubtitleConfigurations(JSONArray subtitleTracks)') || !nativeSource.includes('item?.subtitles') || !nativeSource.includes('subtitleUrl')) throw new Error('Sideloaded subtitle handoff missing');
+if (!activitySource.includes('Audio and playback options')) throw new Error('Premium audio/settings control emphasis missing');

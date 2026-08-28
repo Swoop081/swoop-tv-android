@@ -2,9 +2,16 @@
 
 ## Current build under test
 
-**v0.8.37 — Performance Pack + Incremental Library Cache**
+**v0.8.39 — Profile Preparation + Player Experience Pass**
 
 ## Implemented — needs physical-TV verification
+
+- [ ] **PROFILE-PREP-001:** Who’s Watching shows a simple visible progress bar while startup preparation runs; no technical STARmeter status copy is required.
+- [ ] **PROFILE-FOCUS-001:** profile selection focus is drawn only around the avatar, with no large white rectangle around the whole profile tile.
+- [ ] **HOME-TAIL-001:** the final Home rail has a clear ~210 px blank tail beneath it and no longer stops flush against the bottom of the TV.
+- [ ] **PLAYER-001:** native VOD/episode playback has premium TV controls with visible buffering, rewind/fast-forward, subtitle selection and an Audio/Playback settings path.
+- [ ] **PLAYER-AUDIO-001:** sources exposing multiple audio tracks can switch tracks through the Media3 settings UI.
+- [ ] **PLAYER-SUB-001:** embedded subtitles are selectable and provider/sideloaded subtitle URLs are attached when present.
 
 - [ ] **PACK-001:** first provider connection performs one deliberate Performance Pack optimisation pass and caches priority artwork without breaking provider setup.
 - [ ] **PACK-002:** subsequent launches restore the durable catalogue/artwork/metadata cache before network refresh work and feel materially faster.

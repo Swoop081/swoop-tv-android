@@ -25,7 +25,7 @@ const tvRowColumnMemory=new Map();
 let livePreviewTimer=null,livePreviewItemId='',livePreviewActive=false,livePreviewPageToken=0;
 const ANDROID_PROVIDER_AUTO_REFRESH_MS=24*60*60*1000;
 const ANDROID_UPDATE_RELEASE_TAG='google-tv-test-v0.8.1';
-const ANDROID_CURRENT_VERSION='0.8.38';
+const ANDROID_CURRENT_VERSION='0.8.39';
 function updateAndroidTvViewportProfile(){
   if(!NATIVE_ANDROID)return;
   const w=Math.max(1,Number(globalThis.innerWidth||1920)),h=Math.max(1,Number(globalThis.innerHeight||1080));
@@ -37,7 +37,8 @@ function updateAndroidTvViewportProfile(){
 if(NATIVE_ANDROID){updateAndroidTvViewportProfile();globalThis.addEventListener?.('resize',()=>requestAnimationFrame(updateAndroidTvViewportProfile),{passive:true});}
 
 const ANDROID_CURRENT_CHANGELOG=[
-  'Stops STARmeter blank/repaint stalls during held-D-pad traversal by batching deferred row patches, unloading distant artwork and serving TV-sized STARmeter images.',
+  'Adds a visible pre-login preparation progress bar, cleans profile focus styling, restores true bottom breathing room on Home, and upgrades the native Google TV player controls.',
+  'Pins Top 100 Movies and Top 100 TV Shows directly to Snoak’s Trakt Trending Movies/Shows lists and removes unrelated provider-library filler.',
   'Compacts STARmeter so the Top 5 people fit on one TV screen, with smaller portraits, ranks and provider-title cards plus clean spacing between rows.',
   'Redesigns My SwoopTV with a rotating cinematic Favorites hero and consistent Favorites naming for saved movies, TV shows and channels.',
   'Redesigns Live TV with a persistent channel header: large logo on the left and a larger native live preview on the right that follows remote focus.',
@@ -284,6 +285,7 @@ function dedupeHomeTitles(list=[]){const out=[],seenIds=new Set(),seenExternal=n
 function androidFastRowItems(id){
   const fast=androidFastCatalog(),limit=String(id).startsWith('top20-')?ANDROID_TV_HOME_DATA_RANKED_LIMIT:ANDROID_TV_HOME_DATA_STANDARD_LIMIT;
   const cached=state.webDiscovery?.[id];
+  if(String(id).startsWith('top20-')&&(!cached||Number(cached?.rankingSchema||0)<TOP100_RANKING_SCHEMA))return [];
   if(WEB_ROW_IDS.has(id)&&cached){
     const source=Array.isArray(cached.items)&&cached.items.length?cached.items:(cached.itemIds||[]).map(androidFastSavedItem).filter(Boolean);
     if(source.length)return source.filter(x=>!isDemoItem(x)).slice(0,limit);
@@ -421,7 +423,7 @@ const visibleArtworkRepairIds=new Set();
 let visibleMetadataActive=0,visibleMetadataObserver=null;
 const DISCOVERY_REFRESH_MS=4*60*60*1000;
 const DISCOVERY_FAST_REFRESH_MS=90*60*1000;
-const TOP100_RANKING_SCHEMA=3;
+const TOP100_RANKING_SCHEMA=4;
 const discoveryBundleMemory=new Map();
 let detailItem=null,detailPayload=null,detailLoading=false,detailError='',detailSeason='';
 let personView=null,personLoading=false,personError='',personMovies=[],personShows=[],personProgress=0,personStatus='',personScrollTop=0,personOpenToken=0;
@@ -996,6 +998,8 @@ const HOME_ROW_DEFS=[
   {id:'shows',label:'All TV Shows',group:'Your provider',poster:true,page:'series'}
 ];
 const SNOAK_CURATED_ROWS=new Map([
+  ['top20-movies','trending-movies'],
+  ['top20-shows','trending-shows'],
   ['snoak-latest-netflix-shows','latest-netflix-shows'],
   ['snoak-latest-amazon-prime-shows','latest-amazon-prime-shows'],
   ['snoak-latest-apple-tv-shows','latest-apple-tv-shows'],
@@ -1154,12 +1158,12 @@ function localHomeRowItems(id){
   if(id==='documentary')return stableDailyOrder([...movies,...shows].filter(x=>['documentary','docuseries'].some(w=>mediaSearchText(x).includes(w))),id);
   return [];
 }
-function cachedWebRowItems(id){const cache=state.webDiscovery?.[id];if(androidFastHomeMode()){const source=Array.isArray(cache?.items)&&cache.items.length?cache.items:(cache?.itemIds||[]).map(androidFastSavedItem).filter(Boolean);return source.slice(0,String(id).startsWith('top20-')?ANDROID_TV_HOME_DATA_RANKED_LIMIT:ANDROID_TV_HOME_DATA_STANDARD_LIMIT)}if(nativeCatalogMode&&Array.isArray(cache?.items))return cacheNativeItems(cache.items);return collapseMovieSources((cache?.itemIds||[]).map(savedItem).filter(Boolean),activeCatalog())}
+function cachedWebRowItems(id){const cache=state.webDiscovery?.[id];if(String(id).startsWith('top20-')&&Number(cache?.rankingSchema||0)<TOP100_RANKING_SCHEMA)return [];if(androidFastHomeMode()){const source=Array.isArray(cache?.items)&&cache.items.length?cache.items:(cache?.itemIds||[]).map(androidFastSavedItem).filter(Boolean);return source.slice(0,String(id).startsWith('top20-')?ANDROID_TV_HOME_DATA_RANKED_LIMIT:ANDROID_TV_HOME_DATA_STANDARD_LIMIT)}if(nativeCatalogMode&&Array.isArray(cache?.items))return cacheNativeItems(cache.items);return collapseMovieSources((cache?.itemIds||[]).map(savedItem).filter(Boolean),activeCatalog())}
 function customHomeRowItems(id){const uid=String(id).slice(7),row=state.mdblistRows.find(x=>String(x.uid)===uid);if(androidFastHomeMode())return (row?.items||[]).slice(0,ANDROID_TV_HOME_DATA_STANDARD_LIMIT);return collapseMovieSources(row?.items||[],activeCatalog())}
 function homeRowItems(id){
-  const profile=activeProfile(),finish=list=>{const filtered=dedupeHomeTitles((list||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{})));return (id==='top20-movies'||id==='top20-shows')?completeTop100FromLibrary(id,filtered):filtered};
+  const profile=activeProfile(),finish=list=>{const filtered=dedupeHomeTitles((list||[]).filter(item=>!isDemoItem(item)&&profileAllowsMedia(profile,item,state.metadataCache?.[item.id]||{})));return (id==='top20-movies'||id==='top20-shows')?filtered.slice(0,HOME_RANKED_ROW_LIMIT):filtered};
   if(NATIVE_ANDROID&&androidPreparedHomeReady&&!ANDROID_DYNAMIC_HOME_ROWS.has(String(id))&&androidPreparedHomeRows.has(String(id)))return finish(androidPreparedHomeRows.get(String(id))||[]);
-  if(androidFastHomeMode())return finish(androidFastRowItems(id));let result;if(WEB_ROW_IDS.has(id)){result=cachedWebRowItems(id);if(!result.length&&SNOAK_CURATED_ROWS.has(id))result=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);}else if(String(id).startsWith('custom:'))result=customHomeRowItems(id);else if(nativeCatalogMode&&nativeHomeRowCache.has(id))result=nativeHomeRowCache.get(id);else if(String(id).startsWith('cat:')){const parts=String(id).split(':'),kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));result=stableDailyOrder(items(kind).filter(x=>x.group===name),id)}else result=localHomeRowItems(id);return finish(result)}
+  if(androidFastHomeMode())return finish(androidFastRowItems(id));let result;if(WEB_ROW_IDS.has(id)){result=cachedWebRowItems(id);if(!result.length&&SNOAK_CURATED_ROWS.has(id)&&!String(id).startsWith('top20-'))result=nativeCatalogMode?(nativeHomeRowCache.get(id)||[]):localHomeRowItems(id);}else if(String(id).startsWith('custom:'))result=customHomeRowItems(id);else if(nativeCatalogMode&&nativeHomeRowCache.has(id))result=nativeHomeRowCache.get(id);else if(String(id).startsWith('cat:')){const parts=String(id).split(':'),kind=parts[1],name=decodeURIComponent(parts.slice(2).join(':'));result=stableDailyOrder(items(kind).filter(x=>x.group===name),id)}else result=localHomeRowItems(id);return finish(result)}
 function relativeRefreshTime(ts){if(!ts)return'Not refreshed yet';const mins=Math.max(0,Math.floor((Date.now()-ts)/60000));if(mins<1)return'Updated just now';if(mins<60)return`Updated ${mins}m ago`;const hrs=Math.floor(mins/60);if(hrs<24)return`Updated ${hrs}h ago`;return`Updated ${Math.floor(hrs/24)}d ago`}
 function discoveryMeta(id,data){
   if(id==='top20-movies'||id==='top20-shows')return '';
@@ -1386,7 +1390,7 @@ function profileAvatarHtml(profile,cls=''){
 }
 function profilePickerPage(){
   const profiles=state.profiles||[];
-  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favorite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div>${NATIVE_ANDROID?`<div class="profile-starmeter-prep ${starmeterBackgroundReady?'ready':''}" data-profile-starmeter-prep><span>${starmeterBackgroundReady?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`}</span><strong>${esc(starmeterBackgroundReady?'STARmeter Top 100 ready':starmeterBackgroundStatus)}</strong></div>`:''}<div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
+  return `<main class="profile-picker-page"><div class="profile-picker-brand"><span class="brand-mark">S</span><span>SWOOP <b>TV</b></span></div><div class="profile-picker-shell"><div class="eyebrow">PERSONALISED SWOOP TV</div><h1>Who’s watching?</h1><p>Every profile gets its own theme, Home layout, recommendations, Continue Watching, My SwoopTV saves and favorite channels.</p><div class="profile-picker-grid">${profiles.map(p=>{const t=profileTheme(p);return `<button class="profile-choice profile-theme-${esc(t.id)}" data-profile-select="${esc(p.id)}">${profileAvatarHtml(p,'profile-avatar-xl')}<strong>${esc(p.name)}</strong><span>${p.kids?'Kids profile':'Personal profile'}${p.pinHash?' · PIN':''}</span><em class="profile-theme-chip" style="--theme-chip:${esc(t.swatch)}">${esc(t.name)}</em></button>`}).join('')}<button class="profile-choice profile-add-choice" data-profile-add>${profileAvatarHtml({name:'+',avatar:'elephant'},'profile-avatar-xl')}<strong>Add Profile</strong><span>Create another personalised Swoop TV</span><em class="profile-theme-chip">Choose a theme</em></button></div>${NATIVE_ANDROID?`<div class="profile-starmeter-prep ${starmeterBackgroundComplete?'ready':''}" data-profile-starmeter-prep><div class="profile-starmeter-prep-line"><strong data-profile-starmeter-copy>${starmeterBackgroundComplete?'Ready':'Please wait…'}</strong><span data-profile-starmeter-percent>${starmeterBackgroundComplete?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`}</span></div><div class="profile-starmeter-progress"><i data-profile-starmeter-bar style="width:${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%"></i></div></div>`:''}<div class="profile-picker-actions"><button class="btn secondary" data-profile-manage>Manage Profiles</button><button class="btn secondary" data-page="settings">⚙ Settings</button></div></div></main>`;
 }
 function focusDefaultProfileChoice(){
   if(!NATIVE_ANDROID||!profilePickerOpen)return false;const first=document.querySelector('[data-profile-select]');if(!first)return false;
@@ -1925,9 +1929,12 @@ function starmeterProviderSignature(){
 }
 function patchProfileStarmeterPrep(){
   if(!NATIVE_ANDROID||!profilePickerOpen)return;const el=document.querySelector('[data-profile-starmeter-prep]');if(!el)return;
-  el.classList.toggle('ready',starmeterBackgroundComplete);const value=el.querySelector('span'),copy=el.querySelector('strong');
-  if(value)value.textContent=starmeterBackgroundComplete?'✓':`${Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)))}%`;
-  if(copy)copy.textContent=starmeterBackgroundComplete?'STARmeter Top 100 ready':starmeterBackgroundStatus;
+  const progress=Math.max(0,Math.min(100,Math.round(starmeterBackgroundProgress)));
+  el.classList.toggle('ready',starmeterBackgroundComplete);
+  const value=el.querySelector('[data-profile-starmeter-percent]'),copy=el.querySelector('[data-profile-starmeter-copy]'),bar=el.querySelector('[data-profile-starmeter-bar]');
+  if(value)value.textContent=starmeterBackgroundComplete?'✓':`${progress}%`;
+  if(copy)copy.textContent=starmeterBackgroundComplete?'Ready':'Please wait…';
+  if(bar)bar.style.width=`${progress}%`;
 }
 function setStarmeterBackgroundProgress(progress,status=''){
   starmeterBackgroundProgress=Math.max(0,Math.min(100,Number(progress||0)));if(status)starmeterBackgroundStatus=status;patchProfileStarmeterPrep();

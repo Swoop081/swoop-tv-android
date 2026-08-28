@@ -31,6 +31,7 @@ import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
@@ -160,12 +161,22 @@ public class MainActivity extends Activity {
         playerView.setUseController(true);
         playerView.setControllerAutoShow(true);
         playerView.setControllerHideOnTouch(false);
+        playerView.setControllerShowTimeoutMs(7000);
+        playerView.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);
+        playerView.setShowRewindButton(true);
+        playerView.setShowFastForwardButton(true);
+        playerView.setShowSubtitleButton(true);
+        playerView.setShowPreviousButton(false);
+        playerView.setShowNextButton(false);
+        playerView.setTimeBarScrubbingEnabled(true);
+        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
         playerView.setKeepScreenOn(true);
         playerView.setVisibility(View.GONE);
         root.addView(playerView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
+        configurePremiumPlayerControls();
 
         launchSplashView = new ImageView(this);
         launchSplashView.setBackgroundColor(Color.rgb(5, 5, 8));
@@ -197,7 +208,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.38 AndroidTV");
+        s.setUserAgentString(s.getUserAgentString() + " SwoopTV/0.8.39 AndroidTV");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -346,7 +357,57 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void startNativePlayer(String url, String title, String kind, double startSeconds) {
+    private View media3Control(String resourceName) {
+        if (playerView == null || resourceName == null) return null;
+        int id = getResources().getIdentifier(resourceName, "id", getPackageName());
+        return id == 0 ? null : playerView.findViewById(id);
+    }
+
+    private void configurePremiumPlayerControls() {
+        if (playerView == null) return;
+        String[] ids = new String[]{"exo_rew","exo_play_pause","exo_ffwd","exo_subtitle","exo_settings"};
+        for (String idName : ids) {
+            View control = media3Control(idName);
+            if (control == null) continue;
+            control.setVisibility(View.VISIBLE);
+            float scale = "exo_play_pause".equals(idName) ? 1.28f : 1.14f;
+            control.setScaleX(scale);
+            control.setScaleY(scale);
+            control.setPadding(12,12,12,12);
+            if ("exo_subtitle".equals(idName)) control.setContentDescription("Subtitles");
+            if ("exo_settings".equals(idName)) control.setContentDescription("Audio and playback options");
+        }
+        View bottomBar = media3Control("exo_bottom_bar");
+        if (bottomBar != null) {
+            bottomBar.setBackgroundColor(Color.argb(188,7,8,14));
+            bottomBar.setPadding(34,16,34,24);
+        }
+    }
+
+    private java.util.List<MediaItem.SubtitleConfiguration> buildSubtitleConfigurations(JSONArray subtitleTracks) {
+        java.util.ArrayList<MediaItem.SubtitleConfiguration> out = new java.util.ArrayList<>();
+        if (subtitleTracks == null) return out;
+        for (int i=0;i<subtitleTracks.length();i++) {
+            JSONObject row = subtitleTracks.optJSONObject(i);
+            if (row == null) continue;
+            String url = row.optString("url", row.optString("uri", "")).trim();
+            if (url.isEmpty()) continue;
+            String mime = row.optString("mimeType", row.optString("mime_type", "")).trim();
+            if (mime.isEmpty()) {
+                String lower = url.toLowerCase(Locale.ROOT);
+                mime = lower.contains(".srt") ? MimeTypes.APPLICATION_SUBRIP : MimeTypes.TEXT_VTT;
+            }
+            MediaItem.SubtitleConfiguration.Builder builder = new MediaItem.SubtitleConfiguration.Builder(Uri.parse(url)).setMimeType(mime);
+            String language = row.optString("language", row.optString("lang", "")).trim();
+            String label = row.optString("label", row.optString("name", "")).trim();
+            if (!language.isEmpty()) builder.setLanguage(language);
+            if (!label.isEmpty()) builder.setLabel(label);
+            out.add(builder.build());
+        }
+        return out;
+    }
+
+    private void startNativePlayer(String url, String title, String kind, double startSeconds, JSONArray subtitleTracks) {
         stopPreviewPlayer();
         releasePlayerOnly();
         ended = false;
@@ -386,7 +447,10 @@ public class MainActivity extends Activity {
             }
         });
 
-        MediaItem item = new MediaItem.Builder().setUri(url).setMediaId(currentTitle).build();
+        MediaItem.Builder mediaBuilder = new MediaItem.Builder().setUri(url).setMediaId(currentTitle);
+        java.util.List<MediaItem.SubtitleConfiguration> subtitleConfigurations = buildSubtitleConfigurations(subtitleTracks);
+        if (!subtitleConfigurations.isEmpty()) mediaBuilder.setSubtitleConfigurations(subtitleConfigurations);
+        MediaItem item = mediaBuilder.build();
         player.setMediaItem(item);
         if (startSeconds > 0) player.seekTo(Math.max(0L, Math.round(startSeconds * 1000.0)));
         player.prepare();
@@ -421,8 +485,8 @@ public class MainActivity extends Activity {
             int state = player != null ? player.getPlaybackState() : Player.STATE_IDLE;
             Runtime runtime = Runtime.getRuntime();
             long usedBytes = runtime.totalMemory() - runtime.freeMemory();
-            out.put("version", "0.8.38");
-            out.put("versionCode", 838);
+            out.put("version", "0.8.39");
+            out.put("versionCode", 839);
             out.put("uptimeMs", SystemClock.elapsedRealtime());
             out.put("playing", nativePlayerVisible && usable && state != Player.STATE_IDLE);
             out.put("paused", player != null && !player.getPlayWhenReady());
@@ -454,7 +518,7 @@ public class MainActivity extends Activity {
             if (dir == null) dir = getFilesDir();
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("Could not create diagnostics folder.");
             String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
-            File file = new File(dir, "Swoop-TV-v0.8.38-Diagnostics-" + stamp + ".json");
+            File file = new File(dir, "Swoop-TV-v0.8.39-Diagnostics-" + stamp + ".json");
             byte[] bytes = String.valueOf(payloadJson == null ? "{}" : payloadJson).getBytes(StandardCharsets.UTF_8);
             try (FileOutputStream stream = new FileOutputStream(file, false)) {
                 stream.write(bytes);
@@ -535,7 +599,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.38 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.39 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Provider returned HTTP " + code);
         InputStream raw = new BufferedInputStream(c.getInputStream(), 32 * 1024);
@@ -591,7 +655,7 @@ public class MainActivity extends Activity {
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/xml,text/xml,*/*");
         c.setRequestProperty("Accept-Encoding", "gzip");
-        c.setRequestProperty("User-Agent", "SwoopTV/0.8.38 AndroidTV");
+        c.setRequestProperty("User-Agent", "SwoopTV/0.8.39 AndroidTV");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("Programme guide returned HTTP " + code);
 
@@ -655,7 +719,7 @@ public class MainActivity extends Activity {
         public String platform() { return "android"; }
 
         @JavascriptInterface
-        public String version() { return "0.8.38"; }
+        public String version() { return "0.8.39"; }
 
         @JavascriptInterface
         public String githubRepository() { return BuildConfig.GITHUB_REPOSITORY == null ? "" : BuildConfig.GITHUB_REPOSITORY; }
@@ -670,7 +734,7 @@ public class MainActivity extends Activity {
                 String kind = p.optString("kind", "video");
                 double start = p.optDouble("startSeconds", 0.0);
                 return onMain(() -> {
-                    startNativePlayer(url, title, kind, start);
+                    startNativePlayer(url, title, kind, start, p.optJSONArray("subtitles"));
                     return new JSONObject().put("ok", true).toString();
                 }, "{\"ok\":false,\"error\":\"Could not start playback.\"}");
             } catch (Exception e) {

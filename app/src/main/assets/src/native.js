@@ -117,7 +117,7 @@ export async function nativeRequest(path, payload = null, {expect='json', timeou
 }
 
 export async function nativePlay(item, {startSeconds=0}={}) {
-  const payload={url:item.streamUrl,title:item.name||'Swoop TV',kind:item.kind||'video',startSeconds:Number(startSeconds||0)};
+  const rawSubs=[...(Array.isArray(item?.subtitles)?item.subtitles:[]),...(item?.subtitleUrl||item?.subtitle_url?[{url:item.subtitleUrl||item.subtitle_url,label:'External subtitles'}]:[])];const subtitles=rawSubs.map(s=>typeof s==='string'?{url:s}:s).filter(s=>s&&String(s.url||s.uri||'').trim()).map(s=>({url:String(s.url||s.uri||'').trim(),label:String(s.label||s.name||''),language:String(s.language||s.lang||''),mimeType:String(s.mimeType||s.mime_type||'')}));const payload={url:item.streamUrl,title:item.name||'Swoop TV',kind:item.kind||'video',startSeconds:Number(startSeconds||0),subtitles};
   if(isNativeAndroid()){
     const result=parseAndroidResult(androidBridge().play(JSON.stringify(payload)),{ok:false});
     if(result?.ok===false)throw new Error(result.error||'Could not start playback.');

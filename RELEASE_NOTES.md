@@ -1,5 +1,16 @@
 # Swoop TV Release Notes
 
+## v0.8.39 — Profile Preparation + Player Experience Pass
+
+- Replaces the technical STARmeter preparation status on Who’s Watching with a simple **Please wait…** progress bar and completion state.
+- Removes the large rectangular profile focus treatment; focus now lives only around the animal avatar.
+- Adds a true 210 px TV bottom tail to Home and other browsing hubs so the final rail clearly ends instead of appearing frozen against the screen edge.
+- Upgrades the native Media3 player with stronger TV controls, visible buffering feedback, 10-second rewind/fast-forward, a longer control timeout, direct subtitle controls and a prominent settings path for audio/playback options.
+- Multiple embedded audio tracks remain selectable through Media3’s track settings when the source exposes them.
+- Adds sideloaded/provider subtitle handoff for SRT/VTT-style subtitle URLs when Swoop has subtitle metadata for the selected title.
+- Replaces the previous aggregated Top 100 logic with Snoak’s **Trakt’s Trending Movies** and **Trakt’s Trending Shows** MDBList feeds as the sole ranking sources, preserving source order and removing unrelated library filler.
+- Android versionName is **0.8.39** and versionCode is **839**.
+
 ## v0.8.38 — STARmeter Viewport-Budget Hotfix
 
 - Fixes the remaining physical Google TV STARmeter blank/repaint stalls visible in IMG_1143.mp4 during sustained vertical D-pad traversal.
