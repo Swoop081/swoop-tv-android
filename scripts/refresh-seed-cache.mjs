@@ -70,7 +70,7 @@ async function fetchPublicMdbList(url,mediaType){
 function parseTraktTrendingSurface(html,mediaType='movie'){
   const out=[],seen=new Set(),kind=mediaType==='tv'?'shows':'movies';
   const source=String(html||'');
-  const anchorPattern=new RegExp('<a\\b[^>]*href=["\\'](?:https?:\\/\\/(?:www\\.)?trakt\\.tv)?\\/'+kind+'\\/[^"\\']+["\\'][^>]*>([\\s\\S]*?)<\\/a>','gi');
+  const anchorPattern=new RegExp("<a\\b[^>]*href=[\"'](?:https?:\\/\\/(?:www\\.)?trakt\\.tv)?\\/"+kind+"\\/[^\"']+[\"'][^>]*>([\\s\\S]*?)<\\/a>",'gi');
   let match;
   while((match=anchorPattern.exec(source))){
     const text=decodeHtmlText(String(match[1]||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();
