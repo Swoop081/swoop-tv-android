@@ -65,7 +65,7 @@ jobs:
             node .promotion/top100-patch.mjs
           fi
           if [ -f .promotion/promote-pending.mjs ]; then
-            node .promotion/promote-pending.mjs
+            node --input-type=module -e 'globalThis.progress="${progress}"; await import("./.promotion/promote-pending.mjs")'
           else
             echo "No pending source promotion."
           fi
