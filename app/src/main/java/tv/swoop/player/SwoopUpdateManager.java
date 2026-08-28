@@ -42,7 +42,7 @@ final class SwoopUpdateManager {
     static final String STABLE_APK = "Swoop-TV-v0.8.1-Google-TV-Test.apk";
 
     private static final String TAG = "SwoopUpdater";
-    private static final long LAUNCH_DELAY_MS = 3500L;
+    private static final long LAUNCH_DELAY_MS = 600L;
     private static final int CONNECT_TIMEOUT_MS = 20_000;
     private static final int READ_TIMEOUT_MS = 120_000;
 
@@ -141,6 +141,7 @@ final class SwoopUpdateManager {
                 persist();
 
                 if (versionCode <= BuildConfig.VERSION_CODE) {
+                    if (automaticUpdates() && requestAutomaticInstallPermission(versionCode, false)) return;
                     setState("up_to_date", "", 100);
                     return;
                 }
@@ -149,6 +150,7 @@ final class SwoopUpdateManager {
                 boolean shouldInstall = installIfAvailable && (manual || automaticUpdates());
                 if (!shouldInstall) return;
                 if (!canRequestPackageInstalls()) {
+                    if (automaticUpdates() && requestAutomaticInstallPermission(versionCode, true)) return;
                     setState("permission_required", "", 0);
                     return;
                 }
@@ -189,6 +191,19 @@ final class SwoopUpdateManager {
             }
         });
         return statusJson();
+    }
+
+    private boolean requestAutomaticInstallPermission(int promptVersionCode, boolean installAfterPermission) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || canRequestPackageInstalls() || !automaticUpdates()) return false;
+        int promptKey = promptVersionCode > 0 ? promptVersionCode : BuildConfig.VERSION_CODE;
+        int lastPrompt = prefs.getInt("lastPermissionPromptVersionCode", 0);
+        prefs.edit().putBoolean("installAfterPermission", installAfterPermission).apply();
+        setState("permission_required", "", 0);
+        if (lastPrompt != promptKey) {
+            prefs.edit().putInt("lastPermissionPromptVersionCode", promptKey).apply();
+            openInstallPermissionSettings();
+        }
+        return true;
     }
 
     String openInstallPermissionSettings() {

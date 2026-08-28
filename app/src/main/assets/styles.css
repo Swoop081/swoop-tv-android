@@ -874,7 +874,7 @@ html.android-tv .restore-card>small{margin-top:10px;font-size:9px}
 .startup-swoop-logo{display:block;width:min(260px,48vw);height:auto;max-height:150px;object-fit:contain;margin:0 auto 13px;background:#000}
 html.android-tv .brand-logo-button{height:46px;padding:0;min-width:76px}
 html.android-tv .swoop-brand-logo{height:42px;max-width:92px}
-html.android-tv .startup-swoop-logo{width:230px;max-height:142px;margin-bottom:10px}
+html.android-tv .startup-swoop-logo{width:min(440px,54vw);max-height:250px;margin-bottom:20px}
 @media(max-width:700px){.swoop-brand-logo{height:34px;max-width:76px}.startup-swoop-logo{width:200px}}
 
 
@@ -2940,3 +2940,18 @@ html.android-tv .live-hub-now>span{font-size:8px!important;line-height:1.35!impo
 html.android-tv .live-hub-now>strong{font-size:16px!important;line-height:1.16!important;color:#fff!important;font-weight:900!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important}
 html.android-tv .live-hub-now.unavailable>strong{font-size:11px!important;color:#838894!important;font-weight:750!important}
 html.android-tv[data-tv-density="tight"] .live-hub-now>strong{font-size:14px!important;-webkit-line-clamp:1!important}
+
+
+/* v0.8.44 — boot pipeline + account provider privacy. */
+html.android-tv .startup-boot-card{min-width:min(760px,72vw);padding:40px 58px 44px}
+html.android-tv .startup-boot-card h1{margin-top:10px}
+.profile-provider-access{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+.profile-provider-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.profile-provider-option,.profile-provider-owner{display:flex;align-items:flex-start;gap:12px;min-height:94px;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.035)}
+.profile-provider-option{cursor:pointer}
+.profile-provider-option input{margin-top:4px;accent-color:var(--accent)}
+.profile-provider-option span,.profile-provider-owner{min-width:0}
+.profile-provider-option strong,.profile-provider-owner strong{display:block;font-size:14px}
+.profile-provider-option small,.profile-provider-owner small{display:block;margin-top:5px;color:var(--muted);line-height:1.35}
+.profile-provider-option.active,.profile-provider-option:focus-within{border-color:color-mix(in srgb,var(--accent) 64%,white 10%);background:color-mix(in srgb,var(--accent) 10%,rgba(255,255,255,.035))}
+html.android-tv .profile-provider-option:focus-within{outline:3px solid #fff;outline-offset:3px}

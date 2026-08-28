@@ -13,7 +13,7 @@ export const PROFILE_AVATARS=[
 
 export function avatarById(id='lion'){const legacy={cyan:'lion',violet:'zebra',sunset:'tiger',ocean:'elephant',lime:'giraffe',rose:'meerkat',gold:'lion',kids:'monkey'};const key=legacy[id]||id;return PROFILE_AVATARS.find(x=>x.id===key)||PROFILE_AVATARS[0]}
 
-export function makeProfile({id='',name='Profile',avatar='lion',kids=false,pinHash='',pinSalt='',myList=[],continueWatching=[],watchHistory=[],recentLive=[],liveFavourites=[],profileSettings={}}={}){
+export function makeProfile({id='',name='Profile',avatar='lion',kids=false,pinHash='',pinSalt='',myList=[],continueWatching=[],watchHistory=[],recentLive=[],liveFavourites=[],providerMode='shared',privateProviders=[],profileSettings={}}={}){
   return {
     id:id||`profile-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
     name:String(name||'Profile').trim().slice(0,24)||'Profile',
@@ -26,6 +26,8 @@ export function makeProfile({id='',name='Profile',avatar='lion',kids=false,pinHa
     watchHistory:Array.isArray(watchHistory)?watchHistory:[],
     recentLive:Array.isArray(recentLive)?recentLive:[],
     liveFavourites:Array.isArray(liveFavourites)?liveFavourites:[],
+    providerMode:providerMode==='private'?'private':'shared',
+    privateProviders:Array.isArray(privateProviders)?privateProviders.map(p=>({...p,counts:p?.counts?{...p.counts}:p?.counts})):[],
     profileSettings:profileSettings&&typeof profileSettings==='object'?{...profileSettings}:{},
     createdAt:Date.now()
   };

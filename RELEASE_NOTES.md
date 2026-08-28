@@ -1,3 +1,16 @@
+## v0.8.44 — Branded Boot Pipeline + Account Provider Privacy
+
+- Replaces the immediate profile-picker launch with a branded Google TV boot sequence: a large Swoop TV logo, **Checking for updates**, real update/download status, **Loading your library**, and only then **Who’s Watching?**.
+- Automatic Updates now run as part of login startup. When update-install permission is missing, Swoop TV proactively opens Android’s one-time **Allow from this source** screen and resumes the pending update after returning.
+- Proactively requests the updater permission once per installed/target build when Automatic Updates is enabled, even when the current build is already up to date, so the next release can update with minimal friction.
+- Restores the complete durable library before the account chooser and preloads launch-critical Home artwork so selecting an account does not begin the heavy library load.
+- Makes the first-created account the **household provider owner**. Existing Xtream/M3U providers are migrated into that shared household provider set.
+- Additional accounts can choose **Shared household providers** to inherit the first account’s saved Xtream/M3U providers and credentials, or **Private providers** to use completely separate provider logins.
+- Private-account provider IDs, visible provider lists, credential prefills and catalogue filtering are isolated from other Swoop TV accounts. A private account with no providers opens with an empty provider library rather than leaking household content.
+- Shared/private provider mode is saved with each account and can be changed later; private provider records are retained if an account temporarily switches back to the household provider set.
+- Existing Favorites, Continue Watching, watch history, profile themes, providers and settings are preserved during the v0.8.44 in-place update.
+- Android versionName is **0.8.44** and versionCode is **844**.
+
 ## v0.8.43 — Google TV Updater Permission Hotfix
 
 - Fixes the physical Google TV failure shown in `IMG_1155.mp4` where **Allow Update Installs** displayed a toast but did not open Android settings.
