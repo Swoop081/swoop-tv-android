@@ -104,7 +104,7 @@ if(!OFFLINE){
       console.log(`Seed Snoak ${key}: ${curated[key].items.length} authenticated source entries.`);
     }catch(workerErr){
       try{
-        const traktUrl=type==='movie'?'https://media-og.trakt.tv/movies/trending':'https://trakt.tv/shows/trending';
+        const traktUrl=type==='movie'?'https://trakt.tv/users/snoak/lists/trakt-s-trending-movies':'https://trakt.tv/users/snoak/lists/trakt-s-trending-shows';
         curated[key]=await fetchPublicTraktTrending(traktUrl,type);
         console.log(`Seed Snoak ${key}: ${curated[key].items.length} direct Trakt fallback entries.`);
       }catch(traktErr){
