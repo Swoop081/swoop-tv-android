@@ -156,6 +156,23 @@ async function fetchPublicTraktTrending(url,mediaType){
           }catch{}
         }
         console.log(`app.trakt.tv JS API signals ${mediaType}: ${JSON.stringify(jsSignals).slice(0,24000)}`);
+        try{
+          const appPath=jsPaths.find(p=>/\/entry\/app\./.test(p));
+          if(appPath){
+            const appJs=execLocalFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','15','--http1.1','--compressed','https://app.trakt.tv'+appPath],{encoding:'utf8',maxBuffer:20*1024*1024});
+            const nodeChunks=[...appJs.matchAll(/import\(\`?\.\.\/nodes\/([^\`"')]+\.js)\`?\)/g)].map(m=>m[1]);
+            console.log(`app.trakt.tv route node chunks ${mediaType}: count=${nodeChunks.length}, node52=${nodeChunks[52]||'(missing)'}`);
+            const routeChunk=nodeChunks[52];
+            if(routeChunk){
+              const routeJs=execLocalFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','15','--http1.1','--compressed','https://app.trakt.tv/_app/immutable/nodes/'+routeChunk],{encoding:'utf8',maxBuffer:20*1024*1024});
+              const needles=['api.trakt.tv','apiz','/users/','/lists/','items','trakt-api-key','client-id','client_id','fetch(','load','public'];
+              const hits=[];for(const needle of needles){let at=routeJs.toLowerCase().indexOf(needle.toLowerCase());if(at>=0)hits.push(needle+': '+routeJs.slice(Math.max(0,at-500),Math.min(routeJs.length,at+1800)).replace(/\s+/g,' '));}
+              console.log(`app.trakt.tv node52 signals ${mediaType}: size=${routeJs.length} ${JSON.stringify(hits).slice(0,32000)}`);
+              const imports=[...new Set([...routeJs.matchAll(/\.\.\/chunks\/([^\"'`)]+\.js)/g)].map(m=>m[1]))].slice(0,40);
+              console.log(`app.trakt.tv node52 imports ${mediaType}: ${JSON.stringify(imports)}`);
+            }
+          }
+        }catch(err){console.warn(`app.trakt.tv node52 diagnostic ${mediaType} failed: ${String(err?.message||err)}`)}
         const hrefs=[...html.matchAll(/(?:href|content)=["'](https?:\/\/[^"']+|\/[^"']+)["']/gi)].map(m=>m[1]).filter((v,i,a)=>a.indexOf(v)===i).slice(0,50);
         console.log(`app.trakt.tv href/content ${mediaType}: ${JSON.stringify(hrefs)}`);
         const snippets=[];
