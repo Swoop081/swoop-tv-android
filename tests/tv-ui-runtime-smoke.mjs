@@ -122,7 +122,7 @@ if (!appSource.includes('async function bootstrapAndroidPreLogin()') || !appSour
 if (!cssSource.includes('width:min(440px,54vw)') || !cssSource.includes('height:24px!important') || !cssSource.includes('.startup-cinema-card')) throw new Error('Large Swoop TV cinema boot presentation missing');
 if (!profilesSource.includes("providerMode='private'") || !profilesSource.includes('privateProviders=[]')) throw new Error('Privacy-first profile provider ownership fields missing');
 if (!appSource.includes("Shared household providers") || !appSource.includes("Private providers") || !appSource.includes('function scopedProviderId(')) throw new Error('Shared/private account provider selection missing');
-if (!appSource.includes('state.sharedProviders=') || !appSource.includes("profile.providerMode==='private'")) throw new Error('Household/private provider scope migration missing');
+if (!appSource.includes('state.sharedProviders=') || !appSource.includes("const PROVIDER_ACCOUNT_SCHEMA=2") || !appSource.includes("return profile.providerMode==='shared'?'shared':'private'")) throw new Error('Privacy-first household/private provider scope migration missing');
 if (!profilesSource.includes("providerMode='private'")) throw new Error('Secondary account profile constructor is not privacy-first');
 if (!appSource.includes("const PROVIDER_ACCOUNT_SCHEMA=2") || !appSource.includes("i===0?{...p,providerMode:'shared'}:{...p,providerMode:'private'")) throw new Error('Secondary-account privacy migration missing');
 if (!appSource.includes("return profile.providerMode==='shared'?'shared':'private'")) throw new Error('Secondary account provider mode does not fail closed to private');
