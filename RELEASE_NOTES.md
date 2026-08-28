@@ -1,3 +1,13 @@
+## v0.8.49 — Full-Size Responsive TV Onboarding
+
+- Makes **every first-run provider setup screen** use approximately **80% of the available TV viewport** instead of inheriting the compact Provider Manager modal size.
+- Applies the same large TV-first canvas consistently to **sign-in method, server/playlist URL, playlist name, username, password and Connect** steps for both Xtream Codes and M3U onboarding.
+- Scales headings, explanatory text, provider-choice cards, icons, text fields and Back/Next/Connect controls responsively with CSS clamp() sizing so the experience remains readable across different television resolutions and screen sizes.
+- Keeps the setup surface centered both horizontally and vertically, with stronger remote-focus outlines and substantially larger interaction targets for couch-distance use.
+- Adds short-height and narrower-TV adaptations that compress internal spacing or stack provider choices while retaining the large overall onboarding footprint rather than reverting to the old small dialog.
+- Limits this treatment to **first-run onboarding**; the normal Provider Manager in Settings keeps its compact management layout.
+- Android versionName/versionCode: **0.8.49 / 849**.
+
 ## v0.8.48 — Guided Provider Setup Wizard
 
 - Replaces the first-run all-in-one provider form with a calm, deliberate **one-screen-at-a-time** TV setup wizard.
