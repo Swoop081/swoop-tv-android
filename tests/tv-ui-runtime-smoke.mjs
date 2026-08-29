@@ -184,7 +184,7 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.44-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.52-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
@@ -341,7 +341,7 @@ if (!appSource.includes('function trimStarmeterArtwork()')) throw new Error('v0.
 if (!appSource.includes('let budget=STARMETER_PATCH_BATCH')) throw new Error('v0.8.38 bounded STARmeter deferred patch flush missing');
 if (!cssSource.includes('v0.8.38 — STARmeter viewport-budget hotfix')) throw new Error('v0.8.38 STARmeter CSS guard missing');
 if (!cssSource.includes('grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important')) throw new Error('v0.8.38 STARmeter rail must stay single-row');
-if (!activitySource.includes('SwoopTV/0.8.44 AndroidTV') || !activitySource.includes('public String version() { return "0.8.44"; }')) throw new Error('v0.8.44 native Android markers missing');
+if (!activitySource.includes('SwoopTV/0.8.52 AndroidTV') || !activitySource.includes('public String version() { return "0.8.52"; }')) throw new Error('v0.8.52 native Android markers missing');
 
 // v0.8.44 direct Snoak/Trakt Top 100 sources.
 if (!appSource.includes("['top20-movies','trending-movies']") || !appSource.includes("['top20-shows','trending-shows']")) throw new Error('Top 100 rows are not pinned to Snoak Trakt trending lists');
@@ -364,6 +364,6 @@ if (!profilesSource.includes("id:'cheetah'") || !profilesSource.includes("id:'ca
 
 
 // v0.8.49 full-size first-run TV onboarding.
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.51';")) throw new Error('v0.8.51 Android web runtime version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.52';")) throw new Error('v0.8.52 Android web runtime version marker missing');
 if (!cssSource.includes('v0.8.49 — 80% TV-first onboarding wizard') || !cssSource.includes('width:80vw!important') || !cssSource.includes('height:80vh!important')) throw new Error('First-run provider wizard is not using the 80% TV viewport canvas');
 if (!cssSource.includes('.first-run-provider-wizard .provider-method strong{font-size:clamp') || !cssSource.includes('.first-run-provider-wizard .field input,') || !cssSource.includes('.first-run-provider-wizard .cta-row .btn{')) throw new Error('First-run wizard typography/inputs/actions are not responsively TV-scaled');
