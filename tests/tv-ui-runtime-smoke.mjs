@@ -139,7 +139,7 @@ if (!appSource.includes("event.key==='Enter'") || !appSource.includes('form.requ
 if (!appSource.includes('submit.disabled=false') || !appSource.includes("submit.removeAttribute('disabled')")) throw new Error('First-run avatar Continue enable hotfix missing');
 if (!appSource.includes('function tvProfileAvatarChoices(){return PROFILE_AVATARS}') || !appSource.includes('tvProfileAvatarChoices().map')) throw new Error('Full 20-avatar TV chooser missing');
 for(const id of ['cheetah','seal','triceratops','capybara','panda','dinosaur','red-panda','kangaroo','dog','cat']){if(!profilesSource.includes(`avatar-${id}.svg`)||!fs.existsSync(new URL(`../app/src/main/assets/assets/avatar-${id}.svg`,import.meta.url)))throw new Error(`High-resolution TV avatar missing: ${id}`)}
-if(!activitySource.includes('SwoopTV/0.8.53 AndroidTV')||!activitySource.includes('out.put("versionCode", 852)'))throw new Error('Native Android v0.8.53 markers are not aligned');
+if(!activitySource.includes('SwoopTV/0.8.53 AndroidTV')||!activitySource.includes('out.put("versionCode", 853)'))throw new Error('Native Android v0.8.53 markers are not aligned');
 if (!appSource.includes('let androidProfileEntryCommitted=false;')) throw new Error('Android profile-entry commitment latch missing');
 if (!appSource.includes('if(NATIVE_ANDROID)androidProfileEntryCommitted=true;')) throw new Error('Profile selection does not commit Android Home entry');
 if (appSource.includes('refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('STARmeter still launches before profile selection');
