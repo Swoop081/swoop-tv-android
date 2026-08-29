@@ -1,3 +1,13 @@
+## v0.8.53 — Home Stability, Full-Page Scrolling + Top 100 Completion
+
+- Fixes the physical Google TV Home crash reproduced while **holding Right through a long poster rail**. Swoop TV now keeps only a bounded decoded-artwork window around focus and releases far-off rail poster surfaces while retaining their persistent artwork-cache keys for fast reload when browsing back.
+- Reduces horizontal artwork prefetch while a D-pad direction is being held and temporarily tightens the in-memory prewarm pool during sustained skipping, preventing decoded-image pressure from building continuously across ranks 1–100.
+- Temporary dark poster placeholders during extremely fast held-button skipping remain acceptable and refill from the local/persistent artwork path as focus settles; they no longer justify retaining every traversed poster texture in memory.
+- Adds a responsive **TV page tail** of at least 320 px / roughly 34% of the viewport across Home, My SwoopTV, Live TV, Movies, TV Shows, STARmeter, Search, Settings, Guide, title details and person pages so the final row can scroll fully above the bottom edge instead of being physically clipped.
+- Keeps **Snoak · Trakt Trending** as the primary rank order for Top 100 Movies and Top 100 TV Shows. If fewer than 100 Snoak titles exist in the connected provider library, missing positions are completed from matched **IMDb-popular** discovery titles, then other ranked popularity sources, with provider top-rated titles used only as the final fallback.
+- Top 100 completion preserves de-duplication by logical/provider ID, external ID and title/year and never exceeds 100 titles.
+- Android versionName/versionCode: **0.8.53 / 853**.
+
 ## v0.8.52 — High-Resolution Avatar Expansion
 
 - Restores the full **20-avatar** profile chooser on Android/Google TV while keeping every existing Swoop TV avatar available.

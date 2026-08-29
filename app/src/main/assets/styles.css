@@ -3105,3 +3105,19 @@ html.android-tv .first-run-provider-wizard :is(.provider-method,.btn,input):focu
 
 /* v0.8.51: profile choice is never blocked by optional STARmeter optimisation. */
 html.android-tv .profile-starmeter-prep{display:none!important}
+
+
+/* ========================================================================== */
+/* v0.8.53 — full-page bottom scroll tail + sustained rail stability.          */
+/* ========================================================================== */
+html.android-tv{--tv-page-tail:max(320px,34vh)}
+html.android-tv .home-content,
+html.android-tv .myswoop-content,
+html.android-tv .live-hub-content,
+html.android-tv .media-category-page .page-content,
+html.android-tv .starmeter-content,
+html.android-tv .search-page .page-content,
+html.android-tv .settings-list,
+html.android-tv .guide-page,
+html.android-tv .detail-body,
+html.android-tv .person-results{padding-bottom:var(--tv-page-tail)!important}

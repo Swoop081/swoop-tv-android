@@ -133,19 +133,19 @@ if (!updateReceiverSource.includes('STATUS_PENDING_USER_ACTION') || !updateRecei
 if (!appSource.includes('data-android-update-check') || !appSource.includes('data-android-auto-update') || !appSource.includes('data-android-update-permission')) throw new Error('Settings automatic-update controls missing');
 if (!appSource.includes('function maybeShowWhatsNewOnLogin()')) throw new Error('One-time What’s New login presentation missing');
 if (!appSource.includes('data-show-whats-new')) throw new Error('Settings What’s New route missing');
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.52';")) throw new Error('Current Android UI version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.53';")) throw new Error('Current Android UI version marker missing');
 if (!activitySource.includes('InputMethodManager') || !activitySource.includes('isWebTextInputActive()') || !activitySource.includes('imm.isAcceptingText()') || !activitySource.includes('&& !isWebTextInputActive())') ) throw new Error('First-run TV keyboard Select/Enter pass-through missing');
 if (!appSource.includes("event.key==='Enter'") || !appSource.includes('form.requestSubmit')) throw new Error('First-run keyboard Enter/Done handling missing');
 if (!appSource.includes('submit.disabled=false') || !appSource.includes("submit.removeAttribute('disabled')")) throw new Error('First-run avatar Continue enable hotfix missing');
 if (!appSource.includes('function tvProfileAvatarChoices(){return PROFILE_AVATARS}') || !appSource.includes('tvProfileAvatarChoices().map')) throw new Error('Full 20-avatar TV chooser missing');
 for(const id of ['cheetah','seal','triceratops','capybara','panda','dinosaur','red-panda','kangaroo','dog','cat']){if(!profilesSource.includes(`avatar-${id}.svg`)||!fs.existsSync(new URL(`../app/src/main/assets/assets/avatar-${id}.svg`,import.meta.url)))throw new Error(`High-resolution TV avatar missing: ${id}`)}
-if(!activitySource.includes('SwoopTV/0.8.52 AndroidTV')||!activitySource.includes('out.put("versionCode", 852)'))throw new Error('Native Android v0.8.52 markers are not aligned');
+if(!activitySource.includes('SwoopTV/0.8.53 AndroidTV')||!activitySource.includes('out.put("versionCode", 852)'))throw new Error('Native Android v0.8.53 markers are not aligned');
 if (!appSource.includes('let androidProfileEntryCommitted=false;')) throw new Error('Android profile-entry commitment latch missing');
 if (!appSource.includes('if(NATIVE_ANDROID)androidProfileEntryCommitted=true;')) throw new Error('Profile selection does not commit Android Home entry');
 if (appSource.includes('refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('STARmeter still launches before profile selection');
 if (!appSource.includes('if(androidProfileEntryCommitted){profilePickerOpen=false;render();requestAnimationFrame(()=>forceAndroidHomeEntry())')) throw new Error('Android pre-login completion can still reopen Who’s Watching after Home entry');
 if (!cssSource.includes('html.android-tv .profile-starmeter-prep{display:none!important}')) throw new Error('Who’s Watching still exposes optional STARmeter progress as a loading gate');
-if (!swSource.includes('swoop-tv-v0852-shell')) throw new Error('v0.8.52 service-worker cache marker missing');
+if (!swSource.includes('swoop-tv-v0853-shell')) throw new Error('v0.8.53 service-worker cache marker missing');
 if (appSource.includes("id:'profile-main',name:'Swoop TV',avatar:'lion'")) throw new Error('Manufactured Swoop TV/lion first-run profile still exists');
 if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes("firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider')") || !appSource.includes("let modal=(state.profiles.length||state.providers.length)?null:'provider'")) throw new Error('Zero-account provider-first onboarding missing');
 if (!appSource.includes('setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},15000)')) throw new Error('Cinema loading messages are not held for 15 seconds');
@@ -184,7 +184,7 @@ if (!appSource.includes("tvDiagRecord('key'") || !appSource.includes("tvDiagReco
 if (!appSource.includes("entryTypes:['longtask']")) throw new Error('Long-task performance observer missing');
 if (!nativeSource.includes('export async function nativeSaveDiagnostics')) throw new Error('Native diagnostic save wrapper missing');
 if (!nativeSource.includes('export async function nativeClearDiagnostics') || !activitySource.includes('public String clearDiagnostics()')) throw new Error('Native diagnostic session reset missing');
-if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.52-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
+if (!activitySource.includes('public String saveDiagnostics(String payloadJson)') || !activitySource.includes('Swoop-TV-v0.8.53-Diagnostics-')) throw new Error('Android diagnostic file export bridge missing');
 if (!activitySource.includes('rendererGoneCount') || !activitySource.includes('javaHeapUsedBytes') || !activitySource.includes('nativeKeyEventCount')) throw new Error('Native renderer/memory/key diagnostics missing');
 if (!cssSource.includes('.tv-hardware-overlay') || !cssSource.includes('pointer-events:none')) throw new Error('Non-focusable hardware HUD missing');
 
@@ -341,7 +341,7 @@ if (!appSource.includes('function trimStarmeterArtwork()')) throw new Error('v0.
 if (!appSource.includes('let budget=STARMETER_PATCH_BATCH')) throw new Error('v0.8.38 bounded STARmeter deferred patch flush missing');
 if (!cssSource.includes('v0.8.38 — STARmeter viewport-budget hotfix')) throw new Error('v0.8.38 STARmeter CSS guard missing');
 if (!cssSource.includes('grid-auto-flow:column!important;grid-template-rows:100px!important;grid-auto-rows:100px!important')) throw new Error('v0.8.38 STARmeter rail must stay single-row');
-if (!activitySource.includes('SwoopTV/0.8.52 AndroidTV') || !activitySource.includes('public String version() { return "0.8.52"; }')) throw new Error('v0.8.52 native Android markers missing');
+if (!activitySource.includes('SwoopTV/0.8.53 AndroidTV') || !activitySource.includes('public String version() { return "0.8.53"; }')) throw new Error('v0.8.53 native Android markers missing');
 
 // v0.8.44 direct Snoak/Trakt Top 100 sources.
 if (!appSource.includes("['top20-movies','trending-movies']") || !appSource.includes("['top20-shows','trending-shows']")) throw new Error('Top 100 rows are not pinned to Snoak Trakt trending lists');
@@ -349,7 +349,7 @@ if (!appSource.includes("?filtered.slice(0,HOME_RANKED_ROW_LIMIT):filtered")) th
 if (!appSource.includes("!String(id).startsWith('top20-')")) throw new Error('Top 100 local fallback guard missing');
 
 if (!appSource.includes('data-profile-starmeter-bar') || !appSource.includes("copy.textContent=starmeterBackgroundComplete?'Ready':'Please wait…'")) throw new Error('Who’s Watching preparation progress bar missing');
-if (!cssSource.includes('html.android-tv .home-content,') || !cssSource.includes('padding-bottom:210px!important')) throw new Error('Home final-row breathing room missing');
+if (!cssSource.includes('--tv-page-tail:max(320px,34vh)') || !cssSource.includes('html.android-tv .guide-page,') || !cssSource.includes('padding-bottom:var(--tv-page-tail)!important')) throw new Error('v0.8.53 global TV bottom-scroll tail missing');
 if (!cssSource.includes('html.android-tv .profile-choice:focus-visible') || !cssSource.includes('.profile-choice:focus-visible .profile-avatar-xl')) throw new Error('Avatar-only profile focus treatment missing');
 if (!activitySource.includes('setShowSubtitleButton(true)') || !activitySource.includes('setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)') || !activitySource.includes('setTimeBarScrubbingEnabled(true)')) throw new Error('Premium Media3 playback controls missing');
 if (!activitySource.includes('buildSubtitleConfigurations(JSONArray subtitleTracks)') || !nativeSource.includes('item?.subtitles') || !nativeSource.includes('subtitleUrl')) throw new Error('Sideloaded subtitle handoff missing');
@@ -364,6 +364,12 @@ if (!profilesSource.includes("id:'cheetah'") || !profilesSource.includes("id:'ca
 
 
 // v0.8.49 full-size first-run TV onboarding.
-if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.52';")) throw new Error('v0.8.52 Android web runtime version marker missing');
+if (!appSource.includes("const ANDROID_CURRENT_VERSION='0.8.53';")) throw new Error('v0.8.53 Android web runtime version marker missing');
 if (!cssSource.includes('v0.8.49 — 80% TV-first onboarding wizard') || !cssSource.includes('width:80vw!important') || !cssSource.includes('height:80vh!important')) throw new Error('First-run provider wizard is not using the 80% TV viewport canvas');
 if (!cssSource.includes('.first-run-provider-wizard .provider-method strong{font-size:clamp') || !cssSource.includes('.first-run-provider-wizard .field input,') || !cssSource.includes('.first-run-provider-wizard .cta-row .btn{')) throw new Error('First-run wizard typography/inputs/actions are not responsively TV-scaled');
+
+// v0.8.53 sustained Home browsing + ranked Top 100 completion.
+if (!appSource.includes('function tvTrimRailArtworkWindow(') || !appSource.includes('tvHeldHorizontalKeys') || !appSource.includes('trimArtworkPrewarmPool(24)')) throw new Error('v0.8.53 held-horizontal decoded-artwork memory guard missing');
+if (!appSource.includes("const ahead=tvHeldHorizontal?8:(state.page==='home'?18:16)") || !appSource.includes('delete img.dataset.swoopLoaded')) throw new Error('v0.8.53 bounded rail artwork window missing');
+if (!appSource.includes('async function completeTop100RankedFallback(') || !appSource.includes('sources.imdbPopular') || !appSource.includes('sources.tmdbPopular')) throw new Error('v0.8.53 externally ranked Top 100 completion missing');
+if (!appSource.includes("if(String(id).startsWith('top20-')&&items.length<HOME_RANKED_ROW_LIMIT)items=await completeTop100RankedFallback")) throw new Error('Snoak Top 100 rows do not invoke ranked completion when provider matches are short');
