@@ -277,7 +277,7 @@ if (!appSource.includes("if('serviceWorker'in navigator&&location.protocol.start
 if (!storageSource.includes('schema:3') || !storageSource.includes('chunkHashes') || !storageSource.includes('catalogChunkFingerprint')) throw new Error('Incremental durable catalogue chunk persistence missing');
 
 // v0.8.37 physical-TV UX + STARmeter renderer-memory hotfix.
-if (!appSource.includes('const ARTWORK_PREWARM_MEMORY_LIMIT=NATIVE_ANDROID?48:260') || !appSource.includes('function trimArtworkPrewarmPool()')) throw new Error('v0.8.37 Android decoded-artwork memory cap missing');
+if (!appSource.includes('const ARTWORK_PREWARM_MEMORY_LIMIT=NATIVE_ANDROID?48:260') || !appSource.includes('function trimArtworkPrewarmPool(limit=ARTWORK_PREWARM_MEMORY_LIMIT)')) throw new Error('v0.8.53 Android decoded-artwork memory cap missing');
 if (appSource.includes('prewarmArtworkUrls(rounds,160)') || !appSource.includes('const hot=starmeterPeople.slice(0,12)')) throw new Error('STARmeter still performs the v0.8.36 all-people artwork prewarm');
 if (!appSource.includes('STARMETER_HYDRATE_CONCURRENCY=2') || !appSource.includes('STARMETER_PREFETCH_AHEAD=6') || !appSource.includes('STARMETER_TITLE_RENDER_LIMIT=8')) throw new Error('STARmeter memory-pressure limits are not active');
 if (!cssSource.includes('grid-template-columns:136px minmax(0,1fr)!important') || !cssSource.includes('height:136px!important') || !cssSource.includes('grid-auto-columns:70px!important')) throw new Error('Five-up STARmeter TV geometry missing');
