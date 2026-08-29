@@ -221,7 +221,7 @@ if (!cssSource.includes('.episode-card') || !cssSource.includes('grid-template-c
 // v0.8.32 fast-navigation + hydration stability regressions.
 if (!appSource.includes('STARMETER_HYDRATE_CONCURRENCY=2') || !appSource.includes('STARMETER_PREFETCH_AHEAD=6') || !appSource.includes('STARMETER_TITLE_RENDER_LIMIT=8')) throw new Error('v0.8.37 STARmeter memory-safe concurrency/lookahead/title limits missing');
 if (!appSource.includes('const visible=starmeterPeople.slice(0,100)')) throw new Error('STARmeter does not mount a fixed 100-row surface');
-if (!appSource.includes('function tvPrefetchArtworkWindow(current,ahead=28,behind=3)')) throw new Error('Directional TV artwork prefetch window missing');
+if (!appSource.includes('function tvPrefetchArtworkWindow(current,ahead=18,behind=4)')) throw new Error('Bounded directional TV artwork prefetch window missing');
 if (!appSource.includes('const artworkPrewarmPool=new Map()') || !appSource.includes("[item?.backdrop,'w1280']")) throw new Error('Correct-size retained hero artwork prewarm missing');
 if (!appSource.includes('let homeHeroSwapToken=0') || !appSource.includes('async function replaceHomeHero()')) throw new Error('Atomic Home hero swap guard missing');
 if (!appSource.includes('async function prewarmAndroidEntryArtwork(timeoutMs=1800)')) throw new Error('Android profile-to-Home entry prewarm missing');
