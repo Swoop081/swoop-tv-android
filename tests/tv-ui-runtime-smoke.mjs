@@ -145,7 +145,7 @@ if (!appSource.includes('if(NATIVE_ANDROID)androidProfileEntryCommitted=true;'))
 if (appSource.includes('refreshPerformancePackInfo().catch(()=>null);prepareStarmeterBeforeLogin().catch(()=>false)')) throw new Error('STARmeter still launches before profile selection');
 if (!appSource.includes('if(androidProfileEntryCommitted){profilePickerOpen=false;render();requestAnimationFrame(()=>forceAndroidHomeEntry())')) throw new Error('Android pre-login completion can still reopen Who’s Watching after Home entry');
 if (!cssSource.includes('html.android-tv .profile-starmeter-prep{display:none!important}')) throw new Error('Who’s Watching still exposes optional STARmeter progress as a loading gate');
-if (!swSource.includes('swoop-tv-v0851-shell')) throw new Error('v0.8.51 service-worker cache marker missing');
+if (!swSource.includes('swoop-tv-v0852-shell')) throw new Error('v0.8.52 service-worker cache marker missing');
 if (appSource.includes("id:'profile-main',name:'Swoop TV',avatar:'lion'")) throw new Error('Manufactured Swoop TV/lion first-run profile still exists');
 if (!appSource.includes('const FIRST_ACCOUNT_SCHEMA=1;') || !appSource.includes("firstRunStage=state.profiles.length?'done':(state.providers.length?'avatar':'provider')") || !appSource.includes("let modal=(state.profiles.length||state.providers.length)?null:'provider'")) throw new Error('Zero-account provider-first onboarding missing');
 if (!appSource.includes('setInterval(()=>{androidBootFunIndex=(androidBootFunIndex+1)%ANDROID_BOOT_FUN_LINES.length;tick()},15000)')) throw new Error('Cinema loading messages are not held for 15 seconds');
