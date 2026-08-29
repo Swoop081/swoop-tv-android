@@ -1,3 +1,13 @@
+## v0.8.52 — High-Resolution Avatar Expansion
+
+- Restores the full **20-avatar** profile chooser on Android/Google TV while keeping every existing Swoop TV avatar available.
+- Replaces the ten low-resolution secondary avatar placeholders with crisp scalable TV artwork for **Cat, Dog, Kangaroo, Red Panda, Dinosaur, Panda, Capybara, Triceratops, Seal and Cheetah Cub**.
+- Keeps the existing large first-run profile/onboarding presentation and D-pad-friendly avatar selection flow introduced in the v0.8.49–v0.8.51 onboarding fixes.
+- Removes the temporary production-resolution filter that limited TV users to the original ten avatars once the secondary set is upgraded.
+- Aligns native Android diagnostics, WebView/provider user-agent markers and bridge version reporting with the actual v0.8.52 package version.
+- Bumps the packaged shell cache so upgraded avatar artwork and chooser logic cannot be shadowed by the previous v0.8.51 shell.
+- Android versionName/versionCode: **0.8.52 / 852**.
+
 ## v0.8.51 — Profile Entry Race + Background Optimisation Hotfix
 
 - Fixes the Android/Google TV launch race that could successfully enter Home and then kick the viewer back to **Who’s watching?** when the original pre-login task completed.
